@@ -1,0 +1,58 @@
+:host {
+  display: block;
+}
+
+.wrap {
+  max-width: 68ch;
+  padding: 2.5rem 1.5rem 4rem;
+  margin: 0 auto;
+  color: var(--e-ink);
+}
+
+.back {
+  margin: 0 0 1.75rem;
+  font-size: 0.8rem;
+}
+
+.back a {
+  color: var(--e-accent);
+  text-decoration: none;
+}
+
+.back a:hover {
+  text-decoration: underline;
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+h2 {
+  margin: 2rem 0 0.6rem;
+  font-size: 1rem;
+  font-weight: 620;
+}
+
+p {
+  margin: 0 0 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--e-muted);
+}
+
+.lede {
+  font-size: 0.97rem;
+  color: var(--e-ink);
+}
+
+code {
+  padding: 0.1em 0.35em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--e-accent-on-soft);
+  background-color: var(--e-accent-soft);
+  border-radius: 0.25rem;
+}

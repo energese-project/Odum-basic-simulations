@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+     "noEmit": true,
+     "target": "esnext",
+     "module": "nodenext",
+     "moduleResolution": "nodenext",
+     "rewriteRelativeImportExtensions": true,
+     "erasableSyntaxOnly": true,
+     "verbatimModuleSyntax": true,
+     "allowImportingTsExtensions": true,
+     "strict": true,
+     "noUnusedLocals": true,
+     "noUnusedParameters": true,
+     "skipLibCheck": true,
+     "lib": ["esnext", "dom"]
+  },
+  "include": ["src/**/*.ts", "e2e/**/*.ts"]
+}

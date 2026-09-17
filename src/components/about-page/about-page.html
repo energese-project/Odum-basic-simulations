@@ -1,0 +1,65 @@
+<div class="wrap">
+  <p class="back"><a href="/">&larr; Back to the workbench</a></p>
+
+  <h1>About</h1>
+
+  <p class="lede">
+    H.T. Odum's books and papers are full of simulation programs printed as BASIC
+    listings — a few dozen numbered lines that integrate a handful of storages and
+    flows and print a column of numbers. They were meant to be typed in and run.
+    Almost nobody has a machine that will run them any more.
+  </p>
+
+  <p>
+    This is a workbench for those listings. Pick one, read it, edit it, run it,
+    and watch the numbers it prints become a curve. The interpreter is written
+    from scratch — there is no CPU emulation and no ROM image anywhere in it,
+    which is what lets the whole thing be redistributed and run as a static page.
+  </p>
+
+  <h2>How the plot is made</h2>
+
+  <p>
+    The programs have no structured output. They print a row per integration step,
+    because a teletype was the output device. So the chart is recovered from the
+    text: a run of lines that are entirely numeric and the same width is a table,
+    the first column is the x axis, and a non-numeric line above it supplies the
+    column names. Everything the program printed stays visible in the output panel
+    beside the chart — the table is not hidden behind the picture.
+  </p>
+
+  <p>
+    This is a heuristic, deliberately. Requiring the listings to be rewritten into
+    some CSV convention would defeat the point of running the published versions.
+  </p>
+
+  <h2>What the interpreter does and does not do</h2>
+
+  <p>
+    It runs Commodore-era BASIC V2: <code>PRINT</code>, <code>LET</code>,
+    <code>FOR</code>/<code>NEXT</code>, <code>IF</code>/<code>THEN</code>,
+    <code>GOTO</code>, <code>GOSUB</code>/<code>RETURN</code>, <code>INPUT</code>,
+    <code>DIM</code>, <code>DATA</code>/<code>READ</code>, and the usual maths and
+    string functions including <code>EXP</code> and <code>LOG</code>.
+  </p>
+
+  <p>
+    It does not yet run the GW-BASIC and QuickBASIC features the later listings
+    use: <code>SCREEN</code>, <code>PSET</code> and <code>LINE</code>,
+    <code>WHILE</code>/<code>WEND</code>, <code>DEF FN</code>,
+    <code>ON…GOTO</code>, <code>SELECT CASE</code> and <code>PRINT USING</code>.
+    The plotting statements are the interesting ones: implemented as data emitters
+    rather than as pixels, <code>PSET</code> and <code>LINE</code> would turn a
+    320&times;200 screen plot into a real chart with axes. That is the next piece
+    of work, and it is what will let most of the graphical mini-models run
+    unaltered.
+  </p>
+
+  <h2>Provenance</h2>
+
+  <p>
+    The programs in the library here are written for this repository as worked
+    examples of the model forms — a charge-and-discharge storage, logistic growth
+    against a limiting source, two tanks in series. They are not transcriptions.
+  </p>
+</div>

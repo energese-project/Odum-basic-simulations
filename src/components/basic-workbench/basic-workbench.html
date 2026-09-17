@@ -1,0 +1,48 @@
+<div class="shell">
+  <header class="masthead">
+    <div class="titles">
+      <h1>Odum BASIC Simulations</h1>
+      <p class="tagline">
+        The simulation listings from the systems-ecology literature, running in a
+        browser instead of on a teletype.
+      </p>
+    </div>
+    <div class="masthead-actions">
+      <a class="about-link" href="/about">About</a>
+      <theme-toggle></theme-toggle>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label class="field">
+      <span>Program</span>
+      <select data-testid="program-select"></select>
+    </label>
+    <p class="description" data-testid="program-description"></p>
+    <div class="spacer"></div>
+    <button type="button" class="primary" data-testid="run">Run</button>
+    <button type="button" class="ghost" data-testid="stop" disabled>Stop</button>
+    <button type="button" class="ghost" data-testid="download" disabled>Download CSV</button>
+  </div>
+
+  <main class="panes">
+    <section class="pane editor-pane" aria-label="Program source">
+      <h2 class="pane-title">Source</h2>
+      <code-editor></code-editor>
+    </section>
+
+    <section class="pane output-pane" aria-label="Results">
+      <div class="pane-block chart-block">
+        <h2 class="pane-title">Plot</h2>
+        <chart-panel></chart-panel>
+      </div>
+      <div class="pane-block console-block">
+        <h2 class="pane-title">
+          Output
+          <span class="status" data-testid="status"></span>
+        </h2>
+        <console-panel></console-panel>
+      </div>
+    </section>
+  </main>
+</div>

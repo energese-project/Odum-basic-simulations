@@ -1,0 +1,13 @@
+10 REM Guess The Number
+20 REM Exercises INPUT, so it is the test that the console round-trips.
+30 LET N = INT(RND(1) * 100) + 1
+40 LET T = 0
+50 PRINT "GUESS A NUMBER 1-100"
+60 INPUT "YOUR GUESS"; G
+70 LET T = T + 1
+80 IF G = N THEN GOTO 120
+90 IF G < N THEN PRINT "TOO LOW"
+100 IF G > N THEN PRINT "TOO HIGH"
+110 GOTO 60
+120 PRINT "CORRECT! TRIES: "; T
+130 END
