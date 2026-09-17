@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+@import './energese.css';
+
+/* The palette lives in energese.css, which is duplicated into other repositories —
+   see that file's header. Nothing colour-related belongs here; this file is
+   layout only, so the copies stay diffable. */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--e-ground);
+  color: var(--e-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* The workbench is a fixed-height, three-panel application rather than a page
+   that scrolls, so the outlet gives it the viewport and each panel scrolls
+   inside its own box. The about page opts out by being `height: auto`. */
+#router-outlet {
+  min-height: 100%;
+}

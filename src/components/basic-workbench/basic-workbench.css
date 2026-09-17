@@ -1,0 +1,228 @@
+:host {
+  display: block;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+/* Masthead ---------------------------------------------------------------- */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--e-ink);
+}
+
+.tagline {
+  max-width: 62ch;
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--e-muted);
+}
+
+.masthead-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.about-link {
+  font-size: 0.8rem;
+  color: var(--e-accent);
+  text-decoration: none;
+}
+
+.about-link:hover {
+  text-decoration: underline;
+}
+
+/* Toolbar ----------------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background-color: var(--e-surface);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.6rem;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--e-muted);
+}
+
+.field select {
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--e-ink);
+  background-color: var(--e-surface-sunken);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.4rem;
+}
+
+.description {
+  flex: 1 1 22ch;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.76rem;
+  color: var(--e-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.toolbar button {
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: 0.8rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+/* --e-accent on --e-ground, not on white: --e-ink is near-white in dark mode,
+   so white-on-ink would invert into white-on-white. */
+.toolbar button.primary {
+  color: var(--e-ground);
+  background-color: var(--e-accent);
+  border: 1px solid transparent;
+}
+
+.toolbar button.primary:hover:not(:disabled) {
+  background-color: var(--e-accent-hover);
+}
+
+.toolbar button.ghost {
+  color: var(--e-ink);
+  background-color: transparent;
+  border: 1px solid var(--e-rule);
+}
+
+.toolbar button.ghost:hover:not(:disabled) {
+  border-color: var(--e-accent);
+  color: var(--e-accent);
+}
+
+.toolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.toolbar button:focus-visible,
+.field select:focus-visible,
+.about-link:focus-visible {
+  outline: 2px solid var(--e-accent);
+  outline-offset: 2px;
+}
+
+/* Panes ------------------------------------------------------------------- */
+
+.panes {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.pane,
+.pane-block {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.output-pane {
+  gap: 0.75rem;
+}
+
+.chart-block {
+  flex: 1 1 62%;
+}
+
+.console-block {
+  flex: 1 1 38%;
+}
+
+.pane-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--e-muted);
+  text-transform: uppercase;
+}
+
+.status {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.editor-pane code-editor,
+.chart-block chart-panel,
+.console-block console-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid var(--e-rule);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.console-block console-panel {
+  border: none;
+}
+
+@media (max-width: 60rem) {
+  :host {
+    height: auto;
+  }
+
+  .panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-pane {
+    min-height: 22rem;
+  }
+
+  .chart-block {
+    min-height: 20rem;
+  }
+
+  .console-block {
+    min-height: 14rem;
+  }
+}

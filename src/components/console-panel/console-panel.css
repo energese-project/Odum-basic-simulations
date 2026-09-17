@@ -1,0 +1,74 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.console {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.out {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0.75rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 12;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--e-ink);
+  background-color: var(--e-surface-sunken);
+  border-radius: 0.5rem;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.prompt {
+  font-size: 0.75rem;
+  color: var(--e-muted);
+}
+
+.input-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--e-ink);
+  background-color: var(--e-surface);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.4rem;
+}
+
+.input-row input:focus-visible,
+.input-row button:focus-visible {
+  outline: 2px solid var(--e-accent);
+  outline-offset: 1px;
+}
+
+.input-row button {
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--e-ground);
+  background-color: var(--e-accent);
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.input-row button:hover {
+  background-color: var(--e-accent-hover);
+}

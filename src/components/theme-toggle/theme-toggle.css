@@ -1,0 +1,32 @@
+:host {
+  display: inline-flex;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--e-ink);
+  background-color: var(--e-surface);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  border-color: var(--e-accent);
+  color: var(--e-accent);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--e-accent);
+  outline-offset: 2px;
+}
+
+.icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}

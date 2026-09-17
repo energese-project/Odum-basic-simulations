@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Odum BASIC Simulations</title>
+    <meta
+      name="description"
+      content="Run the BASIC simulation programs from H.T. Odum's systems ecology books in the browser, and plot what they compute."
+    />
+    <!-- Set the theme before first paint. Doing this from main.ts instead would
+         render one light frame on a dark-preferring machine, because the module
+         is deferred until after the document is parsed. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('obs-theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+          }
+        } catch (e) {
+          /* private mode: fall through to the OS preference */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="router-outlet"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
