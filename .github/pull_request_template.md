@@ -10,6 +10,8 @@ Anything else? Delete the checklist and describe the change.
 - [ ] `fidelity` is the **lowest** value that is true
 - [ ] if `corrected`, `notes` lists every change from the source
 - [ ] a photo or scan of the source page is **attached to this PR**, not committed
+- [ ] if adding `programs/<id>.png|jpg|webp`: the sidecar's `diagram.rights` says
+      on what basis it may be published, and the image is cropped to the figure
 
 **Source:** <!-- the citation, and where you found the listing -->
 

@@ -212,3 +212,65 @@ test('LaTeX specials are escaped in text fields but not in a DOI or URL', () => 
   assert.match(entry, /doi = \{10\.1000\/a_b%20c\},/);
   assert.match(entry, /url = \{https:\/\/example\.org\/\?a=1&b=2\}\n\}$/);
 });
+
+// Diagrams --------------------------------------------------------------------
+
+const DIAGRAM = {
+  file: 'test.png',
+  caption: 'Energy systems diagram of the storage and its outflow.',
+  figure: 'Figure 5-3, p. 112',
+  rights: {
+    basis: 'fair-use',
+    statement: 'Reproduced for scholarship, beside the listing it documents.',
+  },
+};
+
+test('a diagram with its rights recorded parses', () => {
+  const meta = parse({ ...VERBATIM, diagram: DIAGRAM });
+  assert.deepEqual(meta.diagram, DIAGRAM);
+});
+
+test('a program with no diagram has none, rather than an empty one', () => {
+  assert.equal(parse(VERBATIM).diagram, undefined);
+});
+
+test('the diagram file is named for its program, as a raster image', () => {
+  // One diagram per program, found without reading the sidecar. SVG is refused
+  // because a raw SVG opened from the published site runs its own scripts.
+  for (const file of ['other.png', 'test.svg', 'test.gif', 'figures/test.png']) {
+    assert.throws(() => parse({ ...VERBATIM, diagram: { ...DIAGRAM, file } }), /diagram\.file/);
+  }
+  for (const file of ['test.png', 'test.jpg', 'test.jpeg', 'test.webp']) {
+    assert.equal(parse({ ...VERBATIM, diagram: { ...DIAGRAM, file } }).diagram?.file, file);
+  }
+});
+
+test('a diagram needs a caption, because the caption is its alt text', () => {
+  assert.throws(
+    () => parse({ ...VERBATIM, diagram: { ...DIAGRAM, caption: '' } }),
+    /"diagram\.caption" is required/
+  );
+});
+
+test('a diagram cannot be added without saying on what basis it is reproduced', () => {
+  const { rights: _, ...noRights } = DIAGRAM;
+  assert.throws(() => parse({ ...VERBATIM, diagram: noRights }), /"diagram\.rights" is required/);
+  assert.throws(
+    () => parse({ ...VERBATIM, diagram: { ...DIAGRAM, rights: { basis: 'because' } } }),
+    /"diagram\.rights\.basis" must be one of/
+  );
+  assert.throws(
+    () => parse({ ...VERBATIM, diagram: { ...DIAGRAM, rights: { basis: 'permission' } } }),
+    /"diagram\.rights\.statement" is required/
+  );
+});
+
+test('a reproduced figure must come from a cited source; a drawing of our own need not', () => {
+  // A scan with no citation is a figure from nowhere — worse than no figure.
+  assert.throws(
+    () => parse({ ...ORIGINAL, diagram: DIAGRAM }),
+    /reproduced diagram needs a "source"/
+  );
+  const own = { ...DIAGRAM, rights: { basis: 'own-work', statement: 'Drawn for this repository.' } };
+  assert.equal(parse({ ...ORIGINAL, diagram: own }).diagram?.rights.basis, 'own-work');
+});

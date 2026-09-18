@@ -211,9 +211,15 @@ in [`programs/README.md`](programs/README.md); what matters for changing the cod
 - **The raw files are published**, not just the index, so a citation can link to
   the listing itself. The e2e suite checks each published `.bas` is byte-identical
   to the catalog copy the app ran.
-- **Only `.bas`, `.json` and `README.md` may live in `programs/`.** It is published
-  verbatim; a scanned page dropped in beside its listing would be redistributed
-  from a public site. Scans belong in the pull request.
+- **Only `.bas`, `.json`, `README.md` and declared diagrams may live in
+  `programs/`.** It is published verbatim. A diagram (`<id>.png|jpg|jpeg|webp`,
+  ≤ 2 MB, content matching its extension) is published only when its sidecar's
+  `diagram` block records the rights it is reproduced under. `rights.basis` has no
+  default, for the same reason as `fidelity`, and anything other than `own-work`
+  needs a `source`. An image no sidecar claims fails the build: nobody has said it
+  may be published. Page photos for the reviewer still belong in the pull request.
+- **No SVG diagrams.** An SVG opened directly from the published site runs its own
+  scripts on the org's `github.io` origin. Raster images cannot.
 
 ## 11. Design tokens
 

@@ -18,12 +18,8 @@
       <select data-testid="program-select"></select>
     </label>
 
-    <!-- The fidelity is the one fact that must stay in view with the sidebar
-         closed: it changes what every number on the screen means. -->
-    <button type="button" class="chip" data-testid="fidelity-chip"></button>
-
-    <div class="spacer"></div>
-
+    <!-- Beside the picker, not at the far edge: Run acts on the program named
+         next to it. Fidelity is on every library row and in the details. -->
     <button type="button" class="action primary" data-testid="run">
       <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
         <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
@@ -45,7 +41,7 @@
       <span class="label">CSV</span>
     </button>
 
-    <span class="divider" aria-hidden="true"></span>
+    <div class="spacer"></div>
 
     <a class="about-link" href="/about">About</a>
     <theme-toggle></theme-toggle>
@@ -68,6 +64,15 @@
       </section>
 
       <section class="pane output-pane" data-testid="output-pane" aria-label="Results">
+        <div class="pane-block diagram-block" data-testid="diagram-pane" hidden>
+          <h2 class="pane-title">
+            Diagram
+            <span class="figure-ref"></span>
+          </h2>
+          <a class="diagram-frame" target="_blank" rel="noopener" title="Open the diagram full size">
+            <img alt="" decoding="async" />
+          </a>
+        </div>
         <div class="pane-block chart-block">
           <h2 class="pane-title">Plot</h2>
           <chart-panel></chart-panel>

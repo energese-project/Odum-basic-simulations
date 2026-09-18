@@ -56,6 +56,34 @@ export interface ProgramSource {
   url?: string;
 }
 
+/**
+ * On what basis a diagram is reproduced here.
+ *  - `own-work`       drawn for this repository; nothing to clear
+ *  - `public-domain`  out of copyright, or never in it
+ *  - `licensed`       under a licence that allows it (say which in the statement)
+ *  - `permission`     the rights holder agreed (say who, and when)
+ *  - `fair-use`       fair use or fair dealing: reproduced for scholarship,
+ *                     criticism or review, beside the listing it documents
+ *
+ * Like fidelity, there is no default. A figure from a book is someone's work,
+ * and the person adding it is the one who has to say why it may be here.
+ */
+export const RIGHTS_BASES = ['own-work', 'public-domain', 'licensed', 'permission', 'fair-use'] as const;
+export type RightsBasis = (typeof RIGHTS_BASES)[number];
+
+/** Raster only: a raw SVG opened from the published site would run its scripts. */
+export const DIAGRAM_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
+
+export interface ProgramDiagram {
+  /** `<id>.<ext>` in programs/ — one diagram per program. */
+  file: string;
+  /** What the diagram shows. Also its alt text. */
+  caption: string;
+  /** Where it is in the source, e.g. "Figure 5-3, p. 112". */
+  figure?: string;
+  rights: { basis: RightsBasis; statement: string };
+}
+
 export interface ProgramMeta {
   id: string;
   title: string;
@@ -65,6 +93,7 @@ export interface ProgramMeta {
   source?: ProgramSource;
   notes?: string;
   tags: string[];
+  diagram?: ProgramDiagram;
 }
 
 export class MetadataError extends Error {}
@@ -137,6 +166,55 @@ function parseSource(id: string, raw: unknown): ProgramSource {
   };
 }
 
+function parseDiagram(id: string, raw: unknown, hasSource: boolean): ProgramDiagram {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    fail(id, '"diagram" must be an object');
+  }
+  const d = raw as Record<string, unknown>;
+
+  const file = requireString(id, d.file, 'diagram.file');
+  const named = new RegExp(`^${id}\\.(${DIAGRAM_EXTENSIONS.join('|')})$`);
+  if (!named.test(file)) {
+    fail(
+      id,
+      `"diagram.file" must be ${id}.${DIAGRAM_EXTENSIONS.join(` or ${id}.`)}, ` +
+        `beside the listing (got "${file}")`
+    );
+  }
+
+  const caption = requireString(id, d.caption, 'diagram.caption');
+  const figure = optionalString(id, d.figure, 'diagram.figure');
+
+  if (typeof d.rights !== 'object' || d.rights === null || Array.isArray(d.rights)) {
+    fail(
+      id,
+      `"diagram.rights" is required: an object with "basis" (${RIGHTS_BASES.join(', ')}) ` +
+        'and a "statement" saying why this image may be published here'
+    );
+  }
+  const r = d.rights as Record<string, unknown>;
+  const basis = requireString(id, r.basis, 'diagram.rights.basis');
+  if (!(RIGHTS_BASES as readonly string[]).includes(basis)) {
+    fail(id, `"diagram.rights.basis" must be one of ${RIGHTS_BASES.join(', ')} (got "${basis}")`);
+  }
+  const statement = requireString(id, r.statement, 'diagram.rights.statement');
+
+  if (basis !== 'own-work' && !hasSource) {
+    fail(
+      id,
+      `a reproduced diagram needs a "source" to say where it was reproduced from ` +
+        `(rights basis is "${basis}"). A diagram drawn for this repository is "own-work".`
+    );
+  }
+
+  return {
+    file,
+    caption,
+    ...(figure ? { figure } : {}),
+    rights: { basis: basis as RightsBasis, statement },
+  };
+}
+
 /**
  * Parse one sidecar. Throws MetadataError with a message naming the file and
  * the field, because this runs in a build and the reader is a contributor who
@@ -187,6 +265,9 @@ export function parseProgramMeta(id: string, json: string): ProgramMeta {
     source: hasSource ? parseSource(id, m.source) : undefined,
     notes,
     tags,
+    ...(m.diagram !== undefined && m.diagram !== null
+      ? { diagram: parseDiagram(id, m.diagram, hasSource) }
+      : {}),
   };
 }
 

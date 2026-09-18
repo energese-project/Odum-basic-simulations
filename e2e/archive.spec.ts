@@ -44,6 +44,20 @@ test('every listing is published as a real file at the URL its citation uses', a
   }
 });
 
+test('every declared diagram is published as an image at the URL its program uses', async ({
+  request,
+}) => {
+  const catalog = await (await request.get('./programs/index.json')).json();
+  const withDiagrams = catalog.programs.filter((p: { diagram: unknown }) => p.diagram);
+  expect(withDiagrams.length, 'at least one program carries a diagram').toBeGreaterThan(0);
+
+  for (const program of withDiagrams) {
+    const image = await request.get(`./programs/${program.diagram.file}`);
+    expect(image.ok(), `${program.diagram.file} is fetchable`).toBeTruthy();
+    expect(image.headers()['content-type']).toMatch(/^image\//);
+  }
+});
+
 test('the sidecars are published too, so the metadata is citable on its own', async ({
   request,
 }) => {

@@ -61,7 +61,7 @@ export default function programsPlugin() {
       // Vite only watches its own module graph; programs/ is outside it.
       server.watcher.add(join(root, PROGRAMS_DIR));
       server.watcher.on('all', (_event, file) => {
-        if (file.includes(`${PROGRAMS_DIR}/`) && /\.(bas|json)$/.test(file)) {
+        if (file.includes(`${PROGRAMS_DIR}/`) && /\.(bas|json|png|jpe?g|webp)$/.test(file)) {
           server.ws.send({ type: 'full-reload' });
         }
       });
@@ -84,6 +84,15 @@ export default function programsPlugin() {
           fileName: `${PROGRAMS_DIR}/${program.id}.json`,
           source: readFileSync(join(root, PROGRAMS_DIR, `${program.id}.json`), 'utf8'),
         });
+        // Only a diagram its sidecar declares — readCatalog has already refused
+        // any image whose rights are not recorded.
+        if (program.diagram) {
+          this.emitFile({
+            type: 'asset',
+            fileName: `${PROGRAMS_DIR}/${program.diagram.file}`,
+            source: readFileSync(join(root, PROGRAMS_DIR, program.diagram.file)),
+          });
+        }
       }
     },
   };

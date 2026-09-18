@@ -1,6 +1,6 @@
 import { BaseComponent } from '../../core/base-component.ts';
 import { formatCitation, toBibtex } from '../../basic/program-catalog.ts';
-import { programUrl, type Program } from '../../basic/programs.ts';
+import { diagramUrl, programUrl, type Program } from '../../basic/programs.ts';
 import template from './program-meta.html?raw';
 import style from './program-meta.css?raw';
 
@@ -23,6 +23,14 @@ export const FIDELITY_EXPLANATION: Record<string, string> = {
   corrected: 'Transcribed from the source, with errors in the original fixed — see the note.',
   adapted: 'The published model, rewritten to run here. Not the published listing.',
   original: 'Written for this repository as a worked example. Not from a published listing.',
+};
+
+const RIGHTS_LABEL: Record<string, string> = {
+  'own-work': 'own work',
+  'public-domain': 'public domain',
+  licensed: 'licensed',
+  permission: 'by permission',
+  'fair-use': 'fair use / fair dealing',
 };
 
 export class ProgramMetaComponent extends BaseComponent {
@@ -61,6 +69,14 @@ export class ProgramMetaComponent extends BaseComponent {
     const bibtexBlock = this.querySelector<HTMLDetailsElement>('[data-testid="bibtex-block"]');
     if (bibtexBlock) bibtexBlock.hidden = !program.source;
     this.text('bibtex', program.source ? toBibtex(program.id, program.source) : '');
+
+    const diagram = program.diagram;
+    this.reveal('[data-testid="meta-diagram"]', Boolean(diagram));
+    this.text('diagram-caption', diagram?.caption ?? '');
+    this.text('diagram-figure', diagram?.figure ?? '');
+    this.reveal('[data-testid="diagram-figure"]', Boolean(diagram?.figure));
+    this.text('diagram-basis', diagram ? RIGHTS_LABEL[diagram.rights.basis] : '');
+    this.text('diagram-rights', diagram?.rights.statement ?? '');
 
     this.text('meta-notes', program.notes ?? '');
     this.reveal('.notes-field', Boolean(program.notes));
@@ -126,6 +142,9 @@ export class ProgramMetaComponent extends BaseComponent {
   private linksFor(program: Program, repositoryUrl: string): { label: string; href: string }[] {
     const links = [
       { label: `${program.file} (raw)`, href: programUrl(program) },
+      ...(program.diagram
+        ? [{ label: `${program.diagram.file} (full size)`, href: diagramUrl(program) ?? '' }]
+        : []),
       {
         label: 'History on GitHub',
         href: `${repositoryUrl}/commits/main/programs/${program.file}`,

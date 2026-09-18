@@ -72,15 +72,40 @@
 
 :host .explain,
 :host .citation,
-:host .notes {
+:host .notes,
+:host .caption,
+:host .figure,
+:host .rights {
   margin: 0;
   font-size: 0.76rem;
   line-height: 1.5;
 }
 
 :host .explain,
-:host .notes {
+:host .notes,
+:host .figure,
+:host .rights {
   color: var(--e-muted);
+}
+
+:host .caption {
+  color: var(--e-ink);
+}
+
+:host .rights {
+  margin-top: 0.3rem;
+}
+
+/* The basis is the fact; the statement is the reasoning behind it. */
+:host .basis {
+  margin-right: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.66rem;
+  font-weight: 650;
+  color: var(--e-ink);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.3rem;
+  white-space: nowrap;
 }
 
 :host .citation {
