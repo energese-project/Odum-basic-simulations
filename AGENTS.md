@@ -164,6 +164,11 @@ Conventions:
   that owns DOM — a Monaco editor, a Chart.js instance — must not use it, and must
   dispose that object in `disconnectedCallback()`. Monaco leaks its model as well as
   its editor, so both are disposed.
+- **Only `:host` is scoped.** `BaseComponent` rewrites `:host` to the tag name and
+  leaves every other selector alone, so a bare `.title` or `.empty` in one component's
+  CSS restyles every element with that class on the page — including inside Monaco's
+  DOM. Prefix each selector with `:host` (`:host .title`). Nothing fails when this is
+  forgotten; the text is just the wrong size somewhere else.
 
 ## 9. The interpreter
 

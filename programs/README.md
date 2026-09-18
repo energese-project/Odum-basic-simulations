@@ -91,16 +91,18 @@ translation.
 
 ### Everything else
 
-- `title` and `description` — required; shown in the program picker.
+- `title` and `description` — required; shown in the program picker and the
+  library sidebar.
 - `notes` — optional, except for `corrected`. Where the listing came from beyond
   the citation, what was hard to read, what differs from the source.
-- `tags` — optional, free-form.
+- `tags` — optional, free-form. The library filter searches them, and clicking one
+  in the details panel lists every program that shares it.
 
 ## Checking your work locally
 
 ```sh
 make test-unit     # includes the archive checks
-make dev           # then open the program and look at the provenance panel
+make dev           # then open the program and read its details in the sidebar
 ```
 
 The same checks run in CI on every pull request.

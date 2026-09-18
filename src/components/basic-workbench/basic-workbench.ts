@@ -4,6 +4,7 @@ import { Router } from '../../core/router/router.ts';
 import { Runner } from '../../basic/runner.ts';
 import { extractPlot, toCsv, type Plot } from '../../basic/output.ts';
 import { findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
+import { sidebarOpen } from '../../basic/program-library.ts';
 import template from './basic-workbench.html?raw';
 import style from './basic-workbench.css?raw';
 
@@ -12,11 +13,13 @@ import '../console-panel/console-panel.ts';
 import '../chart-panel/chart-panel.ts';
 import '../theme-toggle/theme-toggle.ts';
 import '../program-meta/program-meta.ts';
+import '../program-library/program-library.ts';
 
 import type { CodeEditorComponent } from '../code-editor/code-editor.ts';
 import type { ConsolePanelComponent } from '../console-panel/console-panel.ts';
 import type { ChartPanelComponent } from '../chart-panel/chart-panel.ts';
-import type { ProgramMetaComponent } from '../program-meta/program-meta.ts';
+import { FIDELITY_EXPLANATION, type ProgramMetaComponent } from '../program-meta/program-meta.ts';
+import type { ProgramLibraryComponent } from '../program-library/program-library.ts';
 
 /** How often the chart is re-derived while a program is still running. Often
  *  enough that a long integration visibly draws itself, rarely enough that
@@ -26,6 +29,14 @@ const REPLOT_MS = 250;
 /** Used to link a listing to its history. The archive is only checkable if you
  *  can see what changed since it was added. */
 const REPOSITORY_URL = 'https://github.com/energese-project/Odum-basic-simulations';
+
+/** Remembers whether the reader closed the sidebar. Wide screens only — see
+ *  sidebarOpen() for why a narrow screen ignores it. */
+const SIDEBAR_KEY = 'obs-sidebar';
+
+/** The breakpoint in basic-workbench.css below which the panes stack and the
+ *  sidebar becomes a sheet over them. The two must agree. */
+const NARROW = window.matchMedia('(max-width: 60rem)');
 
 export class BasicWorkbenchComponent extends BaseComponent {
   static tagName = 'basic-workbench';
@@ -59,6 +70,12 @@ export class BasicWorkbenchComponent extends BaseComponent {
     return this.querySelector('program-meta');
   }
 
+  private get library(): ProgramLibraryComponent | null {
+    return this.querySelector('program-library');
+  }
+
+  private readonly onBreakpoint = (): void => this.setSidebar(this.sidebarDefault());
+
   init(): void {
     bindInternalLinks(this);
 
@@ -73,6 +90,8 @@ export class BasicWorkbenchComponent extends BaseComponent {
     });
 
     this.wireControls();
+    this.setSidebar(this.sidebarDefault());
+    NARROW.addEventListener('change', this.onBreakpoint);
 
     // The catalog is fetched, not bundled — see programs.ts. Everything that
     // depends on it waits; everything that does not is already wired above, so
@@ -81,6 +100,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
       .then((programs) => {
         this.programs = programs;
         this.fillProgramList();
+        this.library?.setPrograms(programs);
         this.loadProgram(this.query?.prg ?? programs[0]?.id);
       })
       .catch((error: unknown) => {
@@ -89,6 +109,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   disconnectedCallback(): void {
+    NARROW.removeEventListener('change', this.onBreakpoint);
     this.stopReplotting();
     this.runner?.terminate();
     this.runner = null;
@@ -106,11 +127,26 @@ export class BasicWorkbenchComponent extends BaseComponent {
 
   private wireControls(): void {
     this.querySelector('select')?.addEventListener('change', (event) => {
-      const id = (event.target as HTMLSelectElement).value;
-      // Through the router, so the address bar carries the program and the page
-      // can be linked to and reloaded onto the same one.
-      Router.getInstance().navigate(`/?prg=${encodeURIComponent(id)}`);
-      this.loadProgram(id);
+      this.selectProgram((event.target as HTMLSelectElement).value);
+    });
+    this.addEventListener('program-selected', (event) => {
+      this.selectProgram((event as CustomEvent<string>).detail);
+      // On a narrow screen the sidebar is covering the program just picked.
+      if (NARROW.matches) this.setSidebar(false);
+    });
+    this.addEventListener('tag-selected', (event) => {
+      this.library?.setFilter((event as CustomEvent<string>).detail);
+    });
+
+    this.querySelector('[data-testid="sidebar-toggle"]')?.addEventListener('click', () => {
+      this.setSidebar(!this.isSidebarOpen(), { remember: true });
+    });
+    this.querySelector('[data-testid="sidebar-scrim"]')?.addEventListener('click', () => {
+      this.setSidebar(false);
+    });
+    this.querySelector('[data-testid="fidelity-chip"]')?.addEventListener('click', () => {
+      this.setSidebar(true, { remember: true });
+      this.meta?.scrollIntoView({ block: 'nearest' });
     });
 
     this.querySelector('[data-testid="run"]')?.addEventListener('click', () => this.run());
@@ -126,6 +162,13 @@ export class BasicWorkbenchComponent extends BaseComponent {
     });
   }
 
+  private selectProgram(id: string): void {
+    // Through the router, so the address bar carries the program and the page
+    // can be linked to and reloaded onto the same one.
+    Router.getInstance().navigate(`/?prg=${encodeURIComponent(id)}`);
+    this.loadProgram(id);
+  }
+
   private loadProgram(id: string | undefined): void {
     const program = findProgram(this.programs, id) ?? this.programs[0];
     if (!program) return;
@@ -133,8 +176,16 @@ export class BasicWorkbenchComponent extends BaseComponent {
     const select = this.querySelector('select');
     if (select) select.value = program.id;
 
-    const description = this.querySelector('[data-testid="program-description"]');
-    if (description) description.textContent = program.description;
+    const chip = this.querySelector<HTMLElement>('[data-testid="fidelity-chip"]');
+    if (chip) {
+      chip.textContent = program.fidelity;
+      chip.dataset.fidelity = program.fidelity;
+      chip.title = `${FIDELITY_EXPLANATION[program.fidelity] ?? ''} Click for the full record.`;
+    }
+
+    const filename = this.querySelector('[data-testid="editor-filename"]');
+    if (filename) filename.textContent = program.file;
+    this.library?.setCurrent(program.id);
 
     const editor = this.editor;
     if (editor) editor.value = program.listing;
@@ -194,6 +245,35 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   // ---------------------------------------------------------------- chrome
+
+  private sidebarDefault(): boolean {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(SIDEBAR_KEY);
+    } catch {
+      // Private browsing: fall back to the default for this screen width.
+    }
+    return sidebarOpen(stored, !NARROW.matches);
+  }
+
+  private isSidebarOpen(): boolean {
+    return this.querySelector<HTMLElement>('.shell')?.dataset.sidebar === 'open';
+  }
+
+  private setSidebar(open: boolean, { remember = false } = {}): void {
+    const shell = this.querySelector<HTMLElement>('.shell');
+    if (shell) shell.dataset.sidebar = open ? 'open' : 'closed';
+    this.querySelector('[data-testid="sidebar-toggle"]')?.setAttribute(
+      'aria-expanded',
+      String(open)
+    );
+    if (!remember || NARROW.matches) return;
+    try {
+      localStorage.setItem(SIDEBAR_KEY, open ? 'open' : 'closed');
+    } catch {
+      // Private browsing: the choice holds until the page is left.
+    }
+  }
 
   private setStatus(text: string): void {
     const status = this.querySelector('[data-testid="status"]');

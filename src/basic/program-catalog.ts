@@ -234,3 +234,46 @@ export function formatCitation(source: ProgramSource): string {
 
   return parts.join('. ').replace(/\.\.$/, '.') + (parts[parts.length - 1].endsWith('.') ? '' : '.');
 }
+
+/** In the order a BibLaTeX entry is conventionally written. */
+const BIBTEX_FIELDS = [
+  'author',
+  'title',
+  'booktitle',
+  'journal',
+  'publisher',
+  'institution',
+  'address',
+  'year',
+  'volume',
+  'pages',
+  'edition',
+  'isbn',
+  'doi',
+  'url',
+] as const;
+
+/** Read verbatim by BibLaTeX: escaping a character here would break the link. */
+const VERBATIM_FIELDS = new Set(['doi', 'url']);
+
+function escapeLatex(text: string): string {
+  return text.replace(/[&%$#_]/g, (c) => `\\${c}`);
+}
+
+/**
+ * The source as a BibLaTeX entry, keyed by the program id, for a reader who
+ * wants to cite the listing's origin without retyping it. The fields are the
+ * sidecar's own, which were named after BibLaTeX's for exactly this reason.
+ */
+export function toBibtex(key: string, source: ProgramSource): string {
+  const lines: string[] = [];
+  for (const field of BIBTEX_FIELDS) {
+    const raw = source[field];
+    if (raw === undefined) continue;
+    let value = Array.isArray(raw) ? raw.join(' and ') : String(raw);
+    if (field === 'pages') value = value.replace(/(\d)\s*-\s*(\d)/g, '$1--$2');
+    if (!VERBATIM_FIELDS.has(field)) value = escapeLatex(value);
+    lines.push(`  ${field} = {${value}}`);
+  }
+  return `@${source.type}{${key},\n${lines.join(',\n')}\n}`;
+}

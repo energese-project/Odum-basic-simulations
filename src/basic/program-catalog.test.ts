@@ -6,6 +6,7 @@ import {
   formatAuthors,
   formatCitation,
   parseProgramMeta,
+  toBibtex,
 } from './program-catalog.ts';
 
 const ORIGINAL = {
@@ -169,4 +170,45 @@ test('a chapter is marked as being in a larger work', () => {
     },
   });
   assert.match(formatCitation(meta.source!), /In: Ecological Modelling/);
+});
+
+test('a source exports as a BibLaTeX entry keyed by the program id', () => {
+  assert.equal(
+    toBibtex('mini-model', parse(VERBATIM).source!),
+    [
+      '@book{mini-model,',
+      '  author = {Odum, Howard T.},',
+      '  title = {Systems Ecology: An Introduction},',
+      '  publisher = {Wiley},',
+      '  address = {New York},',
+      '  year = {1983},',
+      '  pages = {123--125}',
+      '}',
+    ].join('\n')
+  );
+});
+
+test('several authors are joined with "and", as BibTeX requires', () => {
+  const meta = parse({
+    ...VERBATIM,
+    source: { ...VERBATIM.source, author: ['Odum, Howard T.', 'Odum, Elisabeth C.'] },
+  });
+  assert.match(toBibtex('k', meta.source!), /author = \{Odum, Howard T\. and Odum, Elisabeth C\.\},/);
+});
+
+test('LaTeX specials are escaped in text fields but not in a DOI or URL', () => {
+  // An unescaped & is a hard error in LaTeX; an escaped one in a DOI is a broken link.
+  const meta = parse({
+    ...VERBATIM,
+    source: {
+      ...VERBATIM.source,
+      publisher: 'John Wiley & Sons',
+      doi: '10.1000/a_b%20c',
+      url: 'https://example.org/?a=1&b=2',
+    },
+  });
+  const entry = toBibtex('k', meta.source!);
+  assert.match(entry, /publisher = \{John Wiley \\& Sons\},/);
+  assert.match(entry, /doi = \{10\.1000\/a_b%20c\},/);
+  assert.match(entry, /url = \{https:\/\/example\.org\/\?a=1&b=2\}\n\}$/);
 });
