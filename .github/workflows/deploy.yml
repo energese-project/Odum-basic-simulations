@@ -38,7 +38,20 @@ jobs:
       - name: Disable Jekyll
         run: touch dist/.nojekyll
 
+      # `enablement: true` turns Pages on for the repository if it is not already,
+      # rather than failing. Without it the first deploy of a fresh repository dies
+      # at this step with a 404 from the Pages API —
+      #
+      #   Get Pages site failed. Please verify that the repository has Pages
+      #   enabled and configured to build using GitHub Actions
+      #
+      # which reads like a broken workflow and is really a setting that has never
+      # been touched. Enabling it here means the repository can be cloned,
+      # forked or recreated and still deploy without a manual visit to Settings.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
