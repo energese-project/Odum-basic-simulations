@@ -2,7 +2,18 @@ IMAGE_APP     := odum-basic
 CONTAINER_BIN := container
 NODE_VERSION  := $(shell cat .node-version)
 WORKDIR       := /app
-RUN           := $(CONTAINER_BIN) run --rm --init -v $(shell pwd):$(WORKDIR) $(IMAGE_APP)
+
+# Apple `container` defaults to 1 GiB, and the Containerfile tells Node it may
+# use a 3 GiB heap. Node believes it, grows past the cgroup and is OOM-killed —
+# which surfaces as `net::ERR_CONNECTION_REFUSED` from Playwright, i.e. a dead
+# dev server rather than anything resembling an out-of-memory message. The
+# Playwright run is the peak: two Vite servers, a production build and Chromium
+# at once. Keep this comfortably above the Containerfile's max-old-space-size.
+MEMORY        := 6g
+CPUS          := 4
+
+RUN           := $(CONTAINER_BIN) run --rm --init -m $(MEMORY) -c $(CPUS) \
+	-v $(shell pwd):$(WORKDIR) $(IMAGE_APP)
 
 .PHONY: help start image install dev build preview typecheck test-unit test check clean
 
@@ -31,13 +42,15 @@ install: start ## Install npm dependencies inside the container
 # import.meta.env.BASE_URL is one value everywhere and the router never has to
 # guess. http://localhost:5173/ redirects to it.
 dev: start ## Vite dev server on :5173/Odum-basic-simulations/
-	$(CONTAINER_BIN) run --rm -it --init -p 5173:5173 -v $(shell pwd):$(WORKDIR) $(IMAGE_APP) npm run dev
+	$(CONTAINER_BIN) run --rm -it --init -m $(MEMORY) -c $(CPUS) -p 5173:5173 \
+		-v $(shell pwd):$(WORKDIR) $(IMAGE_APP) npm run dev
 
 build: start ## Build the static site into dist/
 	$(RUN) npm run build
 
 preview: start ## Serve the built site on :4173/Odum-basic-simulations/
-	$(CONTAINER_BIN) run --rm -it --init -p 4173:4173 -v $(shell pwd):$(WORKDIR) $(IMAGE_APP) npm run preview
+	$(CONTAINER_BIN) run --rm -it --init -m $(MEMORY) -c $(CPUS) -p 4173:4173 \
+		-v $(shell pwd):$(WORKDIR) $(IMAGE_APP) npm run preview
 
 # --------------------------------------------------
 # Checks — the same three CI runs

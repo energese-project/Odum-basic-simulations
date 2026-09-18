@@ -1,86 +1,56 @@
 import { BaseComponent } from '../../core/base-component.ts';
-import { basic } from '../../basic/basic-language.ts';
+import {
+  BASIC_LANGUAGE_ID,
+  basicLanguageConfiguration,
+  basicMonarch,
+} from '../../basic/basic-language.ts';
+import { EDITOR_THEME_ID, energeseEditorTheme } from './editor-theme.ts';
 import template from './code-editor.html?raw';
 import style from './code-editor.css?raw';
 
-import { EditorState } from '@codemirror/state';
-import {
-  EditorView,
-  highlightActiveLine,
-  highlightActiveLineGutter,
-  keymap,
-  lineNumbers,
-} from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import {
-  HighlightStyle,
-  bracketMatching,
-  syntaxHighlighting,
-} from '@codemirror/language';
-import { tags } from '@lezer/highlight';
+// The `editor.api` entry, not the package root. Importing 'monaco-editor'
+// pulls in all 81 bundled grammars and an LSP client, none of which this
+// application uses — the only language here is the Monarch one in
+// basic-language.ts. Note the specifier shape: monaco's exports map is
+// `"./*": "./esm/vs/*.js"`, so the historical `monaco-editor/esm/vs/...` deep
+// path no longer resolves and would double the prefix.
+import * as monaco from 'monaco-editor/editor/editor.api.js';
+import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
 
 /**
- * Every colour is a `var(--e-...)`, not a resolved value, which is what makes
- * light and dark free here: the tokens are redefined by energese.css and the
- * browser repaints the editor with them. A conventional CodeMirror theme pair
- * would need two extensions and a Compartment reconfigure on every toggle, and
- * would still miss the OS-preference route.
+ * Monaco resolves its workers through this global. Without it Monaco guesses a
+ * URL, fails to fetch it, and falls back to running everything on the main
+ * thread with a console warning — which works well enough to hide the problem.
+ * Only the base editor worker is needed: the language services that need their
+ * own workers (TypeScript, JSON, CSS, HTML) are not bundled here.
  */
-const energeseTheme = EditorView.theme({
-  '&': {
-    color: 'var(--e-ink)',
-    backgroundColor: 'var(--e-surface)',
-    height: '100%',
-  },
-  '.cm-content': {
-    caretColor: 'var(--e-accent)',
-    padding: '0.5rem 0',
-  },
-  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--e-accent)' },
-  '&.cm-focused': { outline: 'none' },
-  '.cm-gutters': {
-    color: 'var(--e-tick)',
-    backgroundColor: 'var(--e-surface-sunken)',
-    border: 'none',
-    borderRight: '1px solid var(--e-rule)',
-  },
-  '.cm-activeLine': { backgroundColor: 'var(--e-surface-sunken)' },
-  '.cm-activeLineGutter': {
-    backgroundColor: 'var(--e-surface-sunken)',
-    color: 'var(--e-muted)',
-  },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
-    backgroundColor: 'var(--e-accent-soft)',
-  },
-  '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
-    backgroundColor: 'var(--e-accent-soft)',
-    color: 'var(--e-accent-on-soft)',
-    outline: 'none',
-  },
-});
+declare global {
+  interface Window {
+    MonacoEnvironment?: monaco.Environment;
+  }
+}
 
-/**
- * Syntax colours come from the series ramp rather than a stock editor theme, so
- * the editor and the chart beside it are visibly the same palette. The slots are
- * the validated ones, used for their hue and not reordered — see the header of
- * styles/energese.css for why that order is not a matter of taste.
- */
-const energeseHighlight = HighlightStyle.define([
-  { tag: tags.comment, color: 'var(--e-muted)', fontStyle: 'italic' },
-  { tag: tags.keyword, color: 'var(--e-series-3)', fontWeight: '600' },
-  { tag: tags.string, color: 'var(--e-series-1)' },
-  { tag: tags.number, color: 'var(--e-series-2)' },
-  { tag: tags.operator, color: 'var(--e-muted)' },
-  { tag: tags.standard(tags.variableName), color: 'var(--e-series-7)' },
-  { tag: tags.variableName, color: 'var(--e-ink)' },
-  // The line number that opens each statement. Structure, not a magnitude.
-  { tag: tags.meta, color: 'var(--e-tick)' },
-]);
+window.MonacoEnvironment = {
+  getWorker: () => new EditorWorker(),
+};
+
+let languageRegistered = false;
+
+/** Registered once per page, not per component — Monaco keeps languages in a
+ *  global registry and re-registering stacks duplicate tokenizers. */
+function registerBasicLanguage(): void {
+  if (languageRegistered) return;
+  languageRegistered = true;
+  monaco.languages.register({ id: BASIC_LANGUAGE_ID, extensions: ['.bas'] });
+  monaco.languages.setMonarchTokensProvider(BASIC_LANGUAGE_ID, basicMonarch);
+  monaco.languages.setLanguageConfiguration(BASIC_LANGUAGE_ID, basicLanguageConfiguration);
+}
 
 export class CodeEditorComponent extends BaseComponent {
   static tagName = 'code-editor';
 
-  private view: EditorView | null = null;
+  private editor: monaco.editor.IStandaloneCodeEditor | null = null;
+  private onThemeChanged = (): void => this.applyTheme();
 
   constructor() {
     super(template, style);
@@ -90,46 +60,64 @@ export class CodeEditorComponent extends BaseComponent {
     const mount = this.querySelector<HTMLElement>('.mount');
     if (!mount) return;
 
-    this.view = new EditorView({ parent: mount, state: CodeEditorComponent.stateFor('') });
-  }
+    registerBasicLanguage();
+    this.applyTheme();
 
-  private static stateFor(doc: string): EditorState {
-    return EditorState.create({
-      doc,
-      extensions: [
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
-        history(),
-        bracketMatching(),
-        // indentWithTab last so it does not shadow the default Tab handling
-        // used to leave the editor; it is here because BASIC listings are
-        // pasted in far more often than they are tab-navigated out of.
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-        basic(),
-        syntaxHighlighting(energeseHighlight),
-        energeseTheme,
-        EditorView.lineWrapping,
-      ],
+    this.editor = monaco.editor.create(mount, {
+      value: '',
+      language: BASIC_LANGUAGE_ID,
+      theme: EDITOR_THEME_ID,
+      // The panel is a flex child whose height comes from the grid, so Monaco
+      // has to watch its own box; it does not reflow on a container resize
+      // otherwise, and the editor keeps the size it had at first paint.
+      automaticLayout: true,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      fontSize: 13,
+      fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace",
+      lineNumbersMinChars: 3,
+      renderLineHighlight: 'line',
+      smoothScrolling: true,
+      // These programs are a few dozen lines of numbered statements. There is
+      // nothing to fold, no symbols to navigate, and no second file to compare.
+      folding: false,
+      occurrencesHighlight: 'off',
+      renderWhitespace: 'none',
+      scrollbar: { alwaysConsumeMouseWheel: false },
     });
+
+    // Monaco paints its own pixels from a resolved palette, so like the chart
+    // canvas it has to be told when the tokens move. See editor-theme.ts.
+    window.addEventListener('theme-changed', this.onThemeChanged);
   }
 
   disconnectedCallback(): void {
-    this.view?.destroy();
-    this.view = null;
+    window.removeEventListener('theme-changed', this.onThemeChanged);
+    this.editor?.getModel()?.dispose();
+    this.editor?.dispose();
+    this.editor = null;
+  }
+
+  private applyTheme(): void {
+    monaco.editor.defineTheme(EDITOR_THEME_ID, energeseEditorTheme());
+    monaco.editor.setTheme(EDITOR_THEME_ID);
   }
 
   get value(): string {
-    return this.view?.state.doc.toString() ?? '';
+    return this.editor?.getValue() ?? '';
   }
 
   /**
-   * Replaces the whole document with a new state rather than dispatching a
-   * change, because loading a different program should not leave the previous
-   * one one Ctrl-Z away. Edits within a program stay undoable as usual.
+   * Replaces the model rather than calling setValue, because loading a
+   * different program should not leave the previous one one Ctrl-Z away. Edits
+   * within a program stay undoable as usual.
    */
   set value(source: string) {
-    this.view?.setState(CodeEditorComponent.stateFor(source));
+    if (!this.editor) return;
+    const previous = this.editor.getModel();
+    this.editor.setModel(monaco.editor.createModel(source, BASIC_LANGUAGE_ID));
+    previous?.dispose();
   }
 }
 

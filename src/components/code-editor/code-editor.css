@@ -10,15 +10,10 @@
   border-radius: 0.5rem;
 }
 
-/* CodeMirror sets its own colours from the theme extension in code-editor.ts,
-   which resolves them as var(--e-...). The only things left here are the ones
-   that depend on the host box rather than the palette. */
-.mount .cm-editor {
-  height: 100%;
-}
-
-.mount .cm-scroller {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.82rem;
-  line-height: 1.55;
+/* Monaco takes its colours from the theme built in editor-theme.ts, which
+   resolves the Energese tokens to literal hex — it cannot read a CSS variable.
+   Nothing colour-related belongs in this file; it is layout only. */
+.mount .monaco-editor,
+.mount .monaco-editor .overflow-guard {
+  border-radius: 0.5rem;
 }

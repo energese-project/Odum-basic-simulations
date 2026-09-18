@@ -29,8 +29,10 @@ interpreter has to change", it is the interpreter that changes.
 ## 2. Stack
 
 Vite, TypeScript, Web Components via [Boba](https://github.com/sholtomaud/boba),
-Tailwind v4. Three runtime dependencies: CodeMirror 6, Chart.js, and Boba itself,
-which is vendored rather than installed.
+Tailwind v4. Two runtime dependencies, Monaco and Chart.js, plus Boba itself,
+which is vendored rather than installed. Both are bundled from npm: nothing is
+fetched from a CDN at runtime, so the built site keeps working for as long as the
+files exist.
 
 `src/core/` is Boba, copied in — Boba is a scaffold (`npx github:sholtomaud/boba`),
 not a package, so there is no version to bump and no import to update. Treat those
@@ -113,8 +115,9 @@ Conventions:
 - Internal links (`href="/..."`) must be passed to `bindInternalLinks(this)` in
   `init()`. Without it the browser does a full document load.
 - `BaseComponent.update()` replaces `innerHTML`. Any component holding a live object
-  that owns DOM — CodeMirror, a Chart.js instance — must not use it, and must clean
-  that object up in `disconnectedCallback()`.
+  that owns DOM — a Monaco editor, a Chart.js instance — must not use it, and must
+  dispose that object in `disconnectedCallback()`. Monaco leaks its model as well as
+  its editor, so both are disposed.
 
 ## 8. The interpreter
 
@@ -162,10 +165,21 @@ together**. The primary button is `--e-accent` on `--e-ground`, not white on
 `--e-ink`: `--e-ink` is near-white in dark mode, so the second pairing inverts into
 white-on-white.
 
-**A `<canvas>` does not follow the tokens.** Chart.js reads colours once and paints
-pixels, so the chart is the one thing that needs telling. That is the entire reason
-`theme-changed` exists in [`src/core/theme.ts`](src/core/theme.ts), and why it fires
-for the OS-preference route and not just the button.
+**Two things do not follow the tokens.** Chart.js reads colours once and paints
+pixels; Monaco's theme API takes literal hex and holds a snapshot. Both have to be
+told when the palette moves, which is what `theme-changed` in
+[`src/core/theme.ts`](src/core/theme.ts) is for. It fires for the OS-preference
+route, for the toggle, and — via a `MutationObserver` on `[data-theme]` — for
+anything that writes the attribute directly, because "always call setTheme()" is a
+rule nothing can enforce.
+
+**Monaco wants six-digit hex, and the production CSS minifier does not give it.**
+`--e-surface: #ffffff` is served as `#fff` from the built bundle and as `#ffffff`
+from the dev server. Monaco rejects the short form with `Illegal value for token
+color`, which throws during construction and leaves an empty editor with no
+message on the page. [`hex.ts`](src/components/code-editor/hex.ts) normalises it;
+that divergence is only visible in the `production` Playwright project, which is
+why that project exists.
 
 ## 10. Charts
 

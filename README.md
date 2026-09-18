@@ -19,11 +19,12 @@ copyrighted. That is what lets the whole thing ship as a static page.
 | The program library | [`src/programs/`](src/programs/) |
 | Editor, chart, console | [`src/components/`](src/components/) |
 
-The editor is CodeMirror 6 with a BASIC mode defined in
-[`src/basic/basic-language.ts`](src/basic/basic-language.ts) — `@codemirror/legacy-modes`
-has no BASIC (it ships `vb` and `vbscript`, a different language), so the mode is
-built with its `simple-mode` helper against the dialect these programs actually
-use. The chart is Chart.js. The framework is [Boba](https://github.com/sholtomaud/boba),
+The editor is Monaco — the editor out of VS Code — bundled from npm, with no CDN
+at runtime. The BASIC grammar is hand-written in
+[`src/basic/basic-language.ts`](src/basic/basic-language.ts): Monaco ships 81
+languages and none of them is this one. The two with "basic" in the name are
+`sb` (Small Basic) and `vb` (Visual Basic), neither of which has line numbers.
+The chart is Chart.js. The framework is [Boba](https://github.com/sholtomaud/boba),
 vendored into `src/core/` the way Boba's own template does it.
 
 ## Running it
