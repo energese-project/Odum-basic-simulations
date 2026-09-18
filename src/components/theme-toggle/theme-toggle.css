@@ -2,23 +2,30 @@
   display: inline-flex;
 }
 
+/* Icon only: it sits in the workbench's top bar, where a word would cost more
+   room than it earns. The accessible name is the aria-label set in the .ts. */
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.7rem;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.6rem;
+  padding: 0;
   font: inherit;
-  font-size: 0.8rem;
-  color: var(--e-ink);
-  background-color: var(--e-surface);
-  border: 1px solid var(--e-rule);
-  border-radius: 0.5rem;
+  color: var(--e-muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
   cursor: pointer;
 }
 
 .toggle:hover {
-  border-color: var(--e-accent);
-  color: var(--e-accent);
+  color: var(--e-ink);
+  background-color: var(--e-surface-sunken);
+}
+
+:host .label {
+  display: none;
 }
 
 .toggle:focus-visible {

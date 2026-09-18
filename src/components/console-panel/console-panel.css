@@ -25,14 +25,14 @@
   line-height: 1.5;
   color: var(--e-ink);
   background-color: var(--e-surface-sunken);
-  border-radius: 0.5rem;
 }
 
 .input-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--e-rule);
 }
 
 .prompt {

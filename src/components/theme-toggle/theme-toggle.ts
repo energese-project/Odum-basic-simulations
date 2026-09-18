@@ -29,7 +29,9 @@ export class ThemeToggleComponent extends BaseComponent {
     const button = this.querySelector('button');
     if (icon) icon.textContent = dark ? '☀' : '☾';
     if (label) label.textContent = dark ? 'Light' : 'Dark';
-    button?.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+    const name = dark ? 'Switch to light theme' : 'Switch to dark theme';
+    button?.setAttribute('aria-label', name);
+    button?.setAttribute('title', name);
   }
 }
 
