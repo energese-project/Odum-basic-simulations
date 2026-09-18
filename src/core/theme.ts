@@ -45,14 +45,29 @@ export function toggleTheme(): Theme {
   return next;
 }
 
+let announced: Theme | null = null;
+
 function announce(): void {
-  window.dispatchEvent(new CustomEvent<Theme>('theme-changed', { detail: currentTheme() }));
+  const theme = currentTheme();
+  if (theme === announced) return;
+  announced = theme;
+  window.dispatchEvent(new CustomEvent<Theme>('theme-changed', { detail: theme }));
 }
 
 // Only meaningful while no explicit choice is stored; once [data-theme] is set
 // the attribute wins in CSS and currentTheme() reports the same value either way.
 darkQuery.addEventListener('change', () => {
   if (isFollowingSystem()) announce();
+});
+
+// Anything that writes [data-theme] directly — the inline script in index.html
+// that runs before first paint, a devtools poke, a future settings page — must
+// reach the canvas painters too. Routing every change through setTheme() would
+// be a rule nobody can enforce; observing the attribute makes the DOM itself
+// the source of truth, which is what CSS is already treating it as.
+new MutationObserver(announce).observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['data-theme', 'class'],
 });
 
 /**

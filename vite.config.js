@@ -17,6 +17,15 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
+  // Monaco is thousands of small ES modules. Left to discover them at request
+  // time, the dev server serves them one by one, then hits an import it has not
+  // seen, re-runs dependency optimization and forces a full page reload — which
+  // in a test run looks like the page dying mid-assertion. Naming the entry here
+  // makes esbuild pre-bundle it once at startup instead.
+  optimizeDeps: {
+    include: ['monaco-editor/editor/editor.api.js'],
+  },
+
   server: {
     port: 5173,
     strictPort: true,
