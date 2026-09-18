@@ -3,7 +3,7 @@ import { bindInternalLinks } from '../../core/internal-links.ts';
 import { Router } from '../../core/router/router.ts';
 import { Runner } from '../../basic/runner.ts';
 import { extractPlot, toCsv, type Plot } from '../../basic/output.ts';
-import { findProgram, programs } from '../../basic/programs.ts';
+import { findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
 import template from './basic-workbench.html?raw';
 import style from './basic-workbench.css?raw';
 
@@ -11,15 +11,21 @@ import '../code-editor/code-editor.ts';
 import '../console-panel/console-panel.ts';
 import '../chart-panel/chart-panel.ts';
 import '../theme-toggle/theme-toggle.ts';
+import '../program-meta/program-meta.ts';
 
 import type { CodeEditorComponent } from '../code-editor/code-editor.ts';
 import type { ConsolePanelComponent } from '../console-panel/console-panel.ts';
 import type { ChartPanelComponent } from '../chart-panel/chart-panel.ts';
+import type { ProgramMetaComponent } from '../program-meta/program-meta.ts';
 
 /** How often the chart is re-derived while a program is still running. Often
  *  enough that a long integration visibly draws itself, rarely enough that
  *  re-parsing the transcript is not the dominant cost. */
 const REPLOT_MS = 250;
+
+/** Used to link a listing to its history. The archive is only checkable if you
+ *  can see what changed since it was added. */
+const REPOSITORY_URL = 'https://github.com/energese-project/Odum-basic-simulations';
 
 export class BasicWorkbenchComponent extends BaseComponent {
   static tagName = 'basic-workbench';
@@ -27,6 +33,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
   /** Set by the router from the query string. */
   query?: Record<string, string>;
 
+  private programs: Program[] = [];
   private runner: Runner | null = null;
   private plot: Plot | null = null;
   private running = false;
@@ -48,6 +55,10 @@ export class BasicWorkbenchComponent extends BaseComponent {
     return this.querySelector('chart-panel');
   }
 
+  private get meta(): ProgramMetaComponent | null {
+    return this.querySelector('program-meta');
+  }
+
   init(): void {
     bindInternalLinks(this);
 
@@ -61,9 +72,20 @@ export class BasicWorkbenchComponent extends BaseComponent {
       },
     });
 
-    this.fillProgramList();
     this.wireControls();
-    this.loadProgram(this.query?.prg ?? programs[0]?.id);
+
+    // The catalog is fetched, not bundled — see programs.ts. Everything that
+    // depends on it waits; everything that does not is already wired above, so
+    // the shell is on screen while this is in flight.
+    void loadPrograms()
+      .then((programs) => {
+        this.programs = programs;
+        this.fillProgramList();
+        this.loadProgram(this.query?.prg ?? programs[0]?.id);
+      })
+      .catch((error: unknown) => {
+        this.setStatus(error instanceof Error ? error.message : String(error));
+      });
   }
 
   disconnectedCallback(): void {
@@ -77,9 +99,9 @@ export class BasicWorkbenchComponent extends BaseComponent {
   private fillProgramList(): void {
     const select = this.querySelector('select');
     if (!select) return;
-    select.innerHTML = programs
-      .map((p) => `<option value="${p.id}">${p.title}</option>`)
-      .join('');
+    select.replaceChildren(
+      ...this.programs.map((p) => new Option(p.title, p.id))
+    );
   }
 
   private wireControls(): void {
@@ -105,7 +127,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   private loadProgram(id: string | undefined): void {
-    const program = findProgram(id) ?? programs[0];
+    const program = findProgram(this.programs, id) ?? this.programs[0];
     if (!program) return;
 
     const select = this.querySelector('select');
@@ -115,7 +137,9 @@ export class BasicWorkbenchComponent extends BaseComponent {
     if (description) description.textContent = program.description;
 
     const editor = this.editor;
-    if (editor) editor.value = program.source;
+    if (editor) editor.value = program.listing;
+
+    this.meta?.show(program, REPOSITORY_URL);
 
     this.console?.clear();
     this.chart?.show(null);

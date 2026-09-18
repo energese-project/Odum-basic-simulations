@@ -1,0 +1,105 @@
+/**
+ * Reading the `programs/` directory into a catalog.
+ *
+ * Node-only: this uses the filesystem and is imported by vite-plugin-programs.js
+ * at build time and by the unit tests, never by the browser. It lives under
+ * src/ rather than beside the plugin so that it is typechecked and tested like
+ * everything else — the checks here are the ones a contributor's pull request
+ * is judged by, and they deserve the same gate as the interpreter.
+ */
+
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { parseProgramMeta, type ProgramMeta, type ProgramSource } from './program-catalog.ts';
+
+export const PROGRAMS_DIR = 'programs';
+
+export interface CatalogEntry extends Omit<ProgramMeta, 'source'> {
+  /** null rather than absent: JSON.stringify drops undefined keys, and a
+   *  missing key is indistinguishable from a bug on the reading side. */
+  source: ProgramSource | null;
+  file: string;
+  listing: string;
+}
+
+export interface Catalog {
+  generated: string;
+  programs: CatalogEntry[];
+}
+
+/** Files in programs/ that are documentation, not programs or metadata. */
+const IGNORED = new Set(['index.json', 'README.md']);
+
+export class ArchiveError extends Error {}
+
+/**
+ * Build the catalog, or throw an ArchiveError naming exactly what is wrong.
+ *
+ * Every `.bas` must have a `.json` and every `.json` must have a `.bas`. Both
+ * directions matter: a listing with no provenance looks authoritative and is
+ * not, and a sidecar with no listing is usually a rename that only got half
+ * done.
+ */
+export function readCatalog(root: string, now: Date = new Date()): Catalog {
+  const dir = join(root, PROGRAMS_DIR);
+  const files = readdirSync(dir).filter((f) => !IGNORED.has(f));
+
+  const ids = files
+    .filter((f) => f.endsWith('.bas'))
+    .map((f) => f.slice(0, -'.bas'.length))
+    .sort();
+
+  const badNames = ids.filter((id) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id));
+  if (badNames.length > 0) {
+    // The id is a URL segment (?prg=...) and a filename on every OS a
+    // contributor might use. Lowercase-kebab is the one form that is safe as
+    // both and never collides on a case-insensitive filesystem.
+    throw new ArchiveError(
+      `Program filenames must be lowercase-kebab-case: ${badNames
+        .map((id) => `${PROGRAMS_DIR}/${id}.bas`)
+        .join(', ')}.`
+    );
+  }
+
+  const missing = ids.filter((id) => !files.includes(`${id}.json`));
+  if (missing.length > 0) {
+    throw new ArchiveError(
+      `Program(s) with no metadata sidecar: ${missing
+        .map((id) => `${PROGRAMS_DIR}/${id}.bas`)
+        .join(', ')}.\n` +
+        `Every listing needs a ${PROGRAMS_DIR}/<id>.json saying where it came from — ` +
+        `see ${PROGRAMS_DIR}/README.md.`
+    );
+  }
+
+  const orphans = files
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.slice(0, -'.json'.length))
+    .filter((id) => !ids.includes(id));
+  if (orphans.length > 0) {
+    throw new ArchiveError(
+      `Metadata with no program: ${orphans.map((id) => `${PROGRAMS_DIR}/${id}.json`).join(', ')}. ` +
+        `Was the .bas renamed without its sidecar?`
+    );
+  }
+
+  const stray = files.filter((f) => !f.endsWith('.bas') && !f.endsWith('.json'));
+  if (stray.length > 0) {
+    throw new ArchiveError(
+      `Unexpected file(s) in ${PROGRAMS_DIR}/: ${stray.join(', ')}. ` +
+        `Only <id>.bas and <id>.json belong here — scans and notes go in the pull request.`
+    );
+  }
+
+  const programs = ids.map((id): CatalogEntry => {
+    const meta = parseProgramMeta(id, readFileSync(join(dir, `${id}.json`), 'utf8'));
+    const listing = readFileSync(join(dir, `${id}.bas`), 'utf8');
+    if (listing.trim() === '') {
+      throw new ArchiveError(`${PROGRAMS_DIR}/${id}.bas is empty.`);
+    }
+    return { ...meta, source: meta.source ?? null, file: `${id}.bas`, listing };
+  });
+
+  return { generated: now.toISOString(), programs };
+}

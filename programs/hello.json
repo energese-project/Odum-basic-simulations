@@ -1,0 +1,6 @@
+{
+  "title": "Hello",
+  "description": "The smallest thing that proves the interpreter runs at all.",
+  "fidelity": "original",
+  "tags": ["smoke-test"]
+}

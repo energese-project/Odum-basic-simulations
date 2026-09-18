@@ -1,0 +1,10 @@
+{
+  "title": "Two Tanks In Series",
+  "description": "A storage draining into a second storage, which drains to the outside.",
+  "fidelity": "original",
+  "tags": [
+    "mini-model",
+    "storage",
+    "lag"
+  ]
+}

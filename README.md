@@ -9,6 +9,27 @@ numbers it prints become a curve.
 The interpreter is written from scratch: no CPU emulation, no ROM image, nothing
 copyrighted. That is what lets the whole thing ship as a static page.
 
+## Built to last
+
+This is an archive, so it is built to keep working for as long as there are
+browsers, and to be understandable by whoever maintains it long after the people
+who wrote it have moved on. Two rules follow, and they are constraints on every
+change, not preferences:
+
+- **Native platform first, third-party code last.** Vanilla Web Components, ES
+  modules, the DOM. The runtime dependencies are Monaco and Chart.js, both bundled
+  so nothing is fetched from a CDN, and that list is meant to stay short. Vite,
+  TypeScript and Playwright are build and test tooling and are exempt — they are
+  not in the shipped page. Every dependency is one more thing that has to still
+  exist, still build and still be understood in ten years.
+- **Test first.** Every change starts with a failing test. The interpreter's
+  behaviour is pinned by tests that run a BASIC listing and assert on what it
+  printed; the archive's rules are pinned by tests phrased as the mistakes a
+  contributor could make. A change without a test is a change nobody can safely
+  make again.
+
+[AGENTS.md](AGENTS.md) has the detail.
+
 ## What it is made of
 
 | Piece | Where |
@@ -16,7 +37,7 @@ copyrighted. That is what lets the whole thing ship as a static page.
 | BASIC interpreter, DOM-free | [`src/basic/interpreter.ts`](src/basic/interpreter.ts) |
 | Runs off the main thread | [`src/basic/runner.worker.ts`](src/basic/runner.worker.ts), [`runner.ts`](src/basic/runner.ts) |
 | Output → plottable series | [`src/basic/output.ts`](src/basic/output.ts) |
-| The program library | [`src/programs/`](src/programs/) |
+| **The program archive** | [`programs/`](programs/) |
 | Editor, chart, console | [`src/components/`](src/components/) |
 
 The editor is Monaco — the editor out of VS Code — bundled from npm, with no CDN
@@ -41,20 +62,28 @@ make check      # typecheck + unit tests + Playwright. Must pass before pushing.
 
 `make help` lists the rest. See [AGENTS.md](AGENTS.md) for the standard.
 
-## Adding a program
+## The program archive
 
-Drop a `.bas` file into [`src/programs/`](src/programs/). That is the whole
-procedure — the library is built from the directory by `import.meta.glob`, so
-there is no manifest to keep in step.
+The listings live in [`programs/`](programs/), at the top of the repository rather
+than inside the application, because they are the point of it. Each one is two
+files:
 
-The first two `REM` lines are the title and the one-line description shown in the
-picker:
-
-```basic
-10 REM Charge And Discharge
-20 REM One tank filled at a constant rate and drained in proportion to storage.
-30 LET J = 100
 ```
+programs/two-tank.bas     the listing
+programs/two-tank.json    where it came from, and how faithfully
+```
+
+The `.json` carries a BibLaTeX-style citation and a **fidelity** — `verbatim`,
+`corrected`, `adapted` or `original` — so a reader always knows whether they are
+looking at the page as published or at something written to reproduce it. Both
+files are published beside the app, so every program has a stable URL a citation
+can point at.
+
+**Contributions are welcome by pull request.** Add the two files and open a PR;
+the build validates the metadata and CI runs the full suite against it. See
+[`programs/README.md`](programs/README.md) for the format and the rules.
+
+## Getting a chart
 
 To get a chart, print a table: two or more numeric columns per line, the first
 one the x axis, with a non-numeric line above it naming the columns.

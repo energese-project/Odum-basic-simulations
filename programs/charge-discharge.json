@@ -1,0 +1,11 @@
+{
+  "title": "Charge And Discharge",
+  "description": "One tank filled at a constant rate and drained in proportion to storage.",
+  "fidelity": "original",
+  "notes": "The model form is the first mini-model in the systems-ecology sequence. When a published listing of it is located, add it as a verbatim entry and cite it; this file can then be retired.",
+  "tags": [
+    "mini-model",
+    "storage",
+    "steady-state"
+  ]
+}

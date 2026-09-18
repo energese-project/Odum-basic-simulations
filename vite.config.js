@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
+import programs from './vite-plugin-programs.js';
 
 // This is a PROJECT Pages site — https://energese-project.github.io/Odum-basic-simulations/ —
 // not an organisation site at the domain root, so `base` is the repository path.
@@ -12,7 +13,7 @@ import tailwindcss from '@tailwindcss/vite';
 // a second time.
 export default defineConfig({
   base: '/Odum-basic-simulations/',
-  plugins: [tailwindcss()],
+  plugins: [tailwindcss(), programs()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

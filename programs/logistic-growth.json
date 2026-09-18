@@ -1,0 +1,10 @@
+{
+  "title": "Logistic Growth",
+  "description": "Autocatalytic growth against a limiting source, drawn down as it is used.",
+  "fidelity": "original",
+  "tags": [
+    "mini-model",
+    "autocatalytic",
+    "limiting-source"
+  ]
+}

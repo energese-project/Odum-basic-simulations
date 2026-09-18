@@ -7,6 +7,19 @@ component conventions, the checks, and the contribution rules. This file deliber
 does **not** restate them — two copies of a standard drift apart, and then neither can
 be trusted. Add new standards to `AGENTS.md`, not here.
 
+## The two constraints on everything
+
+Stated in full in [AGENTS.md §2](AGENTS.md#2-built-to-last). Named here because they
+decide what a change is allowed to look like before any code is written:
+
+- **Native platform first, third-party code last.** Vanilla Web Components and the
+  DOM. Runtime dependencies are Monaco and Chart.js and that list stays short;
+  adding one needs a stated reason in the PR. Build and test tooling is exempt.
+- **Test first.** Write the failing test, then the code. A bug fix starts by
+  reproducing the bug in a test.
+
+This is an archive meant to outlive its authors. Both rules follow from that.
+
 ## The ones that get broken most
 
 1. **There is no local Node.** `node` and `npm` are not on this host. Every command
@@ -28,6 +41,13 @@ assertion there covers the shipped artifact too.
 
 The chart is the case where "it compiles" is furthest from "it works": a canvas that
 has gone stale after a theme change renders perfectly and is simply the wrong colour.
+
+## Adding or changing a program
+
+`programs/<id>.bas` plus `programs/<id>.json` — see
+[`programs/README.md`](programs/README.md). Never set `fidelity` for a contributor:
+it is the one field that must be a deliberate human choice. When writing a worked
+example yourself, it is `original`, and it has no `source`.
 
 ## Changing the language
 

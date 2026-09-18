@@ -42,7 +42,13 @@ through it, so the table heuristic sees formatted text and finds nothing to plot
 - Integer vs floating-point variable suffixes (`A%`, `A!`, `A#`) are not recognised.
 - String comparison follows JavaScript's collation, not ASCII.
 
-## 6. Library
+## 6. The archive itself
 
-More worked examples of the standard model forms, and a citation line per program
-pointing at the model it implements.
+The format, validation and contributor path are done — see
+[`programs/README.md`](programs/README.md). What is missing is the content:
+
+- **Every program in the archive is currently `original`.** None is yet a
+  transcription of a published listing. The first `verbatim` entry, with a real
+  citation, is the milestone that makes this an archive rather than a demo.
+- A `.bib` export of the whole catalog, generated from the sidecars. The field
+  names are already BibLaTeX's, so this is a formatter, not a data change.
