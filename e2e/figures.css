@@ -1,0 +1,15 @@
+/* Applied only while a figure is captured (see figures.spec.ts). It hides what
+   moves on its own, so two runs of the same commit produce the same pixels.
+   Monaco draws its own blinking cursor rather than a text caret, so Playwright's
+   `caret: 'hide'` does not reach it. */
+.monaco-editor .cursors-layer {
+  visibility: hidden !important;
+}
+
+/* The sidebar's section titles are sticky, and Chromium sometimes gives a sticky
+   element its own compositing layer and sometimes not, which changes how its
+   text is antialiased: the DETAILS title alone differed between identical runs.
+   Nothing is scrolled in a figure, so static lays out exactly the same. */
+.sidebar .pane-title {
+  position: static !important;
+}

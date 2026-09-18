@@ -107,9 +107,11 @@ Executable doesn't exist at .../chromium_headless_shell-1243/...
 which reads like a broken suite and is really a version skew. Bumping Playwright
 means editing both strings and rebuilding with `make image`.
 
-CI does not use the image — it installs the browser with `npx playwright install`,
-which reads the version from `package.json`, so there is no third string to keep in
-step.
+CI's `check` job does not use the image — it installs the browser with
+`npx playwright install`, which reads the version from `package.json`, so there is no
+third string to keep in step. The `figures` job does build it, from this same
+`Containerfile`, because its screenshots are only comparable in the environment that
+made them (§14).
 
 ## 5. Before pushing
 
@@ -323,3 +325,38 @@ without which Jekyll drops files whose names begin with an underscore.
 itself rather than requiring a visit to Settings. Do not remove that: without it
 the first deploy of a fresh clone or fork dies on a 404 from the Pages API, which
 reads like a broken workflow and is really an untouched setting.
+
+## 14. The paper and its figures
+
+[`docs/article.tex`](docs/article.tex) is the paper announcing the archive. Nothing in
+it that the software can produce is produced by hand:
+
+- **The screenshots are the goldens of [`e2e/figures.spec.ts`](e2e/figures.spec.ts)**,
+  kept in `e2e/figures/` and included by the article through `\graphicspath`. They are
+  compared pixel for pixel on every pull request, so they are also the visual
+  regression suite: a style change that leaks into another component — which has
+  happened, and which no other test caught — now fails.
+- **The validation table is printed by
+  [`src/basic/validation.test.ts`](src/basic/validation.test.ts).** Change the
+  software, rerun the test, copy the diagnostics. Do not edit the numbers.
+
+A pixel golden is only meaningful in the environment that made it. The figures run in
+the `Containerfile` image on arm64: locally under `make test`, and in CI in the
+`figures` job, on an arm64 runner, from the same file. The `check` job's stock Ubuntu
+runner skips them — its fonts differ, and every figure would fail on text alone.
+
+```sh
+make figures           # compare against the goldens
+make figures-update    # rewrite them — then look at every changed PNG before committing
+make article           # build docs/article.pdf
+```
+
+A failing figure is a question, not an obstacle: either the change was meant to alter
+what the workbench looks like, in which case regenerate and review the images, or it
+was not, in which case it is a bug. CI uploads the expected, actual and diff PNGs as
+the `figure-diffs` artifact. If the goldens fail locally but pass in CI, the local
+image is stale; `make image` rebuilds it.
+
+`e2e/figures.css` is applied only while a figure is captured, and holds what must be
+stilled for two runs to match: Monaco's own blinking cursor, and the sidebar's sticky
+titles, whose text Chromium antialiased differently from run to run.

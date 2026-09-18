@@ -1,13 +1,19 @@
-%% article.tex -- abstract and section plan for an article announcing Odum BASIC
-%% Simulations, for submission to Ecological Modelling.
+%% article.tex -- an article announcing Odum BASIC Simulations, for submission
+%% to Ecological Modelling.
 %%
-%% STATUS: plan. The abstract and highlights are draft prose. Everything in a
-%% "plan" box says what a section must argue and what evidence carries it; it is
-%% not finished text. Items marked [VERIFY] are facts or references not yet
-%% checked against a primary source. Nothing marked [VERIFY] goes into the
-%% submitted manuscript unchecked.
+%% STATUS: first full draft. Every section is drafted from the plan that preceded
+%% it (see git history for the plan boxes). Items marked [VERIFY] are facts or
+%% references not yet checked against a primary source. Nothing marked [VERIFY]
+%% goes into the submitted manuscript unchecked.
 %%
-%% Build: pdflatex article.tex (twice, for cross-references), from docs/.
+%% Build: `make article` from the repository root, or pdflatex article.tex
+%% (twice, for cross-references) from docs/.
+%%
+%% Figures are not drawn by hand. The screenshots are the goldens of the
+%% end-to-end figure suite, e2e/figures.spec.ts, included from e2e/figures/ by
+%% \graphicspath below; `make figures-update` regenerates them, and CI fails if
+%% the workbench stops looking like them. The validation table is the output of
+%% src/basic/validation.test.ts. Change the software, not these numbers.
 %% References are inline (thebibliography) in Elsevier's author-year style, as in
 %% the companion energese draft, so no BibTeX run is needed.
 %%
@@ -28,8 +34,16 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{framed}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{amsmath}
 \usepackage[round]{natbib}
 \usepackage{hyperref}
+
+% The figure goldens of the end-to-end suite (e2e/figures.spec.ts).
+\graphicspath{{../e2e/figures/}}
 
 \lstset{basicstyle=\ttfamily\footnotesize, columns=fullflexible, breaklines=true, frame=single, framesep=4pt, xleftmargin=6pt}
 
@@ -41,19 +55,19 @@
 
 \title{Odum BASIC Simulations: a provenance-tracked archive in which the published simulation listings of systems ecology run again}
 \author{S. Maud\thanks{[Affiliation and ORCID to add.]}}
-\date{Plan --- September 2026}
+\date{Draft --- September 2026}
 
 \begin{document}
 \maketitle
 
 %% ----------------------------------------------------------------------------
-\section*{About this plan}
+\section*{About this draft}
 
-This document is the abstract and the section-by-section plan for a paper announcing the project to \emph{Ecological Modelling}. It fixes what each section argues, what evidence carries the argument, and how long it should be, so that drafting can proceed section by section without the paper drifting in length or scope. Two things make the paper unusual for the journal and shape the plan throughout: the software was built largely by a large language model (LLM) coding agent, which Elsevier requires to be described as method rather than hidden \citep{elsevierAI}; and one of the contribution routes it describes hands transcription of new programs to a second agent. Both are presented as method, with their controls and their failures, not as novelty.
+This is the first full draft of a paper announcing the project to \emph{Ecological Modelling}, written section by section from a plan that fixed what each section argues, what evidence carries the argument, and how long it should be. This front matter, the two tables in it and every \verify{} marker are working notes, and are removed before submission. Two things make the paper unusual for the journal and shape the plan throughout: the software was built largely by a large language model (LLM) coding agent, which Elsevier requires to be described as method rather than hidden \citep{elsevierAI}; and one of the contribution routes it describes hands transcription of new programs to a second agent. Both are presented as method, with their controls and their failures, not as novelty.
 
 \paragraph{Target journal and type.} \emph{Ecological Modelling} published the memorial issue on H.T. Odum's contributions \citep{brown2004}, and the companion \texttt{energese} paper on typesetting Energy Systems Language diagrams is being prepared for the same journal. The two should cite each other and must not overlap: \texttt{energese} is about drawing the diagram, this paper is about running the model. Article type: Research Paper unless the current guide for authors offers a software or short-communication type that fits better \verify. The guide for authors could not be retrieved while writing this plan; check the article types, the abstract limit and the highlights rules before submission \verify.
 
-\paragraph{Length.} About 6{,}500 words of body text, three figures, five tables and one listing. That is long enough to cover the archive, the software and the LLM method properly, and short enough that the paper does not become a user manual; anything that reads like documentation belongs in the repository, which the paper cites.
+\paragraph{Length.} About 6{,}500 words of body text, four figures, five tables and two listings. That is long enough to cover the archive, the software and the LLM method properly, and short enough that the paper does not become a user manual; anything that reads like documentation belongs in the repository, which the paper cites.
 
 \begin{table}[h]
 \centering\small
@@ -92,6 +106,7 @@ The GW-BASIC/QuickBASIC statements the later listings use, especially \texttt{PS
 The \texttt{jules} route configured: the Jules GitHub app installed, and a section in \texttt{AGENTS.md} for cloud agents, which cannot use the Apple \texttt{container} toolchain the file currently prescribes & not configured \\
 Whether GitHub prefills issue-form dropdowns from a URL, checked with a real submission & unverified \\
 The one intermittently failing end-to-end test diagnosed & open \\
+The two-tank worked example's cut-off (Section~\ref{sec:validation}): fix the listing or its message & open \\
 Current guide-for-authors requirements checked (type, abstract limit, highlights) & \verify \\
 \bottomrule
 \end{tabularx}
@@ -101,11 +116,11 @@ Current guide-for-authors requirements checked (type, abstract limit, highlights
 
 %% ----------------------------------------------------------------------------
 \begin{abstract}
-H.T. Odum and his colleagues published many of their ecological simulation models as BASIC listings: short numbered programs, printed beside an Energy Systems Language diagram, meant to be typed in and run. The machines they were written for are gone, and the listings survive only on paper, so the models can be read but are rarely run, checked or extended. We present Odum BASIC Simulations, an open archive and browser workbench in which these listings run unaltered. A BASIC interpreter written for the purpose runs in the browser; the table a program prints is recovered and plotted, and the printed output stays visible beside the plot. Every program is stored with a machine-checked provenance record: a citation in BibLaTeX form, a declared fidelity to the published listing (verbatim, corrected, adapted or original) and, where available, the program's diagram with the rights under which it is reproduced. The build refuses any program whose record is incomplete. Programs can be contributed as a pull request, through a GitHub issue form processed by an automated workflow, from an in-browser workspace that fills in that form, or by labelling an issue for a coding agent, which transcribes the source into archive files for human review. The software itself was built largely by an LLM coding agent working under human direction, test-first, against written repository standards, with every change reviewed and merged by a person; we describe that process, its controls and the failures they caught. For the first mini-model the interpreter reproduces the closed-form Euler solution to print precision (relative difference $2\times10^{-9}$). The archive is openly available at \url{https://energese-project.github.io/Odum-basic-simulations/}.
+H.T. Odum and his colleagues published many of their ecological simulation models as BASIC listings: short numbered programs, printed beside an Energy Systems Language diagram, meant to be typed in and run. The machines they were written for are gone, and the listings survive only on paper, so the models can be read but are rarely run, checked or extended. We present Odum BASIC Simulations, an open archive and browser workbench in which these listings run unaltered. A BASIC interpreter written for the purpose runs in the browser; the table a program prints is recovered and plotted, and the printed output stays visible beside the plot. Every program is stored with a machine-checked provenance record: a citation in BibLaTeX form, a declared fidelity to the published listing (verbatim, corrected, adapted or original) and, where available, the program's diagram with the rights under which it is reproduced. The build refuses any program whose record is incomplete. Programs can be contributed as a pull request, through a GitHub issue form processed by an automated workflow, from an in-browser workspace that fills in that form, or by labelling an issue for a coding agent, which transcribes the source into archive files for human review. The software itself was built largely by an LLM coding agent working under human direction, test-first, against written repository standards, with every change reviewed and merged by a person; we describe that process, its controls and the failures they caught. For three mini-models, the interpreter reproduces each listing's own Euler arithmetic on every printed row to within the rounding of its number format ($5\times10^{-7}$), and a comparison with the exact solutions exposed a timing error in one of the archive's own worked examples. The archive is openly available at \url{https://energese-project.github.io/Odum-basic-simulations/}.
 \end{abstract}
 
 \begin{plan}
-About 250 words as drafted, which should sit inside the journal's limit \verify. The abstract states the problem (listings exist only on paper), the contribution (runs unaltered, provenance enforced, four contribution routes), the method disclosure (LLM-built, with controls), one quantitative result, and availability. Once transcriptions exist, replace the validation sentence with the stronger result from Section~\ref{sec:validation}: agreement with output printed in the source.
+About 260 words, which should sit inside the journal's limit \verify. Once transcriptions exist, replace the validation sentence with the stronger result from Section~\ref{sec:validation}: agreement with output printed in the source.
 \end{plan}
 
 \paragraph{Highlights} (five, each at most 85 characters including spaces):
@@ -123,49 +138,42 @@ About 250 words as drafted, which should sit inside the journal's limit \verify.
 \section{Introduction}
 \label{sec:intro}
 
-\begin{plan}
-Three moves, in this order.
+Howard T. Odum and his colleagues did not only describe their models of ecological and economic systems; they printed them. Across the teaching and research books of the 1980s and 1990s a model is typically given twice, once as an Energy Systems Language diagram and once as a short BASIC listing that implements it \citep{odum1983,odumMinimodels,odumOdum2000} \verify{} (count the listings per book before stating a number). The listing was meant to be used. A student could type it into a microcomputer, run it, change a coefficient and run it again, and in doing so learn what the diagram meant as a set of differential equations. Few forms of publication in ecology are as concrete: the model is not described in prose and left for the reader to reconstruct, it is handed over whole, in a form that can be executed.
 
-\emph{The asset.} Odum's teaching and research books carry dozens of complete simulation models as BASIC listings, each paired with its Energy Systems Language diagram \citep{odum1983,odumOdum2000,odumMinimodels} \verify{} (count them per book before stating a number). They are among the most concrete forms in which systems ecology was published: the model is not described, it is given, and it can be executed.
+That form has not aged well. The machines the listings were written for are museum pieces, the dialects of BASIC they used have drifted apart and then out of use, and no current operating system ships an interpreter for any of them. A listing on paper is now a model that cannot be run, and a model that cannot be run cannot be checked against its own claims, compared with another model, or reused as the starting point for a new one. Retyping a listing into a modern language is possible, but it produces a new program whose relationship to the published one is unrecorded: every translation decision and every typing error is silent. This is the general problem that \citet{hinsen2019} calls software collapse, in an unusually pure form. The code survived, on paper, in full; everything it depended on did not.
 
-\emph{The loss.} A listing on paper is a model that cannot be run. The interpreters are gone, the dialects have drifted, retyping introduces errors nobody detects, and a model that cannot be run cannot be checked, compared or reused. This is the general problem of software collapse \citep{hinsen2019} in its purest form: the code survived and everything it depended on did not.
+This paper presents Odum BASIC Simulations, an open archive and browser workbench built to reverse that loss. It makes four contributions. First, an interpreter, written for the purpose, runs the published listings as printed, and recovers a plot from the numbers they print, so that nothing has to be rewritten for a listing to be run and seen. Second, an archive in which each program's provenance is a machine-checked record rather than a comment: where the listing came from, how faithful it is to the page, and on what basis its diagram is reproduced. The build refuses a program whose record is incomplete. Third, four contribution routes, from a pull request to an in-browser workspace, designed so that someone with the book and no programming background can add a program without lowering the bar it must pass. Fourth, an account of how the software was built, largely by a large language model (LLM) coding agent working under human direction, with the controls that were used and the failures they caught, and of how a second agent can serve as a transcription route.
 
-\emph{The contribution.} (i) An interpreter that runs the published listings as printed, with plotting recovered from their text output. (ii) An archive in which each program's provenance is a checked record rather than a comment, including how faithful it is to the page and on what basis its diagram is reproduced. (iii) Contribution routes that let someone with a book and no programming background add a program. (iv) A documented, auditable account of building such software with an LLM coding agent, including how an agent can also serve as a transcription route.
-
-End with a one-paragraph map of the paper.
-\end{plan}
+Section~\ref{sec:background} places the work in the history of simulation in Odum's systems ecology and in current practice for research software. Section~\ref{sec:design} states the design principles and the decisions each one forced, and Section~\ref{sec:implementation} describes the interpreter, the workbench and the archive. Section~\ref{sec:contributing} describes the contribution routes, Section~\ref{sec:llm} the use of an LLM coding agent as method, and Section~\ref{sec:validation} the validation. Section~\ref{sec:discussion} discusses what the archive makes possible and where it falls short.
 \target{700}
 
 %% ----------------------------------------------------------------------------
 \section{Background: simulation in Odum's systems ecology}
 \label{sec:background}
 
-\begin{plan}
-\emph{From circuits to code.} Odum's energy circuit language began as analogue electrical circuits \citep{odum1960} and became a notation for systems of any kind \citep{odum1972,odum1983,odum1994}. Simulation was always part of it: a diagram specifies a set of equations, and the equations were run, first on analogue computers and later as BASIC on microcomputers. Keep this short and cite the \texttt{energese} companion for the language itself.
+\paragraph{From circuits to code.} Odum's energy circuit language began as an analogy with electrical circuits, in which storages behave like capacitors and flows like currents driven by a potential \citep{odum1960}. Over the following decades it became a general notation for systems of any kind, with symbols for sources, storages, interactions, producers, consumers and heat sinks that carry definite dynamical meaning \citep{odum1972,odum1983,odum1994}. Simulation was part of the notation from the start. A diagram specifies a set of differential equations, one per storage, and those equations were run: first on analogue computers, patched together to mirror the diagram, and later as programs on the microcomputers that reached teaching laboratories in the 1980s. The language itself, and the problem of drawing it reproducibly, are the subject of the companion \texttt{energese} paper \verify{} (cite once it has a DOI); this paper is concerned with running the models.
 
-\emph{BASIC as the teaching medium.} Why BASIC \citep{kemenyKurtz1964}: it was on every microcomputer students could reach, and a listing could be printed in a book and typed in. Describe the shape of an Odum listing (parameters as \texttt{LET}, an Euler loop over \texttt{DT}, a \texttt{PRINT} per step, sometimes screen graphics) using a short real example. Identify the dialects in the sources: Commodore-era BASIC V2 in the earlier material, GW-BASIC/QuickBASIC with \texttt{SCREEN}/\texttt{PSET}/\texttt{LINE} in the later \verify{} (confirm per book).
+\paragraph{BASIC as the teaching medium.} BASIC was designed at Dartmouth for students who were not programmers \citep{kemenyKurtz1964}, and by the 1980s some dialect of it was built into almost every microcomputer a student could reach. That made it the natural language for a listing printed in a book: short enough to type in an afternoon, and runnable without a compiler. The listings share a recognisable shape. Coefficients and initial storages are set with \texttt{LET}; a \texttt{FOR} loop advances time in steps of \texttt{DT}; inside it each flow is computed from the current storages and each storage is updated by forward Euler integration; and a \texttt{PRINT} statement emits one row of a table per step, or, in the later material, screen graphics plot the trajectories as they are computed. Listing~\ref{lst:shape} shows the shape, taken from a worked example in the archive. Two families of dialect appear in the sources: Commodore-era BASIC V2 in the earlier material, and GW-BASIC or QuickBASIC, with \texttt{SCREEN}, \texttt{PSET} and \texttt{LINE}, in the later \verify{} (confirm per book).
 
-\emph{What exists today, and why it is not enough.} Emulators run the old machines but need ROM images that cannot be redistributed, and they run the machine, not the model; general system-dynamics tools (Stella, Vensim, Insight Maker) can re-express a model but not run the listing, so the published artefact itself is never checked \verify{} (cite each tool properly). Prior re-implementations of individual Odum models \verify{} (search the literature; cite any that exist). The gap: no archive in which the listings themselves run, with their provenance.
+\paragraph{What exists today.} Two kinds of tool come close, and neither is enough. Emulators of the original machines can run a listing, but they need ROM images that cannot be redistributed, and they run the machine rather than the model: the listing still has to be typed in, the output still scrolls past on an emulated screen, and nothing records where the listing came from. General system-dynamics environments such as Stella, Vensim and Insight Maker \verify{} (cite each properly) can express the same models, often more conveniently, but only by re-expressing them; the published artefact itself is never run, so it is never checked. Re-implementations of individual Odum models exist in the literature \verify{} (search; cite any found), but each stands alone, and none keeps the published listing as the thing that runs. What is missing is an archive in which the listings themselves run, with their provenance attached.
 
-\emph{Provenance and research software.} Place the design against FAIR for research software \citep{barker2022} and software citation principles \citep{smith2016}. The archive adds a dimension those frameworks do not name: fidelity, meaning how close an executable artefact is to the published one.
-\end{plan}
+\paragraph{Provenance and research software.} The FAIR principles, first stated for data \citep{wilkinson2016} and since adapted for research software \citep{barker2022}, ask that software be findable, accessible, interoperable and reusable, and the software citation principles ask that it be cited as a first-class research output \citep{smith2016}. Both apply here, and the archive is designed to meet them: every program has a stable URL, a machine-readable record and a citation. But an archive of transcriptions raises a question those frameworks do not name, because they assume the software in question is the original. We call it \emph{fidelity}: how close the executable artefact is to the published one. A program that has been corrected, modernised or rewritten may be exactly as findable and as reusable as a verbatim transcription, and still mean something quite different as evidence of what was published.
+\lstinputlisting[firstline=10,lastline=19,caption={The shape of a simulation listing: coefficients, a time loop, flows, an Euler update and one printed row per step. Lines 100--190 of the archive's worked example \texttt{programs/charge-discharge.bas}, which is written in the published style but is not itself a published listing. Included from the repository file, not retyped.},label={lst:shape}]{../programs/charge-discharge.bas}
 \target{800}
 
 %% ----------------------------------------------------------------------------
 \section{Design principles}
 \label{sec:design}
 
-\begin{plan}
-Four principles, each stated with the design decision it forced. This section is the paper's argument about \emph{how} such an archive should be built, and should stay short and general; Section~\ref{sec:implementation} is the how-it-was-done.
+Four principles shaped the archive. Each is stated with the decision it forced, because a principle that forced nothing is decoration. This section is the paper's argument about how such an archive should be built; Section~\ref{sec:implementation} describes how this one was.
 
-\emph{The listing is the product.} When a published listing and the interpreter disagree, the interpreter changes. Consequences: no rewriting listings into a modern language; plotting recovered from printed text rather than by requiring an output convention; unsupported statements treated as interpreter work, not as edits to the source.
+\paragraph{The listing is the product.} When a published listing and the interpreter disagree, the interpreter changes. The alternative, editing listings until they run, would make every archived program a derivative whose differences from the page have to be tracked and trusted. Three decisions follow. Listings are not rewritten into a modern language. Plots are recovered from the text a program prints (Section~\ref{sec:implementation}), rather than by requiring an output convention that no published listing follows. And a statement the interpreter does not yet support is a gap in the interpreter, recorded as work to do, not a reason to edit the source.
 
-\emph{Provenance is data, and incomplete provenance is a build failure.} A listing whose origin cannot be read looks authoritative and is not, so it is refused. Introduce \emph{fidelity} (Table~\ref{tab:fidelity}). It has no default, because it changes what every other field means, and the one rule no automated route may break is that a person chooses it.
+\paragraph{Provenance is data, and incomplete provenance is a build failure.} A listing whose origin cannot be read looks authoritative and is not. So every program carries a structured record, and the site does not build if any record is missing a required field or is inconsistent. The central field is \emph{fidelity} (Table~\ref{tab:fidelity}), with four levels from \texttt{verbatim} to \texttt{original}. It has no default, because it changes what every other field means: a \texttt{verbatim} listing's errors are the book's, an \texttt{adapted} listing's are the adapter's. Fidelity is also the one field that no automated route may set. A person chooses it, having compared the listing with the page.
 
-\emph{Built to outlive its authors.} A static site with no server or database; the browser platform first; two runtime dependencies (Monaco, Chart.js), bundled rather than loaded from a CDN; build tooling kept out of the shipped artefact. Argue why: the archive's value is realised over decades, long after any maintainer has moved on \citep{hinsen2019}.
+\paragraph{Built to outlive its authors.} The archive's value is realised over decades, long after any maintainer has moved on \citep{hinsen2019}. It is therefore a static site with no server, no database and no account system: a directory of files that any web server can host. It uses the browser platform first, with Web Components rather than a framework, and has exactly two runtime dependencies, the Monaco editor and the Chart.js plotting library, both bundled into the site rather than fetched from a content-delivery network at run time, so that the site keeps working for as long as its files exist. Build and test tooling is exempt from this rule because none of it ships: if the build tools disappeared, the built site would still run.
 
-\emph{Test-first, from the outside.} Interpreter tests run a listing and assert on what it printed; archive tests are phrased as the mistakes a contributor could make. That makes the tests survive a rewrite of the implementation, and it matters again in Section~\ref{sec:llm}, where the tests are the main check on an implementation the human author did not write line by line.
-\end{plan}
+\paragraph{Test first, from the outside.} Every change begins with a failing test. The tests are written against behaviour a user could observe, not against internal methods: interpreter tests run a BASIC listing and assert on what it printed, and archive tests are phrased as the mistakes a contributor could make, such as a missing citation or an undeclared image. Tests written this way survive a rewrite of the implementation, which matters here for a second reason. In Section~\ref{sec:llm} they are the main check on an implementation that the human author directed and reviewed but did not write line by line.
 
 \begin{table}[h]
 \centering\small
@@ -188,23 +196,19 @@ Fidelity & Meaning & Also requires \\
 \section{Implementation}
 \label{sec:implementation}
 
-\begin{plan}
-Describe what exists, at the level a modeller needs in order to trust and use it. Point to the repository for everything else.
+This section describes the software at the level a modeller needs in order to trust it and use it. Everything else is in the repository, which the paper cites.
 
-\emph{The interpreter} (about 800 lines of TypeScript). Statements and functions supported (Commodore BASIC V2: \texttt{PRINT}, \texttt{LET}, \texttt{FOR}/\texttt{NEXT}, \texttt{IF}/\texttt{THEN}, \texttt{GOSUB}, \texttt{INPUT}, \texttt{DIM}, \texttt{DATA}/\texttt{READ}, maths including \texttt{EXP} and \texttt{LOG}), and those planned. It runs in a Web Worker so a runaway program can be stopped; it knows nothing of the page, which is why the same code runs in the browser and under the unit tests.
+\paragraph{The interpreter.} The interpreter is about 800 lines of TypeScript, written from scratch for this purpose: it emulates no processor and needs no ROM image, so it can be redistributed with the archive. It implements the Commodore BASIC V2 core that the listings rely on: \texttt{PRINT} with its comma and semicolon separators, \texttt{LET} (with the keyword optional), numeric and string variables, one- and two-dimensional arrays with \texttt{DIM}, \texttt{FOR}/\texttt{TO}/\texttt{STEP}/\texttt{NEXT}, \texttt{IF}/\texttt{THEN} with a line number or a statement, \texttt{GOTO}, \texttt{GOSUB}/\texttt{RETURN}, \texttt{INPUT}, \texttt{DATA}/\texttt{READ}/\texttt{RESTORE}, \texttt{REM}, \texttt{END}, \texttt{STOP}, several statements per line separated by colons, and the numeric and string functions including \texttt{EXP}, \texttt{LOG}, \texttt{SQR}, \texttt{INT} and \texttt{RND}. The graphics and structured-control statements of the later GW-BASIC and QuickBASIC listings (\texttt{SCREEN}, \texttt{PSET}, \texttt{LINE}, \texttt{WHILE}/\texttt{WEND}, \texttt{DEF FN}, \texttt{ON}\ldots\texttt{GOTO}, \texttt{PRINT USING}) are not yet implemented. The editor highlights them in a separate style rather than as errors, so a listing that uses them reads as code waiting for the interpreter, which is what it is. Arithmetic is in IEEE-754 double precision, and \texttt{PRINT} rounds a number to six decimal places. The original machines used shorter floating-point formats and printed a different number of digits \verify{} (Commodore BASIC V2: five-byte floats, nine significant digits), so a faithful interpreter reproduces a listing's model and arithmetic, not necessarily the last printed digit of the original run (Section~\ref{sec:validation}). The interpreter runs in a Web Worker, so a runaway program can be stopped without freezing the page. It knows nothing of the page: its only contact with the outside world is a set of callbacks for output and input, which is why the same code runs in the browser and under the unit tests.
 
-\emph{Recovering the plot from printed text.} State the heuristic exactly: a run of wholly numeric lines of equal width is a table, the first column is the independent variable, and the non-numeric line above supplies the names. Say why it is a heuristic on purpose: requiring an output convention would mean rewriting the published programs. One y axis, never two, and the printed table always stays visible beside the chart, so the plot is never the only reading of a run.
+\paragraph{Recovering the plot from printed text.} Because the listings print tables rather than write data files, the plot is recovered from their output. The rule is exact and deliberately simple. A line is numeric if it has at least two fields, separated by tabs or spaces, and every field parses as a finite number. A run of consecutive numeric lines with the same number of fields is a table, and a change of width ends it; the longest table in the output is the one plotted. Its first column is the independent variable and each further column is a series. If the nearest non-blank line above the table has the same number of fields and is not numeric, it supplies the column names, which is the shape a \texttt{PRINT "T", "Q"} before the loop produces; otherwise the columns are numbered. This is a heuristic on purpose. Requiring an output convention would mean rewriting the published programs, which the first principle forbids, and when the heuristic finds nothing the program's output is still shown in full. The plot has one y axis, never two, so that no series can be made to look like another by rescaling, and the printed output always stays visible beside the chart: the plot is never the only reading of a run. The recovered table can be downloaded as CSV.
 
-\emph{The workbench} (Figure~\ref{fig:workbench}): explorer, editor, diagram, plot and output. Keep this to one paragraph; it is the figure's caption, not a manual.
+\paragraph{The workbench.} Figure~\ref{fig:workbench} shows the workbench with the first mini-model after a run. A thin top bar holds the program picker and the run controls. The sidebar holds the explorer, which lists the archive and the reader's own programs with the fidelity of each, and the details of the selected program: its description, fidelity and what that means, its citation with a BibLaTeX export, and the rights under which its diagram is shown. The listing is in the editor; the diagram, the recovered plot and the printed output are beside it. Each program has a stable address (\texttt{?prg=} followed by its identifier), so a paper or a lecture can link to a model ready to run.
 
-\emph{The archive.} One directory, three files per program (\texttt{.bas}, \texttt{.json}, optional diagram), no manifest. At build time every sidecar is validated (Listing~\ref{lst:sidecar}); the raw files are published at stable URLs so that a citation can point at the listing itself, and the tests check that the published file is byte-identical to the one the app runs.
+\paragraph{The archive.} The archive is one directory, \texttt{programs/}, holding two files per program and optionally a third: the listing (\texttt{.bas}), a metadata sidecar (\texttt{.json}, Listing~\ref{lst:sidecar}), and a diagram image. There is no manifest to keep in step: the build finds the files, validates every sidecar with the same functions the contribution routes use (\texttt{parseProgramMeta} for one record, \texttt{readCatalog} for the whole directory), and fails with a message naming the file and the field if any record is incomplete or inconsistent. The raw files are published beside the site at stable URLs, so that a citation can point at the listing itself rather than at a page that displays it, and the end-to-end tests check that every published listing is identical to the one the workbench runs.
 
-\emph{Diagrams and rights.} The diagram is the other half of what Odum published, and usually the easier half to check a model against. It is archived only with its rights recorded (Table~\ref{tab:rights}); a reproduced figure must cite its source; the build rejects an image nobody has declared, a mismatch between an image's content and its file type, and anything over 2 MB. SVG is refused because an SVG opened from the site can run scripts. Keep this one paragraph; the rights argument is in Section~\ref{sec:discussion}.
+\paragraph{Diagrams and rights.} The diagram is the other half of what Odum published, and usually the easier half to check a model against (Figure~\ref{fig:minimodel}). A diagram is archived only with its rights recorded (Table~\ref{tab:rights}): a basis, which like fidelity has no default, a written statement, and for anything not drawn for the archive a source and, where it applies, the figure and page. The build rejects an image that no sidecar declares, an image whose content does not match its file extension, and any image over 2~MB. SVG is refused outright, because an SVG opened directly from the site can run scripts. The argument for recording rights per figure is in Section~\ref{sec:discussion}.
 
-Figures: \ref{fig:workbench} (workbench), \ref{fig:minimodel} (diagram and run of the first mini-model). Tables: \ref{tab:rights}.
-\end{plan}
-
-\begin{lstlisting}[caption={The sidecar for the first mini-model, \texttt{programs/charge-discharge.json}, with the notes shortened and $K_1\cdot Q$ written as \texttt{K1*Q}. The build fails if any required field is missing or inconsistent.},label={lst:sidecar}]
+\begin{lstlisting}[float=tp,caption={The sidecar for the first mini-model, \texttt{programs/charge-discharge.json}, with the notes shortened and $K_1\cdot Q$ written as \texttt{K1*Q}. The build fails if any required field is missing or inconsistent.},label={lst:sidecar}]
 {
   "title": "Charge And Discharge",
   "description": "One tank filled at a constant rate and drained in proportion to storage.",
@@ -239,17 +243,24 @@ Rights basis & Meaning & Also requires \\
 \label{tab:rights}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[t]
 \centering
-\fbox{\parbox{0.9\linewidth}{\centering\vspace{2em}[Screenshot of the workbench: explorer with Archive and My programs, the listing in the editor, the diagram above the plot, and the printed output. Generate it from the end-to-end suite, as \texttt{energese} generates its figures from its test harness, so that the figure is reproducible from the repository at a tagged commit.]\vspace{2em}}}
-\caption{The workbench.}
+\includegraphics[width=\linewidth]{workbench.png}
+\caption{The workbench, with the charge-and-discharge mini-model after a run. Left: the explorer, listing the archive and the reader's own programs with the fidelity of each, and the provenance record of the selected program. Centre: the listing. Right: the program's diagram, the plot recovered from its printed table, and the printed output itself. The figure is a golden image of the end-to-end suite, captured from the production build, so it is regenerated from the repository rather than taken by hand.}
 \label{fig:workbench}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[t]
 \centering
-\fbox{\parbox{0.9\linewidth}{\centering\vspace{2em}[Two panels: (a) the Energy Systems Language diagram of the charge-and-discharge mini-model, \texttt{programs/charge-discharge.png}; (b) the storage $Q$ and outflow $K_1Q$ plotted from the program's printed table. Once transcriptions exist, replace this with a published minimodel and its original figure beside the recovered plot.]\vspace{2em}}}
-\caption{A model as published: its diagram, and the run recovered from its listing.}
+\begin{subfigure}[b]{0.49\linewidth}
+\includegraphics[width=\linewidth]{minimodel-diagram.png}
+\caption{The diagram.}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.49\linewidth}
+\includegraphics[width=\linewidth]{minimodel-plot.png}
+\caption{The run.}
+\end{subfigure}
+\caption{A model as the archive holds it: (a) the Energy Systems Language diagram of the charge-and-discharge mini-model, a source $J$ filling a storage $Q$ that drains through $K_1Q$ to a heat sink; (b) the storage and its outflow, plotted from the table the listing prints. Once transcriptions exist, this figure will show a published mini-model, with its original figure beside the recovered plot.}
 \label{fig:minimodel}
 \end{figure}
 \target{1{,}000}
@@ -258,17 +269,15 @@ Rights basis & Meaning & Also requires \\
 \section{Contributing programs}
 \label{sec:contributing}
 
-\begin{plan}
-The archive grows only if people with the books can add to it, and most of them are ecologists, not programmers. Present four routes in order of decreasing technical demand (Table~\ref{tab:routes}, Figure~\ref{fig:routes}). The single point to make: every route ends in the same validator and the same human review, so lowering the barrier does not lower the bar.
+The archive grows only if people who own the books can add to them, and most of those people are ecologists, not programmers. There are therefore four routes in, in order of decreasing technical demand (Table~\ref{tab:routes}, Figure~\ref{fig:routes}). The point of the design is that every route ends in the same validator and the same human review, so that lowering the barrier to contributing does not lower the bar a contribution must clear.
 
-\emph{A pull request} with the three files, for contributors who use git.
+\paragraph{A pull request.} A contributor who uses git adds the two or three files and opens a pull request. Continuous integration builds the catalogue, which validates every sidecar, and runs the full test suite; a maintainer reviews and merges.
 
-\emph{A GitHub issue form.} The contributor pastes the listing and types the citation; a workflow parses the issue, builds the files, checks the whole archive with the build's own validator, and either comments every problem at once or opens a pull request crediting the contributor as co-author. Editing the issue re-runs it. Note the two security properties, briefly: the issue text is never passed to a shell, and a diagram is fetched only from GitHub's own attachment hosts.
+\paragraph{A GitHub issue form.} A contributor with a GitHub account and no knowledge of git or JSON opens an ``Add a program'' issue, pastes the listing, types the citation into labelled fields, chooses the fidelity and, if there is a diagram, drags the image in. A workflow parses the issue, builds the files, and checks the whole archive with the build's own validator. If anything is wrong it comments on the issue with every problem at once, in the form's own words; editing the issue runs it again. When everything passes it opens a pull request that credits the contributor as co-author, and runs the full test suite on it. Two security properties matter, because the issue text is written by anyone. The issue text is never passed to a shell: it is read from the event payload by a script, and the only part of the issue that reaches a shell command is its number. And a diagram is downloaded only from GitHub's own attachment hosts, so the workflow cannot be made to fetch an arbitrary URL. A photograph of the source page can be attached for the reviewer; it stays in the issue and is not published, so a page image is never redistributed from the archive.
 
-\emph{The in-browser workspace.} A contributor writes the program in the workbench itself, in a private area of the browser's storage (the Origin Private File System), runs it, and fills in the same fields, checked as they type. \emph{Submit} opens the issue form already filled in. The archive itself is never copied into the workspace: a copy would go stale when an entry is corrected upstream, and an edited copy of a \texttt{verbatim} listing is not verbatim, so copying an archive program clears its fidelity and records where it came from. There is no sign-in, because a static site cannot complete GitHub's OAuth exchange without a server holding the client secret \citep{githubOAuth}; say this in one sentence as a deliberate trade.
+\paragraph{The in-browser workspace.} A contributor can also write a program in the workbench itself. ``My programs'' is a private area of the browser's own storage, the Origin Private File System, in which a program can be written, run and described, with the details panel acting as a form that is checked against the build's rules as the contributor types (Figure~\ref{fig:workspace}). \emph{Submit} then opens the issue form above, already filled in, so the workspace is a friendlier front end to the second route rather than a separate one. Two design decisions are worth stating. The archive itself is never copied into the workspace as a whole, because a copy would go stale when an entry is corrected upstream. And an individual archive program copied into the workspace loses its fidelity and records where it came from, because an edited copy of a \texttt{verbatim} listing is no longer verbatim; the contributor must say again what it is. There is no sign-in, because a static site cannot complete GitHub's OAuth exchange without a server that holds the client secret \citep{githubOAuth}; that is a deliberate trade of convenience for the absence of a server.
 
-\emph{Labelling an issue for a coding agent.} A contributor opens an issue with the source: a scan of the page, or a reference and a pasted listing. A maintainer adds the \texttt{jules} label, and Jules \citep{jules}, Google's asynchronous coding agent, picks the issue up, reads the repository's standards in \texttt{AGENTS.md}, transcribes the listing and metadata into the three files, runs the tests, and opens a pull request. State the limits precisely. The agent does the clerical work; it must not choose the fidelity, which comes from the contributor or is confirmed by the reviewer against the page photograph; and a transcription from a scan is exactly where an undetected error enters an archive, so the reviewer's check against the page is mandatory. (Before submission: configure the route and report its first real uses, including any errors the reviewer caught; see Table~\ref{tab:prereq}.)
-\end{plan}
+\paragraph{Labelling an issue for a coding agent.} The fourth route, designed but not yet configured at the time of writing, hands transcription to an agent. A contributor opens an issue with the source: a scan of the page, or a reference and a pasted listing. A maintainer adds the \texttt{jules} label, and Jules \citep{jules}, Google's asynchronous coding agent, picks up the issue, reads the repository's standards in \texttt{AGENTS.md}, transcribes the listing and its metadata into the archive's files, runs the tests, and opens a pull request. Its limits are part of the design. The agent does the clerical work; it does not choose the fidelity, which comes from the contributor or is confirmed by the reviewer against the page. And a transcription from a scan is exactly where an undetected error enters an archive, so for this route the reviewer's comparison of the listing with the page is mandatory rather than advisable. The first real uses of the route, and any errors the reviewer caught, are to be reported before submission (Table~\ref{tab:prereq}).
 
 \begin{table}[h]
 \centering\small
@@ -286,11 +295,41 @@ Workspace & a browser (GitHub account to submit) & live validation; form prefill
 \label{tab:routes}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[t]
 \centering
-\fbox{\parbox{0.9\linewidth}{\centering\vspace{2em}[Flow diagram: four entry points (pull request, issue form, workspace, \texttt{jules} label) converging on one validator (the build's \texttt{parseProgramMeta} and \texttt{readCatalog}), then CI, then human review, then the published archive. Draw in TikZ.]\vspace{2em}}}
-\caption{Four ways in, one validator, one review.}
+\begin{tikzpicture}[
+  node distance=5mm and 5mm,
+  every node/.style={font=\small, align=center},
+  entry/.style={draw, rounded corners=2pt, minimum width=29mm, minimum height=11mm, fill=gray!8},
+  stage/.style={draw, minimum width=74mm, minimum height=8mm},
+  human/.style={stage, very thick},
+  flow/.style={-{Stealth[length=2mm]}, thick},
+]
+\node[entry] (ws) {In-browser\\workspace};
+\node[entry, right=of ws] (form) {Issue form};
+\node[entry, right=of form] (pr) {Pull request};
+\node[entry, right=of pr] (jules) {\texttt{jules} label};
+\node[stage, below=12mm of $(form.south)!0.5!(pr.south)$] (val) {Validator: \texttt{parseProgramMeta}, \texttt{readCatalog}};
+\node[stage, below=of val] (ci) {CI: unit tests, end-to-end on the dev and production builds};
+\node[human, below=of ci] (rev) {Human review, against the page; merge};
+\node[stage, below=of rev, fill=gray!8] (arc) {Published archive};
+\draw[flow] (ws.north) to[bend left=30] node[above, font=\scriptsize] {prefills} (form.north);
+\draw[flow] (form.south) -- node[left, font=\scriptsize] {workflow} (val.north -| form.south);
+\draw[flow] (pr.south) -- (val.north -| pr.south);
+\draw[flow] (jules.south) |- node[pos=0.25, right, font=\scriptsize] {agent opens PR} (val.east);
+\draw[flow] (val) -- (ci);
+\draw[flow] (ci) -- (rev);
+\draw[flow] (rev) -- (arc);
+\end{tikzpicture}
+\caption{Four ways in, one validator, one review. The workspace hands its program to the issue form; the form's workflow and the \texttt{jules} agent both end in a pull request, like the first route. Every route passes the same build validator, the same continuous integration and a person's review before anything is published.}
 \label{fig:routes}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[height=0.52\textheight]{workspace-form.png}
+\caption{The workspace, after an archive program is copied into it. The copy's fidelity was cleared; choosing \texttt{verbatim} for it is refused as it is chosen, by the same rule the build applies, because a verbatim entry needs the source it was transcribed from. A golden image of the end-to-end suite.}
+\label{fig:workspace}
 \end{figure}
 \target{900}
 
@@ -298,40 +337,38 @@ Workspace & a browser (GitHub account to submit) & live validation; form prefill
 \section{Building the software with an LLM coding agent}
 \label{sec:llm}
 
-\begin{plan}
-This is a methods section, written to Elsevier's requirement that AI used in the research process be described in the methods with the tool, version and developer \citep{elsevierAI}. The tone is an account of a method, with its controls and its failures, not an advertisement. It should let a reader judge how far to trust code they did not see a person write.
+Elsevier's policy requires that the use of AI tools in the research process be described in the methods, with the tool, its version and its developer \citep{elsevierAI}. This section does that, and tries to do more: to give a reader enough to judge how far to trust code that they did not see a person write.
 
-\emph{Tools.} Claude Code \citep{claudeCode}, Anthropic's agentic coding tool, running the model Claude Opus~5 (\texttt{claude-opus-5}), in September 2026, from the author's editor. Jules is used only as a contribution route (Section~\ref{sec:contributing}), not to build the software.
+\paragraph{Tools.} The software was built with Claude Code \citep{claudeCode}, Anthropic's agentic coding tool, running the model Claude Opus~5 (\texttt{claude-opus-5}), in September 2026, from the author's editor. The agent read and edited files, ran commands in the repository's container, and opened pull requests through the GitHub command-line tool. Jules appears in this paper only as a contribution route (Section~\ref{sec:contributing}); it was not used to build the software.
 
-\emph{Division of labour.} The author set the requirements and made every design decision; the agent proposed designs, wrote the code, tests and documentation, ran the checks and opened the pull requests. Give real decisions that stayed with the author: publishing scanned diagrams only with rights recorded; submitting through an issue form rather than an OAuth service; keeping the archive out of the workspace; the interface layout, revised from a marked-up screenshot. The agent was not permitted to merge its own work, and every change reached the main branch through a pull request the author reviewed and merged.
+\paragraph{Division of labour.} The author set the requirements and made every design decision; the agent proposed designs, wrote the code, the tests and the documentation, ran the checks and opened the pull requests. The decisions that stayed with the author are the ones that shape the archive: that scanned diagrams are published only with their rights recorded; that contributions arrive through an issue form rather than through an OAuth service with a server behind it; that the archive is kept out of the workspace; and the layout of the interface, which was revised from a marked-up screenshot. The agent was not permitted to merge its own work. Every change reached the main branch through a pull request that the author reviewed and merged.
 
-\emph{Controls.} Written repository standards in \texttt{AGENTS.md} (architecture, test-first, dependency policy, security rules), the same file Jules reads, so the two agents work to one standard; tests written before code; continuous integration running the full suite against both the development server and the production build; one isolated git worktree per task; and a co-author trailer on every agent-assisted commit, so the history records which changes the agent took part in (Table~\ref{tab:llm}).
+\paragraph{Controls.} Five controls were in place from the start (Table~\ref{tab:llm}). Written repository standards in \texttt{AGENTS.md} set out the architecture, the test-first rule, the dependency policy and the security rules; it is the same file Jules reads, so the two agents work to one standard. Tests were written before the code they test. Continuous integration runs the whole suite on every pull request, against both the development server and the production build, because a defect that appears only in the built bundle has already occurred once. Each task was done in its own git worktree, so that concurrent tasks could not read each other's build output. And every agent-assisted commit carries a co-author trailer, so the history records which changes the agent took part in. A sixth control was added while this paper was drafted, in response to the first failure below: the screenshots in this paper are the golden images of an end-to-end suite, compared pixel for pixel on every pull request, so a change that alters what the workbench looks like fails until its figures are regenerated on purpose.
 
-\emph{What the controls caught.} The most useful evidence is failures, each drawn from the repository history. (a) A style rule leaking between interface components, which the tests did not catch and screenshots did. (b) The issue-form parser attaching an unrelated section's text to the diagram rights statement, found by a dry run against a synthetic issue before deployment. (c) A workflow expression using a context that is unavailable where it was used, found by a workflow linter. (d) An intermittently failing end-to-end test the agent could not diagnose, which it reported in the pull request instead of suppressing. (e) A behaviour of GitHub it could not verify (prefilling dropdowns from a URL), which it flagged as unverified instead of asserting. The pattern to draw out: the agent was reliable where a check existed and candid where one did not, which puts the burden on designing checks.
+\paragraph{What the controls caught.} The most useful evidence about a method is its failures, and each of the following is drawn from the repository's history. (a) Components' style rules leaked into one another, because the framework scopes only the host selector, so that one panel's \texttt{.empty} rule restyled another's; no test failed, and the leak was found by inspecting screenshots. (b) The issue-form parser attached the text of an unrelated section of the form to the diagram's rights statement; a dry run of the workflow against a synthetic issue found it before deployment, and a test now checks that every label in the form is either read or deliberately ignored. (c) A workflow used an expression context that is unavailable where it was used; a workflow linter found it. (d) An end-to-end test failed intermittently and the agent could not find the cause; it reported the failure in the pull request, with what it had tried, instead of suppressing the test. (e) The agent could not verify whether GitHub prefills an issue form's dropdowns from a URL, and flagged the behaviour as unverified rather than asserting it; the workspace lists the dropdown values in its submit dialog as a fallback. (f) One of the archive's worked examples, written by the agent, cuts its inflow two time steps later than the message it prints says. Every test passed; the error surfaced only when the validation in Section~\ref{sec:validation} compared the listing with its exact solution. The pattern across the six is that the agent was reliable where a check existed and candid where one did not. That places the burden of quality on designing checks, which is where the human effort in this project went.
 
-\emph{Limits and threats.} Git trailers attribute commits, not lines, so the agent's share of the code is known only coarsely. The process cannot be reproduced exactly, because the model is not deterministic and will be superseded; what is reproducible is the artefact, its tests and its history. Review is the bottleneck, and a single reviewer is a single point of failure. The interpreter is the component where an undetected error does the most harm, which is why it carries the analytical check in Section~\ref{sec:validation} and why agreement with printed source output is the validation that matters most. Place this against the software-engineering evidence on LLM coding agents \citep{chen2021,jimenez2024}.
-\end{plan}
+\paragraph{Limits and threats.} Co-author trailers attribute commits, not lines, so the agent's share of the code is known only coarsely: it took part in every commit except the repository's initial one. The process cannot be reproduced exactly, because the model is not deterministic and will be superseded; what is reproducible is the artefact, its tests and its history. Review is the bottleneck, and a single reviewer is a single point of failure. The interpreter is the component in which an undetected error would do the most harm, since every archived program depends on it, which is why it carries the analytical checks in Section~\ref{sec:validation} and why agreement with output printed in the sources is the validation that matters most. These observations are consistent with the software-engineering literature on LLM coding agents, which finds them capable on well-specified tasks with executable checks and much less reliable without them \citep{chen2021,jimenez2024} \verify{} (check that this characterisation fairly represents both papers).
 
 \begin{table}[h]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}Xr@{}}
 \toprule
-Quantity (main branch at commit \texttt{4edbbdd}, 18 Sept 2026) & Value \\
+Quantity (main branch at commit \texttt{47ae893}, 18 Sept 2026) & Value \\
 \midrule
-Pull requests merged & 8 \\
-Non-merge commits & 9 \\
-\quad of which carry a Claude co-author trailer & 8 \\
+Pull requests merged & 9 \\
+Non-merge commits & 10 \\
+\quad of which carry a Claude co-author trailer & 9 \\
 \quad the remaining one & GitHub's initial commit \\
-TypeScript/JavaScript source lines (excluding tests, configuration and the vendored framework) & 3{,}610 \\
+TypeScript source lines in \texttt{src/} and \texttt{scripts/}, excluding tests and the vendored framework in \texttt{src/core/} & 4{,}646 \\
 \quad of which the BASIC interpreter & 798 \\
-CSS and HTML lines & 1{,}374 \\
-Test lines & 1{,}608 \\
+CSS and HTML lines & 1{,}813 \\
+Test lines (unit and end-to-end) & 2{,}159 \\
 Unit tests & 136 \\
 End-to-end tests (41, each run against the development and the production build) & 82 \\
 Elapsed time from first to latest merge & about 12 hours \\
 \bottomrule
 \end{tabularx}
-\caption{The development record. Recompute at the tagged release the paper cites.}
+\caption{The development record, counted from the git history. Lines are newline counts of the files in each category. Recompute at the tagged release the paper cites.}
 \label{tab:llm}
 \end{table}
 \target{1{,}000}
@@ -340,29 +377,33 @@ Elapsed time from first to latest merge & about 12 hours \\
 \section{Validation}
 \label{sec:validation}
 
-\begin{plan}
-Two kinds of evidence, the second decisive.
+Two kinds of evidence bear on whether the archive can be trusted: agreement with analytical results, which tests the interpreter, and agreement with output printed in the sources, which tests the archive. The first is reported here; the second is decisive and depends on transcriptions that do not yet exist.
 
-\emph{Against analytical results.} The charge-and-discharge mini-model, $\mathrm{d}Q/\mathrm{d}t = J - K_1Q$, discretised by the listing's own Euler step, has the closed form $Q_n = (J/K_1)\,[1-(1-K_1\Delta t)^n]$. The interpreter's printed output matches this recurrence to print precision, so the difference from the exact solution $Q(t) = (J/K_1)(1-e^{-K_1t})$ is the listing's method and not the interpreter's (Table~\ref{tab:validation}). Do the same for logistic growth and for the two tanks in series.
+\paragraph{Against analytical results.} The three simulation models in the archive have exact solutions. The charge-and-discharge model is $\mathrm{d}Q/\mathrm{d}t = J - K_1Q$, with $Q(t) = (J/K_1)(1-e^{-K_1t})$. The logistic-growth model is $\mathrm{d}Q/\mathrm{d}t = K_1Q(S_T - Q) - K_2Q$, which is logistic growth with rate $r = K_1S_T - K_2$ and ceiling $C = S_T - K_2/K_1$, so that $Q(t) = C/[1 + ((C-Q_0)/Q_0)e^{-rt}]$. The two-tanks model is a linear system, $\mathrm{d}Q_1/\mathrm{d}t = J - K_1Q_1$ and $\mathrm{d}Q_2/\mathrm{d}t = K_1Q_1 - K_2Q_2$, with its inflow switched off part way through, and has a closed-form solution in each phase. Each listing integrates its model by forward Euler, so each run can be compared with two references: the listing's own Euler recurrence, computed independently in the same order of operations, and the exact solution. The first comparison tests the interpreter; the second measures the listing's method.
 
-\emph{Against output printed in the sources.} Where a book prints a program's output, as a table or a graph, the \texttt{verbatim} transcription must reproduce it. This is the result that validates the archive rather than the arithmetic, and it depends on the transcriptions listed in Table~\ref{tab:prereq}. Report agreement per program, and treat every disagreement as a finding: a misprint in the book, a transcription error, or an interpreter defect, each resolved on the record through the \texttt{corrected} mechanism.
+The comparison is a unit test in the repository (\texttt{src/basic/validation.test.ts}), which runs each archived listing through the interpreter, recovers its table with the same code the workbench uses to plot it, and prints the figures in Table~\ref{tab:validation}. On every row of every table, the interpreter's output agrees with the recurrence to within the rounding of \texttt{PRINT}, which prints six decimal places: no difference exceeds half a unit in the last printed place. The remaining differences from the exact solutions are the listings' first-order time step, and they are of the expected size: under one per cent of the peak for the two linear models, and seven per cent for the logistic model, whose growth rate times the step, $r\Delta t = 0.19$, is the coarsest of the three.
 
-\emph{The test suite} as supporting evidence: listing-level interpreter tests, archive-rule tests, and end-to-end tests against the production build, including that each published file is byte-identical to what the app runs.
-\end{plan}
+The comparison also found an error. The two-tanks listing prints ``inflow cut off at T=40'', and its exact solution with the inflow cut at $t=40$ differs from its run by 7.3 per cent of the peak, ten times more than the method explains. The cause is the listing, not the interpreter. \texttt{IF T > 40 THEN LET J = 0} is executed after the storages are updated, so the step that begins at $T = 40.25$ still uses the old inflow, and the inflow actually stops at $t = 40.5$. With the cut placed there, the difference falls to 0.7 per cent, in line with the other linear model. The listing is a worked example written for the archive, not a published one, so the error is ours; but it is precisely the kind of discrepancy that a published listing can contain, that no reading of the plot would reveal, and that only a comparison against an independent reference exposes. It is recorded as an open item in Table~\ref{tab:prereq}, to be resolved on the record rather than silently.
+
+\paragraph{Against output printed in the sources.} Where a book prints a program's output, as a table or a graph, the \texttt{verbatim} transcription must reproduce it. This is the result that validates the archive rather than the arithmetic, and it depends on the transcriptions listed in Table~\ref{tab:prereq}. It will be reported per program, and every disagreement treated as a finding: a misprint in the book, a transcription error, or an interpreter defect, each resolved on the record through the \texttt{corrected} mechanism. Agreement is expected to the digits the source prints, not beyond, because the original machines' arithmetic and number formats differ from the interpreter's (Section~\ref{sec:implementation}).
+
+\paragraph{The test suite} is the supporting evidence. At the commit recorded in Table~\ref{tab:llm} it held 136 unit tests, including interpreter tests that run a listing and assert on what it printed, and archive tests phrased as the mistakes a contributor could make; and 41 end-to-end tests, each run against both the development server and the production build, including the check that every published listing is identical to the one the workbench runs. Drafting this paper added three unit tests, the validation above, and three end-to-end tests, which capture its figures.
 
 \begin{table}[h]
 \centering\small
-\begin{tabular}{@{}lr@{}}
+\begin{tabular}{@{}lrrcc@{}}
 \toprule
-Charge and discharge: $J=100$, $K_1=0.1$, $\Delta t=0.5$, $0\le t\le60$ & \\
+& & & \multicolumn{2}{c@{}}{Largest difference} \\
+\cmidrule(l){4-5}
+Program & $\Delta t$ & Rows & interpreter vs.\ recurrence & recurrence vs.\ exact \\
 \midrule
-Rows printed & 121 \\
-Maximum relative difference, interpreter vs.\ Euler recurrence & $2.2\times10^{-9}$ \\
-Maximum relative difference, interpreter vs.\ exact solution & $2.5\times10^{-2}$ \\
-$Q(10)$: interpreter / recurrence / exact & 641.514 / 641.514 / 632.121 \\
+\texttt{charge-discharge} & 0.5 & 121 & $\le 5\times10^{-7}$ & 0.94\% \\
+\texttt{logistic-growth} & 0.5 & 401 & $\le 5\times10^{-7}$ & 7.41\% \\
+\texttt{two-tank}, cut at $t=40.5$ & 0.25 & 321 & $\le 5\times10^{-7}$ & 0.70\% \\
+\texttt{two-tank}, cut at $t=40$ as printed & 0.25 & 321 & $\le 5\times10^{-7}$ & 7.27\% \\
 \bottomrule
 \end{tabular}
-\caption{The interpreter reproduces the listing's arithmetic to print precision; the remaining difference from the exact solution is the listing's Euler step. Computed at commit \texttt{4edbbdd}; add this comparison to the test suite so the figure is regenerated rather than transcribed.}
+\caption{The interpreter against the three simulation listings in the archive. Interpreter vs.\ recurrence: the largest absolute difference on any printed row between the interpreter's output and the listing's Euler recurrence computed independently; $5\times10^{-7}$ is half a unit in \texttt{PRINT}'s sixth decimal place. Recurrence vs.\ exact: the largest difference from the exact solution, as a percentage of the peak of that variable. For comparison, charge and discharge at $t=10$ gives $Q=641.514$ from both the interpreter and the recurrence, and $632.121$ exactly. The first three rows are printed by \texttt{src/basic/validation.test.ts}; the last is the same comparison with the cut-off the listing announces.}
 \label{tab:validation}
 \end{table}
 \target{500}
@@ -371,34 +412,40 @@ $Q(10)$: interpreter / recurrence / exact & 641.514 / 641.514 / 632.121 \\
 \section{Discussion}
 \label{sec:discussion}
 
-\begin{plan}
-\emph{What running the listings makes possible.} Checking a published model against its own claims; teaching with the originals; comparing a listing with its diagram, which is also the bridge to \texttt{energese} and to GSSK, where one model file both draws and simulates. Keep speculation short.
+\paragraph{What running the listings makes possible.} The most direct use is to check a published model against its own claims: whether the listing, run as printed, produces the behaviour the text describes and the figure shows. Section~\ref{sec:validation} shows on a small scale how such a check can find something that reading cannot. A second is teaching with the originals, so that a student meets the model in the form its author gave it, and can change a coefficient and see what happens, as the listings were meant to be used. A third is comparing a listing with its diagram. The two were published as descriptions of the same model, and they need not agree; where they differ, one of them is wrong. This is also the bridge to the companion work: \texttt{energese} draws Energy Systems Language diagrams from a model file, and the GSSK kernel simulates from the same file \verify{} (cite both), so that a diagram and its simulation can no longer drift apart. An archive of the published pairs is a test set for that approach.
 
-\emph{Fidelity as a general idea.} Argue that recording how close an executable artefact is to the published one belongs in research-software practice beyond this archive, as a companion to FAIR \citep{wilkinson2016,barker2022}.
+\paragraph{Fidelity as a general idea.} Recording how close an executable artefact is to the published one is not specific to BASIC or to Odum. Any collection of re-implementations, ports or transcriptions of published models faces the same question, and answers it, if at all, in prose. We suggest that fidelity belongs beside the FAIR principles for research software \citep{wilkinson2016,barker2022} as a recorded, controlled property: a small vocabulary with no default, chosen by a person, and enforced by the build. The four levels used here are a starting point, not a standard, and the useful part is less the vocabulary than the rule that a copy is never silently promoted to an original.
 
-\emph{Figures, copyright and fair dealing.} The diagrams are someone's work. The design makes the rights decision explicit, per figure, recorded and reviewed, rather than implicit in whether someone dared to upload a scan. Say plainly what the archive does not decide for anyone, and that a basis can be revised if a rights holder objects. Consult a copyright adviser on the fair-use and fair-dealing wording before submission \verify.
+\paragraph{Figures, copyright and fair dealing.} The diagrams are someone's work. The easy course, for an archive like this one, is to reproduce them and hope; the resulting collection embodies a rights decision, but nobody made it and nobody can find it. The design here makes the decision explicit, per figure, recorded in the sidecar, reviewed with the rest of the contribution, and visible to every reader beside the image. The archive does not decide for anyone whether a particular reproduction is lawful: a contributor asserts a basis, a reviewer accepts or questions it, and the record says which. A basis can be revised, and a figure removed, if a rights holder objects, and the record makes it possible to find every figure from a given source when that happens. The wording of the fair-use and fair-dealing basis is to be checked with a copyright adviser before submission \verify.
 
-\emph{Agents as contributors to scholarly archives.} Two roles, builder and transcriber, with different risks. The first is checked by tests; the second only by a person reading the page. The archive's rules (no default fidelity, mandatory review, provenance on every file) are what make an agent contribution acceptable, and they would be as necessary without agents.
+\paragraph{Agents as contributors to scholarly archives.} Sections~\ref{sec:contributing} and~\ref{sec:llm} describe agents in two roles with different risks. As a builder, an agent's errors are errors in code, and tests can catch them; the history in Section~\ref{sec:llm} suggests they mostly do, where the tests exist. As a transcriber, an agent's errors are errors of fact about a page, and no test can catch a mistyped coefficient that still produces a plausible curve; only a person reading the page can. The archive's rules, that fidelity has no default, that review is mandatory, and that every file carries its provenance, are what make an agent's contribution acceptable. They would be as necessary without agents, since a person transcribing from a book makes the same errors; agents make the rules' purpose easier to see.
 
-\emph{Limitations.} Dialect coverage; the plotting heuristic; single-axis plots; no sign-in; dependence on GitHub for contribution (though not for use: the site is static and the archive is plain files); a single maintainer.
-\end{plan}
+\paragraph{Limitations.} The interpreter covers the Commodore-era core but not yet the graphics and structured statements of the later listings, so many published programs will not run until it does. The plotting heuristic finds tables, not screen graphics. It plots every series against one axis, so a flow in the tens beside a storage in the thousands reads as nearly flat: that is the true relationship between them, but it hides the small series' shape, which then has to be read from the printed table. There is no sign-in, so the workspace cannot submit on a contributor's behalf and every submission passes through GitHub; the archive depends on GitHub for contribution, though not for use, since the site is static and the archive is plain files that any server can host. Interpreter arithmetic differs from the original machines' in precision, which may limit agreement with printed output in the last digits. And the project has a single maintainer, which is the limitation that the design, built to outlive its authors, is meant to mitigate but cannot remove.
 \target{750}
 
 %% ----------------------------------------------------------------------------
 \section{Conclusions}
 \label{sec:conclusions}
 
-\begin{plan}
-One paragraph of what exists and what it enables; one of what is needed from the community: transcriptions, rights decisions for figures, and reports of listings that do not yet run. End with the URL and the DOI.
-\end{plan}
+Odum BASIC Simulations makes the simulation listings of systems ecology runnable again, in a browser, without rewriting them. Each program is archived with a machine-checked record of where it came from, how faithful it is to the page, and on what basis its diagram is reproduced; the build refuses a program whose record is incomplete. Contributors can add programs from the browser, through a form, by pull request or, once configured, through a coding agent, and every route ends in the same validation and a person's review. The software was built by an LLM coding agent under test-first human review, and its record shows the method working where checks existed, with the checks rather than the agent carrying the weight. The interpreter reproduces the arithmetic of the three simulation listings in the archive to the precision they print, and comparing them with their exact solutions found an error that no test had.
+
+What the archive needs now is what software cannot supply: transcriptions of published listings, with their citations; rights decisions for their figures; and reports of listings that do not yet run, which are the interpreter's to-do list. The archive is at \url{https://energese-project.github.io/Odum-basic-simulations/}, and its archived release at [DOI to mint].
 \target{250}
 
 %% ----------------------------------------------------------------------------
 \section*{Software and data availability}
 
-\begin{plan}
-Name: Odum BASIC Simulations. Developer: S. Maud. Repository: \url{https://github.com/energese-project/Odum-basic-simulations}. Live: \url{https://energese-project.github.io/Odum-basic-simulations/}. Licence: [to add; see Table~\ref{tab:prereq}]. Archived release and DOI: [Zenodo; to mint]. Language: TypeScript; runs in any current browser with no installation. Requirements to build: Node and the container image described in the repository. Size: see Table~\ref{tab:llm}. The archive's programs are plain files in \texttt{programs/}, each with its provenance record, citable individually by URL.
-\end{plan}
+\begin{description}
+\item[Name] Odum BASIC Simulations.
+\item[Developer] S. Maud.
+\item[Repository] \url{https://github.com/energese-project/Odum-basic-simulations}.
+\item[Live site] \url{https://energese-project.github.io/Odum-basic-simulations/}.
+\item[Licence] [To add; see Table~\ref{tab:prereq}.]
+\item[Archived release] [Zenodo DOI, to mint.]
+\item[Language and requirements] TypeScript. Runs in any current web browser with no installation. Building requires Node, or only the container image described in the repository, which carries Node and the browser used by the tests.
+\item[Size] See Table~\ref{tab:llm}.
+\item[Data] The archive's programs are plain files in \texttt{programs/}, each with its provenance record, and each citable individually by its URL. The figures in this paper are the golden images of the end-to-end test suite, in \texttt{e2e/figures/}, and the validation figures are printed by \texttt{src/basic/validation.test.ts}; both are regenerated from the repository at the cited release.
+\end{description}
 
 \section*{CRediT authorship contribution statement}
 \textbf{S. Maud:} Conceptualization, Methodology, Software, Validation, Writing -- original draft, Writing -- review \& editing. [Add co-authors and their roles.]
@@ -409,10 +456,10 @@ Name: Odum BASIC Simulations. Developer: S. Maud. Repository: \url{https://githu
 \section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
 
 \begin{plan}
-Required by Elsevier as a separate section before the references, in their template wording \citep{elsevierAI}. This covers use in \emph{writing}; use in building the software is method, and is described in Section~\ref{sec:llm}. AI tools are not authors. Draft, to be revised to match what is actually used when the manuscript is written:
+Required by Elsevier as a separate section before the references, in their template wording \citep{elsevierAI}. This covers use in \emph{writing}; use in building the software is method, and is described in Section~\ref{sec:llm}. AI tools are not authors. Revise to match what is actually used when the manuscript is finalised.
 \end{plan}
 
-During the preparation of this work the author used Claude Code (Anthropic; model Claude Opus~5) in order to draft the section plan and to assemble the development record reported in Table~\ref{tab:llm}. After using this tool, the author reviewed and edited the content as needed and takes full responsibility for the content of the published article.
+During the preparation of this work the author used Claude Code (Anthropic; model Claude Opus~5) in order to draft the section plan and, from that plan, the text of each section; to assemble the development record reported in Table~\ref{tab:llm}; and to write the test that computes Table~\ref{tab:validation} and the test suite that captures the figures. After using this tool, the author reviewed and edited the content as needed and takes full responsibility for the content of the published article.
 
 \section*{Acknowledgements}
 [To complete.]

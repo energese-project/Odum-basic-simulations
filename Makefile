@@ -15,7 +15,8 @@ CPUS          := 4
 RUN           := $(CONTAINER_BIN) run --rm --init -m $(MEMORY) -c $(CPUS) \
 	-v $(shell pwd):$(WORKDIR) $(IMAGE_APP)
 
-.PHONY: help start image install dev build preview typecheck test-unit test check clean
+.PHONY: help start image install dev build preview typecheck test-unit test check clean \
+        figures figures-update article
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -66,6 +67,30 @@ test: start ## Playwright end-to-end tests, dev server and built bundle
 	$(RUN) npm run e2e
 
 check: typecheck test-unit test ## Everything CI runs. Must pass before pushing.
+
+# --------------------------------------------------
+# The paper's figures
+#
+# e2e/figures.spec.ts screenshots the built site and compares it against the
+# goldens in e2e/figures/, which docs/article.tex includes. `make test` already
+# runs it; this target runs it alone. The goldens are pixel comparisons, only
+# valid in this image on arm64 — the CI `figures` job builds the same one.
+# --------------------------------------------------
+
+figures: start ## Compare the paper's figures against their goldens
+	$(RUN) npm run e2e -- --project=figures
+
+figures-update: start ## Rewrite the figure goldens. Look at the PNGs before committing
+	$(RUN) npm run e2e -- --project=figures --update-snapshots
+
+# pdflatex on the host if there is one; otherwise the container shim this machine
+# uses. Twice, because \ref and \cite resolve from the first run's .aux.
+PDFLATEX ?= $(shell command -v pdflatex || command -v pdflatex-container)
+
+article: ## Build docs/article.pdf from docs/article.tex and the figure goldens
+	@test -n "$(PDFLATEX)" || { echo "pdflatex not found"; exit 1; }
+	cd docs && $(PDFLATEX) -interaction=nonstopmode -halt-on-error article.tex >/dev/null
+	cd docs && $(PDFLATEX) -interaction=nonstopmode -halt-on-error article.tex | grep -E "^Output|Warning" || true
 
 clean: ## Remove build output and dependencies
 	rm -rf node_modules dist .vite playwright-report test-results

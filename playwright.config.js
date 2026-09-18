@@ -3,6 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 // Both servers are mounted under the Vite base, so baseURL carries it and the
 // specs can navigate to '/' and mean the app root. See vite.config.js.
 const BASE = '/Odum-basic-simulations/';
+const PRODUCTION = `http://localhost:4173${BASE}`;
+
+// The figures are pixel goldens, meaningful only in the environment that made
+// them. See e2e/figures.spec.ts.
+const FIGURES = /figures\.spec\.ts/;
 
 export default defineConfig({
   testDir: './e2e',
@@ -16,6 +21,7 @@ export default defineConfig({
   projects: [
     {
       name: 'dev',
+      testIgnore: FIGURES,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:5173${BASE}` },
     },
     // The same suite against the built bundle. The interpreter runs in a Web
@@ -24,7 +30,26 @@ export default defineConfig({
     // that only ran against the dev server would not test the thing that ships.
     {
       name: 'production',
-      use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:4173${BASE}` },
+      testIgnore: FIGURES,
+      use: { ...devices['Desktop Chrome'], baseURL: PRODUCTION },
+    },
+    // The paper's figures, captured from the build that ships and compared
+    // against the committed goldens that docs/article.tex includes. One file per
+    // figure, no platform or project suffix, because the article names them.
+    {
+      name: 'figures',
+      testMatch: FIGURES,
+      snapshotPathTemplate: '{testDir}/figures/{arg}{ext}',
+      // `scale: 'device'` keeps the 2x pixels; the default ('css') would
+      // capture at 1x whatever deviceScaleFactor says, too coarse for print.
+      expect: { toHaveScreenshot: { scale: 'device', stylePath: 'e2e/figures.css' } },
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: PRODUCTION,
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 2,
+        colorScheme: 'light',
+      },
     },
   ],
   webServer: [
