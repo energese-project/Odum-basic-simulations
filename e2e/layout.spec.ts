@@ -62,19 +62,24 @@ test('the sidebar is open by default on a wide screen, and remembers being close
   await expect(page.getByTestId('sidebar')).toBeHidden();
 });
 
-test('the fidelity stays in the top bar with the sidebar closed, and opens the details', async ({
+test('the run controls sit beside the program picker, and the top bar has no fidelity chip', async ({
   page,
 }) => {
+  // Fidelity is on every row of the library and at the top of the details; a
+  // third copy in the bar was noise. Run is what the bar is for, so it sits
+  // next to the program it runs rather than at the far edge.
   await page.goto('./?prg=charge-discharge');
-  await page.getByTestId('sidebar-toggle').click();
-  await expect(page.getByTestId('sidebar')).toBeHidden();
+  await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+  await expect(page.getByTestId('fidelity-chip')).toHaveCount(0);
 
-  const chip = page.getByTestId('fidelity-chip');
-  await expect(chip).toHaveText('original');
-  await chip.click();
+  const picker = await box(page, 'program-select');
+  const run = await box(page, 'run');
+  expect(run.x).toBeGreaterThan(picker.x + picker.width);
+  expect(run.x - (picker.x + picker.width), 'Run is next to the picker').toBeLessThanOrEqual(24);
 
-  await expect(page.getByTestId('sidebar')).toBeVisible();
-  await expect(page.getByTestId('meta-notes')).toContainText('first mini-model');
+  const about = await page.getByRole('link', { name: 'About' }).boundingBox();
+  const viewport = page.viewportSize()!;
+  expect(viewport.width - (about!.x + about!.width), 'About stays at the far right').toBeLessThan(80);
 });
 
 test('the library lists every program, and picking one loads it', async ({ page }) => {
@@ -142,7 +147,7 @@ test('a cited program shows its full citation and a BibTeX entry', async ({ page
   });
 
   await page.goto('./?prg=cited');
-  await expect(page.getByTestId('fidelity-chip')).toHaveText('verbatim');
+  await expect(page.getByTestId('fidelity-badge')).toHaveText('verbatim');
   await expect(page.getByTestId('citation')).toHaveText(
     'H. T. Odum (1983). Systems Ecology: An Introduction. New York: Wiley. pp. 123-125.'
   );

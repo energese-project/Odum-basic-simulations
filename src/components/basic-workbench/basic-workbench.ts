@@ -3,7 +3,7 @@ import { bindInternalLinks } from '../../core/internal-links.ts';
 import { Router } from '../../core/router/router.ts';
 import { Runner } from '../../basic/runner.ts';
 import { extractPlot, toCsv, type Plot } from '../../basic/output.ts';
-import { findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
+import { diagramUrl, findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
 import { sidebarOpen } from '../../basic/program-library.ts';
 import template from './basic-workbench.html?raw';
 import style from './basic-workbench.css?raw';
@@ -18,7 +18,7 @@ import '../program-library/program-library.ts';
 import type { CodeEditorComponent } from '../code-editor/code-editor.ts';
 import type { ConsolePanelComponent } from '../console-panel/console-panel.ts';
 import type { ChartPanelComponent } from '../chart-panel/chart-panel.ts';
-import { FIDELITY_EXPLANATION, type ProgramMetaComponent } from '../program-meta/program-meta.ts';
+import type { ProgramMetaComponent } from '../program-meta/program-meta.ts';
 import type { ProgramLibraryComponent } from '../program-library/program-library.ts';
 
 /** How often the chart is re-derived while a program is still running. Often
@@ -144,10 +144,6 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.querySelector('[data-testid="sidebar-scrim"]')?.addEventListener('click', () => {
       this.setSidebar(false);
     });
-    this.querySelector('[data-testid="fidelity-chip"]')?.addEventListener('click', () => {
-      this.setSidebar(true, { remember: true });
-      this.meta?.scrollIntoView({ block: 'nearest' });
-    });
 
     this.querySelector('[data-testid="run"]')?.addEventListener('click', () => this.run());
     this.querySelector('[data-testid="stop"]')?.addEventListener('click', () => {
@@ -160,6 +156,25 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.console?.addEventListener('console-input', (event) => {
       this.runner?.sendInput((event as CustomEvent<string>).detail);
     });
+  }
+
+  private showDiagram(program: Program): void {
+    const pane = this.querySelector<HTMLElement>('[data-testid="diagram-pane"]');
+    const link = pane?.querySelector('a');
+    const image = pane?.querySelector('img');
+    const figure = pane?.querySelector('.figure-ref');
+    if (!pane || !link || !image) return;
+
+    const url = diagramUrl(program);
+    pane.hidden = !url || !program.diagram;
+    if (!url || !program.diagram) {
+      image.removeAttribute('src');
+      return;
+    }
+    image.src = url;
+    image.alt = program.diagram.caption;
+    link.href = url;
+    if (figure) figure.textContent = program.diagram.figure ?? '';
   }
 
   private selectProgram(id: string): void {
@@ -176,12 +191,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
     const select = this.querySelector('select');
     if (select) select.value = program.id;
 
-    const chip = this.querySelector<HTMLElement>('[data-testid="fidelity-chip"]');
-    if (chip) {
-      chip.textContent = program.fidelity;
-      chip.dataset.fidelity = program.fidelity;
-      chip.title = `${FIDELITY_EXPLANATION[program.fidelity] ?? ''} Click for the full record.`;
-    }
+    this.showDiagram(program);
 
     const filename = this.querySelector('[data-testid="editor-filename"]');
     if (filename) filename.textContent = program.file;

@@ -89,7 +89,79 @@ test('a scan or a note dropped into programs/ is rejected', () => {
   add('tank.bas', '10 END\n');
   add('tank.json', META);
   add('tank-page-47.jpg', 'binary');
-  assert.throws(() => readCatalog(root), /Unexpected file\(s\).*tank-page-47\.jpg/);
+  add('tank-notes.txt', 'what I could not read');
+  assert.throws(() => readCatalog(root), /Unexpected file\(s\).*tank-notes\.txt/);
+  rmSync(join(root, 'programs', 'tank-notes.txt'));
+  // An image is allowed only as a declared diagram, so a stray photo is refused
+  // for having no recorded rights rather than for being an image.
+  assert.throws(() => readCatalog(root), /not declared by any sidecar.*tank-page-47\.jpg/);
+});
+
+// Diagrams --------------------------------------------------------------------
+
+/** The first bytes of each format — enough for the signature check. */
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
+
+function withDiagram(file: string): string {
+  return JSON.stringify({
+    title: 'A Program',
+    description: 'Does a thing.',
+    fidelity: 'original',
+    diagram: {
+      file,
+      caption: 'The storage and its drain.',
+      rights: { basis: 'own-work', statement: 'Drawn for this repository.' },
+    },
+  });
+}
+
+function addBinary(name: string, content: Buffer): void {
+  writeFileSync(join(root, 'programs', name), content);
+}
+
+test('a diagram named for its program and declared in its sidecar is catalogued', () => {
+  add('tank.bas', '10 END\n');
+  add('tank.json', withDiagram('tank.png'));
+  addBinary('tank.png', PNG);
+
+  const [entry] = readCatalog(root).programs;
+  assert.equal(entry.diagram?.file, 'tank.png');
+  assert.equal(entry.diagram?.caption, 'The storage and its drain.');
+});
+
+test('a program with no diagram carries null, not an absent key', () => {
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  assert.equal(readCatalog(root).programs[0].diagram, null);
+});
+
+test('a sidecar naming a diagram that was never added fails, naming the file', () => {
+  add('tank.bas', '10 END\n');
+  add('tank.json', withDiagram('tank.png'));
+  assert.throws(() => readCatalog(root), /programs\/tank\.png.*does not exist/);
+});
+
+test('an image the sidecar does not declare is rejected — its rights are unrecorded', () => {
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  addBinary('tank.png', PNG);
+  assert.throws(() => readCatalog(root), /not declared by any sidecar: programs\/tank\.png/);
+});
+
+test('an image whose content is not what its extension says is rejected', () => {
+  // A phone photo renamed to .png renders as a broken image on the site.
+  add('tank.bas', '10 END\n');
+  add('tank.json', withDiagram('tank.png'));
+  addBinary('tank.png', JPEG);
+  assert.throws(() => readCatalog(root), /programs\/tank\.png is not a PNG/);
+});
+
+test('an oversized diagram is rejected, with the limit in the message', () => {
+  add('tank.bas', '10 END\n');
+  add('tank.json', withDiagram('tank.jpg'));
+  addBinary('tank.jpg', Buffer.concat([JPEG, Buffer.alloc(2 * 1024 * 1024)]));
+  assert.throws(() => readCatalog(root), /programs\/tank\.jpg is .* over the 2 MB limit/);
 });
 
 test('an empty listing is rejected', () => {

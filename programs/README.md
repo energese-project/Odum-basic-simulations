@@ -4,12 +4,13 @@ Each program here is a BASIC listing from the systems-ecology literature — or 
 worked example of one — kept so that anyone can run it and check it against the
 source it came from.
 
-**Every program is two files:**
+**Every program is two files, and optionally a third:**
 
 ```
 programs/
   charge-discharge.bas     the listing, exactly as it should run
   charge-discharge.json    where it came from, and how faithfully
+  charge-discharge.png     optional: its energy systems diagram
 ```
 
 That is the whole structure. There is no index to update: the build finds the
@@ -33,8 +34,12 @@ files, checks them, and publishes both at
 Please attach a photo or scan of the source page **to the pull request**, not to
 this directory. `programs/` is published as-is, so a page image would be
 redistributed from a public site; attached to a PR it is available to the
-reviewer and stays out of the published archive. The build rejects anything that
-is not a `.bas` or a `.json` here for exactly this reason.
+reviewer and stays out of the published archive.
+
+The one image that may live here is the program's **diagram**, and only when its
+sidecar declares it with the rights it is published under — see
+[`diagram`](#diagram--optional-with-its-rights) below. The build rejects any other
+file.
 
 ## The metadata file
 
@@ -88,6 +93,46 @@ translation.
 - `doi` — bare, beginning `10.` — not a `https://doi.org/` URL; the page builds the link
 - optional: `booktitle`, `journal`, `publisher`, `institution`, `address`,
   `volume`, `pages`, `edition`, `isbn`, `url`
+
+### `diagram` — optional, with its rights
+
+The energy systems diagram that goes with the listing, shown above the plot.
+Usually it is the figure printed beside the listing in the source, cropped from a
+scan.
+
+```json
+"diagram": {
+  "file": "two-tank.png",
+  "caption": "Two storages in series: Q1 fed by J, draining into Q2, which drains away.",
+  "figure": "Figure 5-3, p. 112",
+  "rights": {
+    "basis": "fair-use",
+    "statement": "Reproduced for scholarship and review, beside the listing it documents."
+  }
+}
+```
+
+- `file` — **`<id>.png`, `.jpg`, `.jpeg` or `.webp`**, next to the listing. One
+  per program. At most 2 MB: crop to the figure. SVG is not accepted, because an
+  SVG opened directly from the published site can run scripts.
+- `caption` — required. What the diagram shows, in words. It is also the image's
+  alt text, so write it for someone who cannot see the image.
+- `figure` — optional. Where it is in the source, so a reader can find the
+  original.
+- `rights` — required. Both `basis` and `statement`:
+
+| `basis` | Means | Also requires |
+| --- | --- | --- |
+| `own-work` | Drawn for this repository. | — |
+| `public-domain` | Out of copyright, or never in it. | `source` |
+| `licensed` | Under a licence that allows it. Name the licence in the statement. | `source` |
+| `permission` | The rights holder agreed. Say who, and when. | `source` |
+| `fair-use` | Fair use or fair dealing: reproduced for scholarship, criticism or review, beside the listing it documents. | `source` |
+
+Like `fidelity`, this has no default. Only the person adding a figure from a book
+can say why it may be published here, and the build will not publish an image
+whose sidecar does not say so. A reproduced figure must have a `source`: a scan
+from nowhere is worse than no scan.
 
 ### Everything else
 

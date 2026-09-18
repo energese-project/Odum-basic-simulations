@@ -7,5 +7,13 @@
     "mini-model",
     "storage",
     "steady-state"
-  ]
+  ],
+  "diagram": {
+    "file": "charge-discharge.png",
+    "caption": "Energy systems diagram: a source J fills the storage Q, which drains through K1·Q to a heat sink.",
+    "rights": {
+      "basis": "own-work",
+      "statement": "Drawn for this repository in Odum's energy systems symbols. Not reproduced from a publication."
+    }
+  }
 }

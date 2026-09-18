@@ -15,7 +15,7 @@
  * checked, and a missing field is a failed build rather than a blank panel.
  */
 
-import type { ProgramMeta, ProgramSource } from './program-catalog.ts';
+import type { ProgramDiagram, ProgramMeta, ProgramSource } from './program-catalog.ts';
 
 export interface Program extends ProgramMeta {
   /** Filename within programs/, e.g. "two-tank.bas". */
@@ -26,7 +26,10 @@ export interface Program extends ProgramMeta {
 
 interface Catalog {
   generated: string;
-  programs: (Omit<Program, 'source'> & { source: ProgramSource | null })[];
+  programs: (Omit<Program, 'source' | 'diagram'> & {
+    source: ProgramSource | null;
+    diagram: ProgramDiagram | null;
+  })[];
 }
 
 let cache: Program[] | null = null;
@@ -42,7 +45,11 @@ export async function loadPrograms(): Promise<Program[]> {
 
   // `source` is null rather than absent in the JSON, because JSON.stringify
   // drops undefined keys and a missing key is indistinguishable from a bug.
-  cache = catalog.programs.map((p) => ({ ...p, source: p.source ?? undefined }));
+  cache = catalog.programs.map((p) => ({
+    ...p,
+    source: p.source ?? undefined,
+    diagram: p.diagram ?? undefined,
+  }));
   return cache;
 }
 
@@ -54,4 +61,9 @@ export function findProgram(programs: Program[], id: string | undefined): Progra
 /** The published URL of a listing, for the citation to link to. */
 export function programUrl(program: Program): string {
   return `${import.meta.env.BASE_URL}programs/${program.file}`;
+}
+
+/** The published URL of a program's diagram, if it has one. */
+export function diagramUrl(program: Program): string | null {
+  return program.diagram ? `${import.meta.env.BASE_URL}programs/${program.diagram.file}` : null;
 }

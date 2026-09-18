@@ -8,17 +8,24 @@
  * is judged by, and they deserve the same gate as the interpreter.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { parseProgramMeta, type ProgramMeta, type ProgramSource } from './program-catalog.ts';
+import {
+  DIAGRAM_EXTENSIONS,
+  parseProgramMeta,
+  type ProgramDiagram,
+  type ProgramMeta,
+  type ProgramSource,
+} from './program-catalog.ts';
 
 export const PROGRAMS_DIR = 'programs';
 
-export interface CatalogEntry extends Omit<ProgramMeta, 'source'> {
+export interface CatalogEntry extends Omit<ProgramMeta, 'source' | 'diagram'> {
   /** null rather than absent: JSON.stringify drops undefined keys, and a
    *  missing key is indistinguishable from a bug on the reading side. */
   source: ProgramSource | null;
+  diagram: ProgramDiagram | null;
   file: string;
   listing: string;
 }
@@ -32,6 +39,45 @@ export interface Catalog {
 const IGNORED = new Set(['index.json', 'README.md']);
 
 export class ArchiveError extends Error {}
+
+/** Big enough for a clean scan of a full-page figure; small enough that the
+ *  library stays quick to browse on a phone. */
+export const DIAGRAM_MAX_BYTES = 2 * 1024 * 1024;
+
+const IMAGE_EXTENSION = new RegExp(`\\.(${DIAGRAM_EXTENSIONS.join('|')})$`);
+
+/** What each extension's first bytes must be. A renamed HEIC or PDF passes
+ *  every other check and then renders as a broken image on the site. */
+const SIGNATURES: Record<string, { name: string; matches: (b: Buffer) => boolean }> = {
+  png: { name: 'PNG', matches: (b) => b.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex')) },
+  jpg: { name: 'JPEG', matches: (b) => b.subarray(0, 3).equals(Buffer.from('ffd8ff', 'hex')) },
+  jpeg: { name: 'JPEG', matches: (b) => b.subarray(0, 3).equals(Buffer.from('ffd8ff', 'hex')) },
+  webp: {
+    name: 'WebP',
+    matches: (b) => b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP',
+  },
+};
+
+function checkDiagram(dir: string, file: string, images: string[]): void {
+  if (!images.includes(file)) {
+    throw new ArchiveError(`${PROGRAMS_DIR}/${file} is named in its sidecar but does not exist.`);
+  }
+  const path = join(dir, file);
+  const size = statSync(path).size;
+  if (size > DIAGRAM_MAX_BYTES) {
+    throw new ArchiveError(
+      `${PROGRAMS_DIR}/${file} is ${(size / 1024 / 1024).toFixed(1)} MB, over the 2 MB limit. ` +
+        `Crop it to the figure, or save it as JPEG or WebP.`
+    );
+  }
+  const ext = file.slice(file.lastIndexOf('.') + 1);
+  const signature = SIGNATURES[ext];
+  if (!signature.matches(readFileSync(path))) {
+    throw new ArchiveError(
+      `${PROGRAMS_DIR}/${file} is not a ${signature.name} file, whatever its extension says.`
+    );
+  }
+}
 
 /**
  * Build the catalog, or throw an ArchiveError naming exactly what is wrong.
@@ -84,11 +130,15 @@ export function readCatalog(root: string, now: Date = new Date()): Catalog {
     );
   }
 
-  const stray = files.filter((f) => !f.endsWith('.bas') && !f.endsWith('.json'));
+  const images = files.filter((f) => IMAGE_EXTENSION.test(f));
+  const stray = files.filter(
+    (f) => !f.endsWith('.bas') && !f.endsWith('.json') && !images.includes(f)
+  );
   if (stray.length > 0) {
     throw new ArchiveError(
       `Unexpected file(s) in ${PROGRAMS_DIR}/: ${stray.join(', ')}. ` +
-        `Only <id>.bas and <id>.json belong here — scans and notes go in the pull request.`
+        `Only <id>.bas, <id>.json and a declared diagram belong here — ` +
+        `notes and page photos go in the pull request.`
     );
   }
 
@@ -98,8 +148,28 @@ export function readCatalog(root: string, now: Date = new Date()): Catalog {
     if (listing.trim() === '') {
       throw new ArchiveError(`${PROGRAMS_DIR}/${id}.bas is empty.`);
     }
-    return { ...meta, source: meta.source ?? null, file: `${id}.bas`, listing };
+    if (meta.diagram) checkDiagram(dir, meta.diagram.file, images);
+    return {
+      ...meta,
+      source: meta.source ?? null,
+      diagram: meta.diagram ?? null,
+      file: `${id}.bas`,
+      listing,
+    };
   });
+
+  // Every image must be claimed by a sidecar, because the sidecar is where its
+  // rights are recorded. An unclaimed image is one nobody has said may be here.
+  const declared = new Set(programs.map((p) => p.diagram?.file).filter(Boolean));
+  const undeclared = images.filter((f) => !declared.has(f));
+  if (undeclared.length > 0) {
+    throw new ArchiveError(
+      `Image(s) not declared by any sidecar: ${undeclared
+        .map((f) => `${PROGRAMS_DIR}/${f}`)
+        .join(', ')}. A diagram is published only when its program's .json names it ` +
+        `under "diagram", with the rights it is reproduced under — see ${PROGRAMS_DIR}/README.md.`
+    );
+  }
 
   return { generated: now.toISOString(), programs };
 }
