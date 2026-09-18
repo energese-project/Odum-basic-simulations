@@ -14,5 +14,5 @@
      "skipLibCheck": true,
      "lib": ["esnext", "dom"]
   },
-  "include": ["src/**/*.ts", "e2e/**/*.ts"]
+  "include": ["src/**/*.ts", "e2e/**/*.ts", "scripts/**/*.ts"]
 }

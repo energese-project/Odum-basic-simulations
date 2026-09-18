@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
     branches: [main, feat/**, fix/**, docs/**, chore/**]
+  # Dispatched by program-submission.yml: a pull request opened with the
+  # workflow token does not trigger `pull_request`, so the submission workflow
+  # runs CI on the branch this way, and the result shows on the pull request.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

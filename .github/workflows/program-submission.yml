@@ -1,0 +1,121 @@
+name: Program submission
+
+# An "Add a program" issue (.github/ISSUE_TEMPLATE/add-program.yml) becomes a
+# pull request, or a comment saying what to fix. Editing the issue runs it again.
+#
+# The issue body is untrusted. It is read from the event payload by
+# scripts/submit-program.ts and never interpolated into a `run:` block; the only
+# event field used in a shell here is the issue number, which is an integer.
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions: {}
+
+concurrency:
+  group: program-submission-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    if: >-
+      github.event.issue.state == 'open' &&
+      contains(github.event.issue.labels.*.name, 'program-submission')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the submission branch
+      pull-requests: write   # open or update its pull request
+      issues: write          # comment on the issue
+      actions: write         # dispatch CI — see "Run CI" below
+    env:
+      ISSUE: ${{ github.event.issue.number }}
+      BRANCH: feat/submission-${{ github.event.issue.number }}
+      BASE: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BASE }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      # The runner context is not available in job-level env, so the scratch
+      # directory is set here for every later step.
+      - run: echo "OUT=$RUNNER_TEMP/submission" >> "$GITHUB_ENV"
+
+      # No npm ci: the script and the archive rules it runs use only Node's
+      # standard library, so the submission check needs nothing installed.
+      - name: Build and check the submission
+        id: build
+        run: |
+          if SUBMISSION_OUT="$OUT" node scripts/submit-program.ts; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit, push and open the pull request
+        id: pr
+        if: steps.build.outputs.ok == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$BRANCH"
+          git add programs/
+          git commit --quiet --file "$OUT/commit-message.txt"
+          # Rebuilt from main on every edit of the issue, so a force push is the
+          # point: the branch is always exactly what the issue now says.
+          git push --force --quiet origin "$BRANCH"
+
+          number=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -z "$number" ]; then
+            url=$(gh pr create --base "$BASE" --head "$BRANCH" \
+              --title "$(cat "$OUT/pr-title.txt")" --body-file "$OUT/pr-body.md")
+          else
+            gh pr edit "$number" --title "$(cat "$OUT/pr-title.txt")" --body-file "$OUT/pr-body.md"
+            url=$(gh pr view "$number" --json url --jq .url)
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      # A pull request opened with GITHUB_TOKEN does not trigger `pull_request`
+      # workflows — GitHub's guard against workflows triggering each other.
+      # workflow_dispatch is the documented exception, and its check run lands on
+      # the branch's head commit, so it shows on the pull request like any other.
+      - name: Run CI on the pull request
+        if: steps.build.outputs.ok == 'true'
+        run: gh workflow run ci.yml --ref "$BRANCH"
+
+      - name: Comment on the issue
+        if: always() && (steps.build.outputs.ok == 'false' || steps.pr.outcome == 'success')
+        env:
+          PR_URL: ${{ steps.pr.outputs.url }}
+          OK: ${{ steps.build.outputs.ok }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$OK" = "true" ]; then
+            sed "s#PULL_REQUEST_URL#${PR_URL}#" "$OUT/comment-success.md" > "$OUT/comment.md"
+          elif [ -f "$OUT/comment-failure.md" ]; then
+            cp "$OUT/comment-failure.md" "$OUT/comment.md"
+          else
+            # The script crashed rather than refusing the submission: a bug here,
+            # not something the contributor can fix by editing.
+            printf '%s\n%s\n\n%s\n' '<!-- program-submission -->' \
+              '**The submission check itself failed** — this is a problem with the checker, not with your submission.' \
+              "A maintainer will look at it. Log: $RUN_URL" > "$OUT/comment.md"
+          fi
+
+          # One bot comment per issue, edited on each run rather than piled up.
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- program-submission -->"))) | .id' | head -n 1)
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -F "body=@$OUT/comment.md" > /dev/null
+          else
+            gh issue comment "$ISSUE" --body-file "$OUT/comment.md"
+          fi
+
+      - name: Fail the run when the submission was refused
+        if: steps.build.outputs.ok == 'false'
+        run: exit 1

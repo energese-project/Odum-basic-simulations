@@ -218,6 +218,22 @@ in [`programs/README.md`](programs/README.md); what matters for changing the cod
   default, for the same reason as `fidelity`, and anything other than `own-work`
   needs a `source`. An image no sidecar claims fails the build: nobody has said it
   may be published. Page photos for the reviewer still belong in the pull request.
+- **Programs can arrive through an issue form.**
+  [`add-program.yml`](.github/ISSUE_TEMPLATE/add-program.yml) →
+  [`program-submission.yml`](.github/workflows/program-submission.yml) →
+  [`scripts/submit-program.ts`](scripts/submit-program.ts), which builds the files
+  with [`submission.ts`](src/basic/submission.ts) and checks them with the same
+  `parseProgramMeta` and `readCatalog` as the build. There are no rules of its own.
+  Three things to keep:
+  - **The issue body is untrusted and is never interpolated into a `run:` block.**
+    The script reads it from `$GITHUB_EVENT_PATH`. The workflow only uses the issue
+    number in shell.
+  - **Form fields are matched by label text.** Renaming a label in the YAML without
+    changing `FORM_LABELS` (or `IGNORED_LABELS`) loses that field from every
+    submission. `submission.test.ts` checks the two against each other.
+  - **A PR opened with `GITHUB_TOKEN` does not trigger `pull_request`**, so the
+    workflow dispatches `ci.yml` on the branch. That is why `ci.yml` has a
+    `workflow_dispatch` trigger. Removing it leaves submitted programs untested.
 - **No SVG diagrams.** An SVG opened directly from the published site runs its own
   scripts on the org's `github.io` origin. Raster images cannot.
 
