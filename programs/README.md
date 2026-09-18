@@ -19,6 +19,25 @@ files, checks them, and publishes both at
 
 ## Adding a program
 
+### The easy way: the form
+
+[**Open an "Add a program" issue**](https://github.com/energese-project/Odum-basic-simulations/issues/new?template=add-program.yml)
+and fill it in. No git, JSON or BibLaTeX needed. Paste the listing, type in the
+citation, drag the diagram image in if there is one.
+
+A bot checks it against the same rules as everything below, usually within a
+couple of minutes:
+
+- if something is wrong, it comments on the issue saying what. **Edit the
+  issue** to fix it and it checks again;
+- when everything passes, it opens a pull request with the files, credits you as
+  co-author, and runs the full test suite on it. A maintainer reviews and merges.
+
+Add a photo of the source page in the form's last box if you can. It stays in
+the issue for the reviewer and is not published.
+
+### By hand
+
 1. **Name it.** Lowercase, words joined by hyphens: `two-tank.bas`, not
    `TwoTank.BAS`. The name becomes a URL (`?prg=two-tank`), so the build
    refuses anything else.

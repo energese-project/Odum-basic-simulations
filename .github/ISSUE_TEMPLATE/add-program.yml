@@ -1,0 +1,241 @@
+# The labels below are read back by src/basic/submission.ts, which matches them
+# by exact text (FORM_LABELS). Renaming one here without renaming it there drops
+# that field from every submission; submission.test.ts fails if they disagree.
+name: Add a program
+description: Submit a BASIC listing, where it came from, and its diagram. A bot checks it and opens a pull request.
+title: "Add program: "
+labels: [program-submission]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill this in and a bot checks it against the archive's rules within a minute or two.
+        If something is wrong it says what in a comment; **edit this issue** to fix it and it
+        checks again. When everything passes it opens a pull request for review.
+
+        The rules are the ones in [`programs/README.md`](../blob/main/programs/README.md).
+
+  - type: input
+    id: id
+    attributes:
+      label: Program id
+      description: Lowercase words joined by hyphens. Becomes the filename and the link, e.g. `?prg=two-tank`.
+      placeholder: two-tank
+    validations:
+      required: true
+
+  - type: input
+    id: title
+    attributes:
+      label: Title
+      placeholder: Two Tanks In Series
+    validations:
+      required: true
+
+  - type: input
+    id: description
+    attributes:
+      label: Description
+      description: One line, shown in the library.
+      placeholder: A storage draining into a second storage, which drains to the outside.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: fidelity
+    attributes:
+      label: Fidelity
+      description: |
+        How close the listing is to what was published. Choose the **lowest** one that is true.
+        - **verbatim** — typed from the source character for character, mistakes included
+        - **corrected** — transcribed, with misprints fixed (list every change under Notes)
+        - **adapted** — the published model, rewritten to run here
+        - **original** — written for this archive, not from a published listing
+      options:
+        - verbatim
+        - corrected
+        - adapted
+        - original
+    validations:
+      required: true
+
+  - type: textarea
+    id: listing
+    attributes:
+      label: Listing
+      description: The BASIC program, pasted exactly. Line numbers and all.
+      render: basic
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Where it was published
+        Required unless fidelity is **original**. Leave it all empty for an original program.
+
+  - type: dropdown
+    id: source_type
+    attributes:
+      label: Source type
+      options:
+        - book
+        - incollection
+        - article
+        - report
+        - thesis
+        - unpublished
+
+  - type: textarea
+    id: authors
+    attributes:
+      label: Authors
+      description: One per line, family name first.
+      placeholder: |
+        Odum, Howard T.
+        Odum, Elisabeth C.
+
+  - type: input
+    id: source_title
+    attributes:
+      label: Source title
+      description: The book, article or report title.
+
+  - type: input
+    id: booktitle
+    attributes:
+      label: Book title
+      description: Only for a chapter (source type incollection) — the book the chapter is in.
+
+  - type: input
+    id: journal
+    attributes:
+      label: Journal
+
+  - type: input
+    id: publisher
+    attributes:
+      label: Publisher or institution
+
+  - type: input
+    id: address
+    attributes:
+      label: Place of publication
+      placeholder: New York
+
+  - type: input
+    id: year
+    attributes:
+      label: Year
+      placeholder: "1983"
+
+  - type: input
+    id: volume
+    attributes:
+      label: Volume
+
+  - type: input
+    id: pages
+    attributes:
+      label: Pages
+      description: Where the listing is printed.
+      placeholder: 123-125
+
+  - type: input
+    id: edition
+    attributes:
+      label: Edition
+
+  - type: input
+    id: isbn
+    attributes:
+      label: ISBN
+
+  - type: input
+    id: doi
+    attributes:
+      label: DOI
+      description: Bare, starting `10.` — not a doi.org link.
+
+  - type: input
+    id: url
+    attributes:
+      label: URL
+
+  - type: markdown
+    attributes:
+      value: "### About the program"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything a reader checking this against the source should know. **Required for corrected** — list every change.
+
+  - type: input
+    id: tags
+    attributes:
+      label: Tags
+      description: Comma-separated.
+      placeholder: mini-model, storage, lag
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Diagram (optional)
+        The energy systems diagram printed with the listing, **cropped to the figure**, as PNG,
+        JPEG or WebP under 2 MB. It is published on the site, so say on what basis it may be:
+        - **own-work** — you drew it
+        - **public-domain** — out of copyright
+        - **licensed** — under a licence that allows it (name it)
+        - **permission** — the rights holder agreed (say who and when)
+        - **fair-use** — fair use / fair dealing: reproduced for scholarship or review, beside its listing
+
+  - type: textarea
+    id: diagram
+    attributes:
+      label: Diagram image
+      description: Drag the image file into this box.
+
+  - type: input
+    id: diagram_caption
+    attributes:
+      label: Diagram caption
+      description: What the diagram shows, in words. It is also the image's alt text.
+
+  - type: input
+    id: diagram_figure
+    attributes:
+      label: Diagram figure reference
+      placeholder: Figure 5-3, p. 112
+
+  - type: dropdown
+    id: rights_basis
+    attributes:
+      label: Diagram rights basis
+      options:
+        - own-work
+        - public-domain
+        - licensed
+        - permission
+        - fair-use
+
+  - type: textarea
+    id: rights_statement
+    attributes:
+      label: Diagram rights statement
+      description: Why this image may be published here.
+
+  - type: textarea
+    id: page_photo
+    attributes:
+      label: Photo of the source page
+      description: For the reviewer only — it stays in this issue and is **not** published. Lets them check the listing against the page.
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have checked the listing against the source, and chosen the lowest fidelity that is true.
+          required: true

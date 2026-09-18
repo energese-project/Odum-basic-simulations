@@ -58,6 +58,14 @@ const SIGNATURES: Record<string, { name: string; matches: (b: Buffer) => boolean
   },
 };
 
+/** The format an image's bytes say it is, whatever its name says. */
+export function sniffImage(bytes: Buffer): 'png' | 'jpg' | 'webp' | null {
+  if (SIGNATURES.png.matches(bytes)) return 'png';
+  if (SIGNATURES.jpg.matches(bytes)) return 'jpg';
+  if (SIGNATURES.webp.matches(bytes)) return 'webp';
+  return null;
+}
+
 function checkDiagram(dir: string, file: string, images: string[]): void {
   if (!images.includes(file)) {
     throw new ArchiveError(`${PROGRAMS_DIR}/${file} is named in its sidecar but does not exist.`);
