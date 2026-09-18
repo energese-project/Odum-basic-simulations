@@ -183,4 +183,7 @@ copies `dist/index.html` to `dist/404.html`; that copy is the only reason a
 client-side route survives being entered directly. It also writes `.nojekyll`,
 without which Jekyll drops files whose names begin with an underscore.
 
-Repository settings must have **Pages → Source: GitHub Actions**.
+`configure-pages` runs with `enablement: true`, so the workflow turns Pages on
+itself rather than requiring a visit to Settings. Do not remove that: without it
+the first deploy of a fresh clone or fork dies on a 404 from the Pages API, which
+reads like a broken workflow and is really an untouched setting.
