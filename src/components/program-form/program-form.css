@@ -1,0 +1,200 @@
+:host {
+  display: block;
+}
+
+/* BaseComponent scopes only :host — every selector here carries it. */
+:host .form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+:host .lede,
+:host .message {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--e-muted);
+}
+
+:host .problems {
+  margin: 0;
+  list-style: disc;
+  padding: 0.5rem 0.6rem 0.5rem 1.6rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--e-ink);
+  background-color: var(--e-surface-sunken);
+  border: 1px solid var(--e-rule);
+  border-left: 3px solid var(--e-warning);
+  border-radius: 0.3rem;
+}
+
+:host fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+:host legend {
+  margin-bottom: 0.3rem;
+  padding: 0;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e-muted);
+}
+
+:host label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--e-ink);
+}
+
+:host .pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+:host input,
+:host select,
+:host textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.3rem 0.45rem;
+  font: inherit;
+  font-size: 0.76rem;
+  color: var(--e-ink);
+  background-color: var(--e-surface-sunken);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.3rem;
+}
+
+:host input[type='file'] {
+  padding: 0.25rem;
+}
+
+:host textarea {
+  resize: vertical;
+}
+
+:host small {
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: var(--e-muted);
+}
+
+:host .error {
+  color: var(--e-critical);
+}
+
+:host .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+:host .actions button,
+:host .actions a,
+:host .steps button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  font: inherit;
+  font-size: 0.74rem;
+  color: var(--e-ink);
+  text-decoration: none;
+  background: none;
+  border: 1px solid var(--e-rule);
+  border-radius: 0.3rem;
+  cursor: pointer;
+}
+
+/* --e-accent on --e-ground, like the Run button: both invert together. */
+:host .actions .primary {
+  color: var(--e-ground);
+  background-color: var(--e-accent);
+  border-color: transparent;
+}
+
+:host .actions .primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+:host .actions .danger {
+  margin-left: auto;
+  color: var(--e-critical);
+}
+
+:host .link {
+  align-self: flex-start;
+  padding: 0;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--e-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+:host input:focus-visible,
+:host select:focus-visible,
+:host textarea:focus-visible,
+:host button:focus-visible,
+:host a:focus-visible {
+  outline: 2px solid var(--e-accent);
+  outline-offset: 1px;
+}
+
+/* Tailwind's preflight zeroes the margin the browser centres a modal with. */
+:host .submit {
+  margin: auto;
+  max-width: 34rem;
+  padding: 1rem 1.25rem;
+  color: var(--e-ink);
+  background-color: var(--e-surface);
+  border: 1px solid var(--e-rule);
+  border-radius: 0.5rem;
+}
+
+:host .submit::backdrop {
+  background-color: rgb(var(--e-ink-rgb) / 0.35);
+}
+
+:host .submit h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+:host .submit p,
+:host .steps {
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+:host .steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1.2rem;
+  list-style: decimal;
+}
+
+:host .steps ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1rem;
+  list-style: disc;
+}
+
+:host .steps a {
+  color: var(--e-accent);
+}

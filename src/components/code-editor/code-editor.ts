@@ -87,6 +87,12 @@ export class CodeEditorComponent extends BaseComponent {
       scrollbar: { alwaysConsumeMouseWheel: false },
     });
 
+    // Typing, not loading: setModel() in the value setter does not fire this,
+    // so a listener can save what the reader wrote without saving every load.
+    this.editor.onDidChangeModelContent(() => {
+      this.dispatchEvent(new CustomEvent('editor-change', { bubbles: true }));
+    });
+
     // Monaco paints its own pixels from a resolved palette, so like the chart
     // canvas it has to be told when the tokens move. See editor-theme.ts.
     window.addEventListener('theme-changed', this.onThemeChanged);
@@ -102,6 +108,10 @@ export class CodeEditorComponent extends BaseComponent {
   private applyTheme(): void {
     monaco.editor.defineTheme(EDITOR_THEME_ID, energeseEditorTheme());
     monaco.editor.setTheme(EDITOR_THEME_ID);
+  }
+
+  focus(): void {
+    this.editor?.focus();
   }
 
   get value(): string {

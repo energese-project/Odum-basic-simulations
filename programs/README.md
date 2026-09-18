@@ -19,7 +19,19 @@ files, checks them, and publishes both at
 
 ## Adding a program
 
-### The easy way: the form
+### The easiest way: in the app
+
+Open the workbench, press **+** under **My programs** in the explorer (or
+**Copy to My programs** on an archive program), and write it there. You can run
+it as you go. The details panel is a form, checked against the rules below as
+you type. When it passes, **Submit to the archive…** opens the GitHub form below
+with everything already filled in; all you add there is the diagram image, which
+the app gives you as a download.
+
+My programs is kept in your browser (its Origin Private File System) and nowhere
+else until you submit. **Download files** saves a copy.
+
+### The form on GitHub
 
 [**Open an "Add a program" issue**](https://github.com/energese-project/Odum-basic-simulations/issues/new?template=add-program.yml)
 and fill it in. No git, JSON or BibLaTeX needed. Paste the listing, type in the

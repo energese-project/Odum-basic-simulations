@@ -11,6 +11,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { IMAGE_FORMAT_NAME, sniffImage, type ImageFormat } from './image-format.ts';
 import {
   DIAGRAM_EXTENSIONS,
   parseProgramMeta,
@@ -46,26 +47,6 @@ export const DIAGRAM_MAX_BYTES = 2 * 1024 * 1024;
 
 const IMAGE_EXTENSION = new RegExp(`\\.(${DIAGRAM_EXTENSIONS.join('|')})$`);
 
-/** What each extension's first bytes must be. A renamed HEIC or PDF passes
- *  every other check and then renders as a broken image on the site. */
-const SIGNATURES: Record<string, { name: string; matches: (b: Buffer) => boolean }> = {
-  png: { name: 'PNG', matches: (b) => b.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex')) },
-  jpg: { name: 'JPEG', matches: (b) => b.subarray(0, 3).equals(Buffer.from('ffd8ff', 'hex')) },
-  jpeg: { name: 'JPEG', matches: (b) => b.subarray(0, 3).equals(Buffer.from('ffd8ff', 'hex')) },
-  webp: {
-    name: 'WebP',
-    matches: (b) => b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP',
-  },
-};
-
-/** The format an image's bytes say it is, whatever its name says. */
-export function sniffImage(bytes: Buffer): 'png' | 'jpg' | 'webp' | null {
-  if (SIGNATURES.png.matches(bytes)) return 'png';
-  if (SIGNATURES.jpg.matches(bytes)) return 'jpg';
-  if (SIGNATURES.webp.matches(bytes)) return 'webp';
-  return null;
-}
-
 function checkDiagram(dir: string, file: string, images: string[]): void {
   if (!images.includes(file)) {
     throw new ArchiveError(`${PROGRAMS_DIR}/${file} is named in its sidecar but does not exist.`);
@@ -79,10 +60,10 @@ function checkDiagram(dir: string, file: string, images: string[]): void {
     );
   }
   const ext = file.slice(file.lastIndexOf('.') + 1);
-  const signature = SIGNATURES[ext];
-  if (!signature.matches(readFileSync(path))) {
+  const expected: ImageFormat = ext === 'jpeg' ? 'jpg' : (ext as ImageFormat);
+  if (sniffImage(readFileSync(path)) !== expected) {
     throw new ArchiveError(
-      `${PROGRAMS_DIR}/${file} is not a ${signature.name} file, whatever its extension says.`
+      `${PROGRAMS_DIR}/${file} is not a ${IMAGE_FORMAT_NAME[expected]} file, whatever its extension says.`
     );
   }
 }

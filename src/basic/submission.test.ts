@@ -12,6 +12,11 @@ import {
   commitMessage,
   failureComment,
   IGNORED_LABELS,
+  FORM_IDS,
+  ISSUE_URL_LIMIT,
+  fieldsToSidecar,
+  issueFormUrl,
+  sidecarToFields,
 } from './submission.ts';
 
 /**
@@ -268,4 +273,66 @@ test('a refusal is one comment listing every problem, marked so the bot can upda
   assert.match(comment, /- Title is required\./);
   assert.match(comment, /- Year must be a four-digit year\./);
   assert.match(comment, /edit this issue/i);
+});
+
+// The same fields, from inside the app -----------------------------------------------
+
+test('every field has the id the issue form uses, so the app can prefill it', () => {
+  const template = readFileSync('.github/ISSUE_TEMPLATE/add-program.yml', 'utf8');
+  const ids = [...template.matchAll(/^    id:\s*(\S+)$/gm)].map((m) => m[1]);
+  for (const [field, id] of Object.entries(FORM_IDS)) {
+    assert.ok(ids.includes(id), `the form has a field with id "${id}" (for ${field})`);
+  }
+});
+
+test('no field id collides with a parameter GitHub reserves on the new-issue URL', () => {
+  // A form field with id "title" would be prefilled with the issue title instead.
+  const reserved = ['title', 'body', 'labels', 'template', 'assignees', 'milestone', 'projects'];
+  for (const id of Object.values(FORM_IDS)) assert.ok(!reserved.includes(id), `"${id}" is reserved`);
+});
+
+test('a sidecar and the form fields convert into each other without loss', () => {
+  const fields = parseIssueForm(
+    issueBody({ ...VERBATIM, sourceType: 'report', tags: 'a, b', notes: 'Typed from p. 12.', ...DIAGRAM })
+  );
+  const sidecar = fieldsToSidecar(fields, 'tank.png');
+  const back = sidecarToFields('tank', sidecar);
+  const { diagram: _url, listing: _listing, ...expected } = fields;
+  const { diagram: _none, listing: _empty, ...actual } = back;
+  assert.deepEqual(actual, { ...expected, tags: 'a, b' });
+});
+
+test('a draft converts to a sidecar even while it is incomplete', () => {
+  // The workspace saves as the reader types; refusing to save a half-filled
+  // form would lose it. Validation is separate.
+  const fields = parseIssueForm(issueBody({ id: 'tank', title: 'A Tank' }));
+  assert.deepEqual(fieldsToSidecar(fields), { title: 'A Tank' });
+});
+
+test('the new-issue URL opens the form with every text field filled in', () => {
+  const fields = parseIssueForm(issueBody({ ...VERBATIM, notes: 'Line one.\nLine two & more.' }));
+  const { url, listingIncluded } = issueFormUrl('https://github.com/o/r', fields, '10 PRINT 1\n20 END\n');
+  const params = new URL(url).searchParams;
+
+  assert.equal(new URL(url).pathname, '/o/r/issues/new');
+  assert.equal(params.get('template'), 'add-program.yml');
+  assert.equal(params.get('title'), 'Add program: A Tank');
+  assert.equal(params.get('program_title'), 'A Tank');
+  assert.equal(params.get('notes'), 'Line one.\nLine two & more.');
+  assert.equal(params.get('year'), '1989');
+  assert.equal(params.get('listing'), '10 PRINT 1\n20 END\n');
+  assert.equal(listingIncluded, true);
+  // Empty fields are left out rather than sent as empty strings.
+  assert.equal(params.has('journal'), false);
+});
+
+test('a listing too long for a URL is left out, and the caller is told so', () => {
+  // GitHub answers 414 URI Too Long past about 8 KB. The listing is the only
+  // field that can be that long, so it is the one that goes by clipboard instead.
+  const listing = Array.from({ length: 400 }, (_, i) => `${(i + 1) * 10} LET Q = Q + 1`).join('\n');
+  const fields = parseIssueForm(issueBody(VERBATIM));
+  const { url, listingIncluded } = issueFormUrl('https://github.com/o/r', fields, listing);
+  assert.equal(listingIncluded, false);
+  assert.equal(new URL(url).searchParams.has('listing'), false);
+  assert.ok(url.length <= ISSUE_URL_LIMIT);
 });

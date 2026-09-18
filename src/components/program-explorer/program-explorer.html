@@ -1,0 +1,31 @@
+<div class="explorer">
+  <label class="filter">
+    <span class="sr-only">Filter programs</span>
+    <input type="search" placeholder="Filter by title, tag or fidelity" autocomplete="off"
+           spellcheck="false" data-testid="library-filter" />
+  </label>
+
+  <details class="root" open>
+    <summary class="root-title">Archive</summary>
+    <ul class="list" data-testid="library-list" aria-label="Archive programs"></ul>
+    <p class="note" data-testid="library-empty" hidden>No program matches.</p>
+  </details>
+
+  <details class="root" open>
+    <summary class="root-title">
+      My programs
+      <button type="button" class="new" data-testid="workspace-new"
+              title="New program" aria-label="New program">+</button>
+    </summary>
+    <ul class="list" data-testid="workspace-list" aria-label="My programs"></ul>
+    <p class="note" data-testid="workspace-empty" hidden>
+      Nothing here yet. Start a new program with +, or copy one from the archive.
+      Programs here are kept in this browser only.
+    </p>
+    <p class="note" data-testid="workspace-unavailable" hidden>
+      This browser can't keep files for this site — a private window, or no
+      Origin Private File System — so My programs is unavailable here. The
+      archive works as usual.
+    </p>
+  </details>
+</div>
