@@ -26,7 +26,53 @@ scaffolding around it; what makes this repository worth anything is that a publi
 listing runs unaltered. When a choice is between "the listing has to change" and "the
 interpreter has to change", it is the interpreter that changes.
 
-## 2. Stack
+## 2. Built to last
+
+This repository is an archive. Its job is to still work — and still be
+understandable — long after the people who wrote it have stopped maintaining it.
+The two rules below are **constraints on every change**, not preferences, and a
+change that breaks either needs an argument in its pull request, not just a diff.
+
+### Native platform first, third-party code last
+
+Vanilla Web Components, ES modules, the DOM, `fetch`, Web Workers. The browser
+platform is the one dependency that is certain to outlive this code, so reach for
+it first.
+
+- **Runtime dependencies are Monaco and Chart.js, and the list is meant to stay
+  that short.** Each is bundled from npm; nothing is fetched from a CDN at
+  runtime, so the built site does not depend on any third-party host staying up.
+- **Build and test tooling is exempt** — Vite, TypeScript, Tailwind, Playwright.
+  None of it ships in the page. If Vite disappeared, `dist/` would keep working.
+- **Adding a runtime dependency needs a stated reason** in the pull request: what
+  it does that the platform cannot, and what happens to the site if the package is
+  abandoned. "It is smaller to write" is not a reason; an archive is read and run
+  far more often than it is written.
+- **Prefer a few lines of our own code to a small library.** The metadata
+  validator in `src/basic/program-catalog.ts` is hand-written rather than a schema
+  library for exactly this reason: it is short, it is tested, and it cannot be
+  deprecated out from under us.
+
+### Test first
+
+**Every change begins with a failing test.** Red, then green, then refactor.
+
+- **Behaviour is tested from the outside.** Interpreter tests run a BASIC listing
+  and assert on what it printed, never on an internal method. Archive tests are
+  phrased as the mistakes a contributor could make. A test that would survive a
+  rewrite of the implementation is the kind worth having.
+- **A bug fix starts by reproducing the bug in a test.** The `REM`-with-a-colon
+  bug and the minified `#fff` bug both have tests that fail on the old code; that
+  is what stops them coming back.
+- **Both halves of the suite run on every PR**: `node --test` for logic, and
+  Playwright against *both* the dev server and the production build. The
+  production project is not redundant. The `#fff` bug reproduced only there.
+- Anything pure goes in a module with no DOM reference, so it can be unit-tested
+  directly. Where something needs the DOM or the filesystem, split the pure part
+  out — `hex.ts` from `editor-theme.ts`, `program-catalog.ts` from
+  `program-archive.ts`.
+
+## 3. Stack
 
 Vite, TypeScript, Web Components via [Boba](https://github.com/sholtomaud/boba),
 Tailwind v4. Two runtime dependencies, Monaco and Chart.js, plus Boba itself,
@@ -42,7 +88,7 @@ noted in the files themselves.
 
 Do not add a framework runtime. A page with three panels does not need one.
 
-## 3. Everything runs in the container
+## 4. Everything runs in the container
 
 The host is not assumed to have Node. Every npm command goes through the Apple
 `container` image defined in [`Containerfile`](Containerfile), driven by the
@@ -65,7 +111,7 @@ CI does not use the image — it installs the browser with `npx playwright insta
 which reads the version from `package.json`, so there is no third string to keep in
 step.
 
-## 4. Before pushing
+## 5. Before pushing
 
 ```sh
 make check
@@ -78,21 +124,21 @@ There is no ESLint. `tsc --noEmit` runs with `strict`, `noUnusedLocals` and
 `noUnusedParameters`, which is the gate. Do not add a linter on top without a defect
 it would have caught.
 
-## 5. Push *and* open a PR
+## 6. Push *and* open a PR
 
 CI runs on `pull_request`. A pushed branch with no PR has been tested by nothing. Do
 not stop at the push, and do not merge your own PR — hand over a green one.
 
 A task is done when it is **merged**, not when it is written.
 
-## 6. Branches
+## 7. Branches
 
 `feat/`, `fix/`, `docs/`, `chore/`. The `pull_request` trigger in
 [`ci.yml`](.github/workflows/ci.yml) lists all four as permitted bases, so a PR
 stacked on another branch still runs the jobs. Adding a fifth prefix means adding it
 there too, or PRs against it are silently unverified.
 
-## 7. Components
+## 8. Components
 
 One directory per component under `src/components/`, containing three files:
 
@@ -119,7 +165,7 @@ Conventions:
   dispose that object in `disconnectedCallback()`. Monaco leaks its model as well as
   its editor, so both are disposed.
 
-## 8. The interpreter
+## 9. The interpreter
 
 [`src/basic/interpreter.ts`](src/basic/interpreter.ts) knows nothing about the DOM.
 Its whole contact with the outside world is the callbacks in `BasicIO`, which is what
@@ -137,7 +183,34 @@ yield is a `setTimeout`, not a microtask, deliberately — a microtask drains st
 back into the loop without letting the worker's event loop deliver the stop message.
 Do not "optimise" it into `queueMicrotask`.
 
-## 9. Design tokens
+## 10. The program archive
+
+`programs/` is at the repository root, not under `src/`, because the listings are
+the point of the repository rather than part of the application. Someone arriving
+to check a model against its source should find them without reading TypeScript.
+
+Every program is `<id>.bas` plus `<id>.json`. The full contributor-facing format is
+in [`programs/README.md`](programs/README.md); what matters for changing the code:
+
+- **There is no manifest.** `vite-plugin-programs.js` builds
+  `programs/index.json` from the directory at build time. Do not add a hand-kept
+  list back — the one this replaced went stale the first time a program was added.
+- **Validation fails the build.** A listing whose provenance cannot be read is
+  worse than absent: it looks authoritative and is not. The rules live in
+  [`program-archive.ts`](src/basic/program-archive.ts) (directory shape) and
+  [`program-catalog.ts`](src/basic/program-catalog.ts) (metadata), both
+  unit-tested. The plugin is glue and should stay that way.
+- **`fidelity` is required and has no default.** `verbatim`, `corrected`,
+  `adapted`, `original`. It changes what every other field means, which is why a
+  contributor must choose it rather than inherit it.
+- **The raw files are published**, not just the index, so a citation can link to
+  the listing itself. The e2e suite checks each published `.bas` is byte-identical
+  to the catalog copy the app ran.
+- **Only `.bas`, `.json` and `README.md` may live in `programs/`.** It is published
+  verbatim; a scanned page dropped in beside its listing would be redistributed
+  from a public site. Scans belong in the pull request.
+
+## 11. Design tokens
 
 The palette lives in [`src/styles/energese.css`](src/styles/energese.css) and **this
 repository holds a copy, not the original.** The canonical copy is in
@@ -181,7 +254,7 @@ message on the page. [`hex.ts`](src/components/code-editor/hex.ts) normalises it
 that divergence is only visible in the `production` Playwright project, which is
 why that project exists.
 
-## 10. Charts
+## 12. Charts
 
 One y axis. Never two. Columns of different magnitude — a storage in the thousands
 beside a flow in the tens — share the axis and the smaller one reads as flat, which is
@@ -190,7 +263,7 @@ the true relationship; a second scale makes them look comparable when they are n
 The console beside the chart is the table view: everything the program printed stays
 readable there, so the plot is never the only reading of a run. Do not collapse it.
 
-## 11. Deployment
+## 13. Deployment
 
 `main` → [`deploy.yml`](.github/workflows/deploy.yml) → GitHub Pages. The workflow
 copies `dist/index.html` to `dist/404.html`; that copy is the only reason a

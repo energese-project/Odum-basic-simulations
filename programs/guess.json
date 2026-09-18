@@ -1,0 +1,6 @@
+{
+  "title": "Guess The Number",
+  "description": "Exercises INPUT, so it is the test that the console round-trips.",
+  "fidelity": "original",
+  "tags": ["smoke-test", "interactive"]
+}

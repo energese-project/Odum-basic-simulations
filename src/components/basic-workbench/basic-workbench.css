@@ -226,3 +226,9 @@
     min-height: 14rem;
   }
 }
+
+/* The provenance panel sits between the toolbar and the panes: a reader should
+   meet the citation before the code, not after it. */
+program-meta {
+  flex: none;
+}
