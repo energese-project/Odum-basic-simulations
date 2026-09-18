@@ -2,7 +2,7 @@
   <header class="topbar" data-testid="topbar">
     <button type="button" class="icon-button" data-testid="sidebar-toggle"
             aria-controls="workbench-sidebar" aria-expanded="false"
-            aria-label="Library and details" title="Library and details">
+            aria-label="Explorer and details" title="Explorer and details">
       <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
         <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
         <path d="M6 2.5v11" stroke="currentColor" />
@@ -19,7 +19,7 @@
     </label>
 
     <!-- Beside the picker, not at the far edge: Run acts on the program named
-         next to it. Fidelity is on every library row and in the details. -->
+         next to it. Fidelity is on every explorer row and in the details. -->
     <button type="button" class="action primary" data-testid="run">
       <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
         <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
@@ -49,11 +49,12 @@
 
   <div class="body">
     <aside id="workbench-sidebar" class="sidebar" data-testid="sidebar"
-           aria-label="Library and details">
-      <h2 class="pane-title">Library</h2>
-      <program-library></program-library>
+           aria-label="Explorer and details">
+      <h2 class="pane-title">Explorer</h2>
+      <program-explorer></program-explorer>
       <h2 class="pane-title details-title">Details</h2>
       <program-meta></program-meta>
+      <program-form hidden></program-form>
     </aside>
     <div class="scrim" data-testid="sidebar-scrim" aria-hidden="true"></div>
 

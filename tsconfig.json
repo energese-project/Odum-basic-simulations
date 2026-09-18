@@ -12,7 +12,7 @@
      "noUnusedLocals": true,
      "noUnusedParameters": true,
      "skipLibCheck": true,
-     "lib": ["esnext", "dom"]
+     "lib": ["esnext", "dom", "dom.asynciterable"]
   },
   "include": ["src/**/*.ts", "e2e/**/*.ts", "scripts/**/*.ts"]
 }

@@ -40,7 +40,15 @@ export class ProgramMetaComponent extends BaseComponent {
     super(template, style);
   }
 
+  /** Whether "Copy to My programs" is offered — not where the browser has no OPFS. */
+  setCopyAvailable(available: boolean): void {
+    this.reveal('[data-copy]', available);
+  }
+
   init(): void {
+    this.querySelector('[data-testid="copy-to-workspace"]')?.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('copy-to-workspace', { bubbles: true }));
+    });
     this.delegate('click', '.tag', (_event, tag) => {
       this.dispatchEvent(
         new CustomEvent<string>('tag-selected', { detail: tag.textContent ?? '', bubbles: true })

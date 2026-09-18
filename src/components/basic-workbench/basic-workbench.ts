@@ -5,6 +5,9 @@ import { Runner } from '../../basic/runner.ts';
 import { extractPlot, toCsv, type Plot } from '../../basic/output.ts';
 import { diagramUrl, findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
 import { sidebarOpen } from '../../basic/program-library.ts';
+import { issueFormUrl, type FormFields } from '../../basic/submission.ts';
+import { Workspace, type WorkspaceProgram } from '../../basic/workspace.ts';
+import { openWorkspaceStore } from '../../workspace/opfs-store.ts';
 import template from './basic-workbench.html?raw';
 import style from './basic-workbench.css?raw';
 
@@ -13,13 +16,18 @@ import '../console-panel/console-panel.ts';
 import '../chart-panel/chart-panel.ts';
 import '../theme-toggle/theme-toggle.ts';
 import '../program-meta/program-meta.ts';
-import '../program-library/program-library.ts';
+import '../program-explorer/program-explorer.ts';
+import '../program-form/program-form.ts';
 
 import type { CodeEditorComponent } from '../code-editor/code-editor.ts';
 import type { ConsolePanelComponent } from '../console-panel/console-panel.ts';
 import type { ChartPanelComponent } from '../chart-panel/chart-panel.ts';
 import type { ProgramMetaComponent } from '../program-meta/program-meta.ts';
-import type { ProgramLibraryComponent } from '../program-library/program-library.ts';
+import type {
+  ProgramExplorerComponent,
+  ProgramRef,
+} from '../program-explorer/program-explorer.ts';
+import type { ProgramFormComponent } from '../program-form/program-form.ts';
 
 /** How often the chart is re-derived while a program is still running. Often
  *  enough that a long integration visibly draws itself, rarely enough that
@@ -37,6 +45,14 @@ const SIDEBAR_KEY = 'obs-sidebar';
 /** The breakpoint in basic-workbench.css below which the panes stack and the
  *  sidebar becomes a sheet over them. The two must agree. */
 const NARROW = window.matchMedia('(max-width: 60rem)');
+
+/** How long typing pauses before the workspace writes to disk. Short enough
+ *  that closing the tab loses nothing worth minding. */
+const SAVE_MS = 300;
+
+/** The top-bar picker's values for the reader's own programs. Archive ids are
+ *  lowercase-kebab and can never contain a colon, so the two cannot collide. */
+const MINE = 'my:';
 
 export class BasicWorkbenchComponent extends BaseComponent {
   static tagName = 'basic-workbench';
@@ -70,9 +86,21 @@ export class BasicWorkbenchComponent extends BaseComponent {
     return this.querySelector('program-meta');
   }
 
-  private get library(): ProgramLibraryComponent | null {
-    return this.querySelector('program-library');
+  private get explorer(): ProgramExplorerComponent | null {
+    return this.querySelector('program-explorer');
   }
+
+  private get form(): ProgramFormComponent | null {
+    return this.querySelector('program-form');
+  }
+
+  private workspace: Workspace | null = null;
+  /** The program on screen. Workspace edits are saved against this. */
+  private current: ProgramRef | null = null;
+  private currentWorkspace: WorkspaceProgram | null = null;
+  private pendingSave: (() => Promise<void>) | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private diagramObjectUrl: string | null = null;
 
   private readonly onBreakpoint = (): void => this.setSidebar(this.sidebarDefault());
 
@@ -96,12 +124,20 @@ export class BasicWorkbenchComponent extends BaseComponent {
     // The catalog is fetched, not bundled — see programs.ts. Everything that
     // depends on it waits; everything that does not is already wired above, so
     // the shell is on screen while this is in flight.
-    void loadPrograms()
-      .then((programs) => {
+    void Promise.all([loadPrograms(), openWorkspaceStore()])
+      .then(async ([programs, store]) => {
         this.programs = programs;
-        this.fillProgramList();
-        this.library?.setPrograms(programs);
-        this.loadProgram(this.query?.prg ?? programs[0]?.id);
+        this.explorer?.setPrograms(programs);
+        this.workspace = store ? new Workspace(store, programs.map((p) => p.id)) : null;
+        this.meta?.setCopyAvailable(this.workspace !== null);
+        await this.refreshWorkspace();
+
+        const mine = this.query?.my;
+        if (mine && this.workspace && (await this.workspaceHas(mine))) {
+          await this.openWorkspaceProgram(mine);
+        } else {
+          this.loadProgram(this.query?.prg ?? programs[0]?.id);
+        }
       })
       .catch((error: unknown) => {
         this.setStatus(error instanceof Error ? error.message : String(error));
@@ -109,6 +145,8 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   disconnectedCallback(): void {
+    void this.flushSave();
+    if (this.diagramObjectUrl) URL.revokeObjectURL(this.diagramObjectUrl);
     NARROW.removeEventListener('change', this.onBreakpoint);
     this.stopReplotting();
     this.runner?.terminate();
@@ -117,26 +155,41 @@ export class BasicWorkbenchComponent extends BaseComponent {
 
   // ------------------------------------------------------------- wiring
 
-  private fillProgramList(): void {
+  private fillProgramList(mine: { id: string; title: string }[] = []): void {
     const select = this.querySelector('select');
     if (!select) return;
-    select.replaceChildren(
-      ...this.programs.map((p) => new Option(p.title, p.id))
-    );
+    const value = select.value;
+    const archive = document.createElement('optgroup');
+    archive.label = 'Archive';
+    archive.append(...this.programs.map((p) => new Option(p.title, p.id)));
+    const groups: HTMLElement[] = [archive];
+    if (mine.length > 0) {
+      const own = document.createElement('optgroup');
+      own.label = 'My programs';
+      own.append(...mine.map((p) => new Option(p.title, `${MINE}${p.id}`)));
+      groups.push(own);
+    }
+    select.replaceChildren(...groups);
+    select.value = value;
   }
 
   private wireControls(): void {
     this.querySelector('select')?.addEventListener('change', (event) => {
-      this.selectProgram((event.target as HTMLSelectElement).value);
+      const value = (event.target as HTMLSelectElement).value;
+      if (value.startsWith(MINE)) void this.selectWorkspaceProgram(value.slice(MINE.length));
+      else this.selectProgram(value);
     });
     this.addEventListener('program-selected', (event) => {
-      this.selectProgram((event as CustomEvent<string>).detail);
+      const { kind, id } = (event as CustomEvent<ProgramRef>).detail;
+      if (kind === 'workspace') void this.selectWorkspaceProgram(id);
+      else this.selectProgram(id);
       // On a narrow screen the sidebar is covering the program just picked.
       if (NARROW.matches) this.setSidebar(false);
     });
     this.addEventListener('tag-selected', (event) => {
-      this.library?.setFilter((event as CustomEvent<string>).detail);
+      this.explorer?.setFilter((event as CustomEvent<string>).detail);
     });
+    this.wireWorkspace();
 
     this.querySelector('[data-testid="sidebar-toggle"]')?.addEventListener('click', () => {
       this.setSidebar(!this.isSidebarOpen(), { remember: true });
@@ -158,23 +211,25 @@ export class BasicWorkbenchComponent extends BaseComponent {
     });
   }
 
-  private showDiagram(program: Program): void {
+  /** The diagram above the plot, from a URL or not at all. */
+  private showDiagram(
+    diagram: { url: string; caption: string; figure?: string } | null
+  ): void {
     const pane = this.querySelector<HTMLElement>('[data-testid="diagram-pane"]');
     const link = pane?.querySelector('a');
     const image = pane?.querySelector('img');
     const figure = pane?.querySelector('.figure-ref');
     if (!pane || !link || !image) return;
 
-    const url = diagramUrl(program);
-    pane.hidden = !url || !program.diagram;
-    if (!url || !program.diagram) {
+    pane.hidden = diagram === null;
+    if (!diagram) {
       image.removeAttribute('src');
       return;
     }
-    image.src = url;
-    image.alt = program.diagram.caption;
-    link.href = url;
-    if (figure) figure.textContent = program.diagram.figure ?? '';
+    image.src = diagram.url;
+    image.alt = diagram.caption;
+    link.href = diagram.url;
+    if (figure) figure.textContent = diagram.figure ?? '';
   }
 
   private selectProgram(id: string): void {
@@ -187,26 +242,295 @@ export class BasicWorkbenchComponent extends BaseComponent {
   private loadProgram(id: string | undefined): void {
     const program = findProgram(this.programs, id) ?? this.programs[0];
     if (!program) return;
+    void this.flushSave();
+    this.current = { kind: 'archive', id: program.id };
+    this.currentWorkspace = null;
 
     const select = this.querySelector('select');
     if (select) select.value = program.id;
 
-    this.showDiagram(program);
+    const url = diagramUrl(program);
+    this.showDiagram(
+      url && program.diagram
+        ? { url, caption: program.diagram.caption, figure: program.diagram.figure }
+        : null
+    );
 
-    const filename = this.querySelector('[data-testid="editor-filename"]');
-    if (filename) filename.textContent = program.file;
-    this.library?.setCurrent(program.id);
+    this.setFilename(program.file);
+    this.explorer?.setCurrent(this.current);
 
     const editor = this.editor;
     if (editor) editor.value = program.listing;
 
     this.meta?.show(program, REPOSITORY_URL);
+    this.showDetails('archive');
+    this.resetRun();
+  }
 
+  private setFilename(name: string): void {
+    const filename = this.querySelector('[data-testid="editor-filename"]');
+    if (filename) filename.textContent = name;
+  }
+
+  private showDetails(kind: 'archive' | 'workspace'): void {
+    if (this.meta) this.meta.hidden = kind !== 'archive';
+    if (this.form) this.form.hidden = kind !== 'workspace';
+  }
+
+  private resetRun(): void {
     this.console?.clear();
     this.chart?.show(null);
     this.plot = null;
     this.setStatus('');
     this.refreshButtons();
+  }
+
+  // -------------------------------------------------------- my programs
+
+  private wireWorkspace(): void {
+    this.addEventListener('workspace-new', () => void this.newWorkspaceProgram());
+    this.addEventListener('copy-to-workspace', () => void this.copyToWorkspace());
+
+    this.addEventListener('file-selected', (event) => {
+      const { id, file } = (event as CustomEvent<{ id: string; file: string }>).detail;
+      void this.selectWorkspaceProgram(id).then(() => {
+        if (file.endsWith('.bas')) this.editor?.focus();
+        else if (file.endsWith('.json')) this.form?.scrollIntoView({ block: 'nearest' });
+        else this.querySelector('[data-testid="diagram-pane"]')?.scrollIntoView({ block: 'nearest' });
+      });
+    });
+
+    this.addEventListener('editor-change', () => {
+      const program = this.currentWorkspace;
+      if (!program) return;
+      this.scheduleSave(async () => {
+        await this.workspace?.saveListing(program.id, this.editor?.value ?? '');
+        await this.refreshProblems();
+      });
+    });
+
+    this.addEventListener('form-change', (event) => {
+      const program = this.currentWorkspace;
+      if (!program) return;
+      program.fields = { ...program.fields, ...(event as CustomEvent<Partial<FormFields>>).detail };
+      const fields = program.fields;
+      this.scheduleSave(async () => {
+        await this.workspace?.saveFields(program.id, fields);
+        await this.refreshWorkspace();
+        await this.refreshProblems();
+      });
+    });
+
+    this.addEventListener('form-rename', (event) => {
+      void this.renameWorkspaceProgram((event as CustomEvent<string>).detail);
+    });
+    this.addEventListener('form-image', (event) => {
+      void this.attachImage((event as CustomEvent<File>).detail);
+    });
+    this.addEventListener('form-image-remove', () => void this.detachImage());
+    this.addEventListener('form-submit', () => void this.submitWorkspaceProgram());
+    this.addEventListener('form-download', () => void this.downloadWorkspaceProgram());
+    this.addEventListener('form-delete', () => void this.deleteWorkspaceProgram());
+  }
+
+  private scheduleSave(save: () => Promise<void>): void {
+    this.pendingSave = save;
+    if (this.saveTimer !== null) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => void this.flushSave(), SAVE_MS);
+  }
+
+  /** Write whatever is waiting now — before switching, renaming or leaving. */
+  private async flushSave(): Promise<void> {
+    if (this.saveTimer !== null) clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    const save = this.pendingSave;
+    this.pendingSave = null;
+    await save?.();
+  }
+
+  private async refreshWorkspace(): Promise<void> {
+    const entries = this.workspace ? await this.workspace.list() : null;
+    this.explorer?.setWorkspace(entries);
+    this.fillProgramList(entries ?? []);
+  }
+
+  private async refreshProblems(): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    this.form?.setProblems(await this.workspace.check(program.id));
+  }
+
+  private async workspaceHas(id: string): Promise<boolean> {
+    return (await this.workspace?.list())?.some((p) => p.id === id) ?? false;
+  }
+
+  private async selectWorkspaceProgram(id: string): Promise<void> {
+    if (this.current?.kind === 'workspace' && this.current.id === id) return;
+    Router.getInstance().navigate(`/?my=${encodeURIComponent(id)}`);
+    await this.openWorkspaceProgram(id);
+  }
+
+  private async openWorkspaceProgram(id: string): Promise<void> {
+    if (!this.workspace) return;
+    await this.flushSave();
+    const program = await this.workspace.open(id);
+    this.current = { kind: 'workspace', id };
+    this.currentWorkspace = program;
+
+    const select = this.querySelector('select');
+    if (select) select.value = `${MINE}${id}`;
+    this.setFilename(`${id}.bas`);
+    this.explorer?.setCurrent(this.current);
+    if (this.editor) this.editor.value = program.listing;
+    this.showWorkspaceDiagram(program);
+
+    this.form?.show(program);
+    this.showDetails('workspace');
+    await this.refreshProblems();
+    this.resetRun();
+  }
+
+  private showWorkspaceDiagram(program: WorkspaceProgram): void {
+    if (this.diagramObjectUrl) URL.revokeObjectURL(this.diagramObjectUrl);
+    this.diagramObjectUrl = null;
+    if (!program.image || !program.imageFile) {
+      this.showDiagram(null);
+      return;
+    }
+    this.diagramObjectUrl = URL.createObjectURL(new Blob([program.image as Uint8Array<ArrayBuffer>]));
+    this.showDiagram({
+      url: this.diagramObjectUrl,
+      caption: program.fields.diagramCaption || 'The diagram for this program',
+      figure: program.fields.diagramFigure || undefined,
+    });
+  }
+
+  private async newWorkspaceProgram(): Promise<void> {
+    if (!this.workspace) return;
+    await this.flushSave();
+    const id = await this.workspace.create();
+    await this.refreshWorkspace();
+    await this.selectWorkspaceProgram(id);
+  }
+
+  private async copyToWorkspace(): Promise<void> {
+    const source = this.current?.kind === 'archive' ? findProgram(this.programs, this.current.id) : null;
+    if (!source || !this.workspace) return;
+    const url = diagramUrl(source);
+    const image = url ? new Uint8Array(await (await fetch(url)).arrayBuffer()) : undefined;
+    const id = await this.workspace.copyFromArchive(source, image);
+    await this.refreshWorkspace();
+    await this.selectWorkspaceProgram(id);
+  }
+
+  private async renameWorkspaceProgram(to: string): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    await this.flushSave();
+    try {
+      await this.workspace.rename(program.id, to);
+    } catch (e) {
+      this.form?.showIdError(e instanceof Error ? e.message : String(e));
+      return;
+    }
+    this.current = null;
+    await this.refreshWorkspace();
+    await this.selectWorkspaceProgram(to);
+  }
+
+  private async attachImage(file: File): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    await this.flushSave();
+    try {
+      await this.workspace.saveImage(program.id, new Uint8Array(await file.arrayBuffer()));
+    } catch (e) {
+      this.form?.showMessage(e instanceof Error ? e.message : String(e));
+      return;
+    }
+    await this.reopenWorkspaceProgram();
+  }
+
+  private async detachImage(): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    await this.flushSave();
+    await this.workspace.removeImage(program.id);
+    await this.reopenWorkspaceProgram();
+  }
+
+  /** After a change to its files: re-read it without losing the editor's place. */
+  private async reopenWorkspaceProgram(): Promise<void> {
+    const id = this.currentWorkspace?.id;
+    if (!id || !this.workspace) return;
+    const program = await this.workspace.open(id);
+    this.currentWorkspace = program;
+    this.showWorkspaceDiagram(program);
+    this.form?.show(program);
+    await this.refreshWorkspace();
+    await this.refreshProblems();
+  }
+
+  private async submitWorkspaceProgram(): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    await this.flushSave();
+    if ((await this.workspace.check(program.id)).length > 0) return;
+
+    const listing = this.editor?.value ?? program.listing;
+    const { url, listingIncluded } = issueFormUrl(REPOSITORY_URL, program.fields, listing);
+    if (!listingIncluded) {
+      try {
+        await navigator.clipboard.writeText(listing);
+      } catch {
+        // Refused; the dialog's "Copy it again" is a user gesture and may succeed.
+      }
+    }
+
+    const { fields } = program;
+    const choices: [string, string][] = [['Fidelity', fields.fidelity]];
+    if (fields.sourceType) choices.push(['Source type', fields.sourceType]);
+    if (fields.rightsBasis) choices.push(['Diagram rights basis', fields.rightsBasis]);
+
+    this.form?.openSubmit({
+      url,
+      listing,
+      listingIncluded,
+      image:
+        program.imageFile && this.diagramObjectUrl
+          ? { name: program.imageFile, href: this.diagramObjectUrl }
+          : null,
+      choices,
+    });
+  }
+
+  private async downloadWorkspaceProgram(): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    await this.flushSave();
+    const entry = (await this.workspace.list()).find((p) => p.id === program.id);
+    for (const name of entry?.files ?? []) {
+      const bytes = await this.workspace.readFile(name);
+      if (!bytes) continue;
+      const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
+
+  private async deleteWorkspaceProgram(): Promise<void> {
+    const program = this.currentWorkspace;
+    if (!program || !this.workspace) return;
+    if (!confirm(`Delete ${program.id}? Its files are only in this browser, so this cannot be undone.`)) return;
+    this.pendingSave = null;
+    await this.flushSave();
+    await this.workspace.remove(program.id);
+    this.currentWorkspace = null;
+    await this.refreshWorkspace();
+    this.selectProgram(this.programs[0]?.id ?? '');
   }
 
   // -------------------------------------------------------------- running
@@ -301,7 +625,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
 
   private downloadCsv(): void {
     if (!this.plot) return;
-    const id = this.querySelector('select')?.value ?? 'output';
+    const id = this.current?.id ?? 'output';
     const blob = new Blob([toCsv(this.plot)], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
