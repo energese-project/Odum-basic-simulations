@@ -8,7 +8,7 @@
  * and compares every quantity the step computes with PC-BASIC's bytes for step k.
  * A difference here was made in that step, by that statement.
  *
- * Writes `replay.md`. Usage: node spikes/oracle-precision/replay.ts
+ * Writes `replay.md` and `replay.json`. Usage: node validation/oracle/replay.ts
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -89,6 +89,25 @@ for (let k = 1; k < rows.length; k++) {
 }
 
 const n = rows.length - 1;
+
+export interface Replay {
+  steps: number;
+  stepsDiffering: number;
+  quantities: { name: string; line: string; steps: number; maxUlps: number; firstToDiffer: number }[];
+}
+const result: Replay = {
+  steps: n,
+  stepsDiffering,
+  quantities: ORDER.map(([q, line]) => ({
+    name: q,
+    line,
+    steps: differing[q],
+    maxUlps: maxUlps[q],
+    firstToDiffer: firstIn[q],
+  })),
+};
+writeFileSync(join(here, 'replay.json'), JSON.stringify(result, null, 2) + '\n');
+
 const report = [
   '# One step at a time',
   '',
@@ -112,4 +131,3 @@ const report = [
 ].join('\n');
 
 writeFileSync(join(here, 'replay.md'), report);
-console.log(report);

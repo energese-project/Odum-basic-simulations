@@ -12,7 +12,7 @@
  *   Under DEFDBL alone GW-BASIC still parses `.033` as a single-precision literal
  *   and widens it (3.299999982118607D-02), so R3 is not a double-precision run.
  *
- * Usage: node spikes/oracle-precision/variants.ts
+ * Usage: node validation/oracle/variants.ts
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';

@@ -1,0 +1,83 @@
+{
+  "steps": 639,
+  "stepsDiffering": 466,
+  "quantities": [
+    {
+      "name": "R",
+      "line": "200",
+      "steps": 39,
+      "maxUlps": 2,
+      "firstToDiffer": 39
+    },
+    {
+      "name": "DD",
+      "line": "210",
+      "steps": 54,
+      "maxUlps": 2,
+      "firstToDiffer": 50
+    },
+    {
+      "name": "DN",
+      "line": "220",
+      "steps": 242,
+      "maxUlps": 256,
+      "firstToDiffer": 206
+    },
+    {
+      "name": "DA",
+      "line": "230",
+      "steps": 187,
+      "maxUlps": 1024,
+      "firstToDiffer": 69
+    },
+    {
+      "name": "DM",
+      "line": "240",
+      "steps": 196,
+      "maxUlps": 640,
+      "firstToDiffer": 75
+    },
+    {
+      "name": "A",
+      "line": "250, 255",
+      "steps": 24,
+      "maxUlps": 1,
+      "firstToDiffer": 8
+    },
+    {
+      "name": "N",
+      "line": "260",
+      "steps": 66,
+      "maxUlps": 1,
+      "firstToDiffer": 18
+    },
+    {
+      "name": "M",
+      "line": "270, 275",
+      "steps": 79,
+      "maxUlps": 128,
+      "firstToDiffer": 1
+    },
+    {
+      "name": "D",
+      "line": "280",
+      "steps": 0,
+      "maxUlps": 0,
+      "firstToDiffer": 0
+    },
+    {
+      "name": "IV",
+      "line": "285",
+      "steps": 0,
+      "maxUlps": 0,
+      "firstToDiffer": 0
+    },
+    {
+      "name": "T",
+      "line": "290",
+      "steps": 0,
+      "maxUlps": 0,
+      "firstToDiffer": 0
+    }
+  ]
+}

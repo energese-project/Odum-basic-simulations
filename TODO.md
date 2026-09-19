@@ -11,7 +11,7 @@ Odum, not from us — so the order matters:
 
 1. **0.1 Oracle spike** — does IBM PC BASIC's arithmetic change the curves? **Done:** no,
    but `PSET`'s rounding of half pixels does. See
-   [`spikes/oracle-precision/RESULTS.md`](spikes/oracle-precision/RESULTS.md).
+   [`validation/oracle/RESULTS.md`](validation/oracle/RESULTS.md).
 2. **0.2 Conformance tests and dialect profiles** — prove we behave like the BASIC
    each listing was written for.
 3. **0.3 Transcribe the paper**, with the command-line tool and run snapshots.
@@ -28,12 +28,12 @@ rounds a half-pixel coordinate to even, ours rounds it up, and Table 3 is on a h
 every other step — 111 pixels differ, and none once ties go to even. `Math.fround` is not
 bit-exact with Microsoft Binary Format (60 of 640 rows), and nothing needs it to be. PC-BASIC
 works as the oracle, screens included. Evidence and the answers to Q1–Q5:
-[`spikes/oracle-precision/RESULTS.md`](spikes/oracle-precision/RESULTS.md).
+[`validation/oracle/RESULTS.md`](validation/oracle/RESULTS.md).
 
 The specification as it was run:
 
 **Timebox: half a day.** A spike: its product is an answer and the evidence for it,
-recorded in [`spikes/oracle-precision/`](spikes/oracle-precision/). Nothing in it is
+recorded in [`validation/oracle/`](validation/oracle/). Nothing in it is
 wired into CI or the site yet.
 
 #### Why
@@ -74,14 +74,14 @@ how to make it exit when the program ends.
 
 #### Input
 
-[`spikes/oracle-precision/table3.bas`](spikes/oracle-precision/table3.bas): Table 3,
+[`validation/oracle/table3.bas`](validation/oracle/table3.bas): Table 3,
 read from the scan, with its uncertain readings listed in the README beside it. A
 misread coefficient changes both interpreters' runs alike, so it does not weaken the
 comparison.
 
 #### Method
 
-1. **A container for the oracle.** `spikes/oracle-precision/Containerfile`: a pinned
+1. **A container for the oracle.** `validation/oracle/Containerfile`: a pinned
    Python base and a pinned `pcbasic`. Build and run it with the Apple `container`
    CLI, like the other images. Record the exact versions in the results.
 2. **A trace variant, for both interpreters.** `table3-trace.bas` = `table3.bas`
@@ -139,14 +139,14 @@ comparison.
 
 #### Done when
 
-`spikes/oracle-precision/` contains `Containerfile`, `table3-trace.bas`, the harness,
+`validation/oracle/` contains `Containerfile`, `table3-trace.bas`, the harness,
 the four raw outputs, and `RESULTS.md`. The results give the versions used, a table of
 the comparisons above, the answer to each of Q1–Q5, and the decision taken from the
 rule. This TODO is updated with the decision, and 0.2 is re-scoped to match.
 
 ### 0.2 Conformance tests and dialect profiles
 
-Re-scoped after 0.1, whose [results](spikes/oracle-precision/RESULTS.md) are the evidence
+Re-scoped after 0.1, whose [results](validation/oracle/RESULTS.md) are the evidence
 for each point here.
 
 - **First: `PSET` breaks half-pixel ties to even.** PC-BASIC puts `PSET (0.5, y)` on x = 0,
@@ -154,9 +154,12 @@ for each point here.
   up. This one changes figures, so it comes before anything else here, test first. Check
   `LINE` and box end points against the oracle as well, and GW-BASIC's source for the rule
   itself. Expect the figure goldens to move; review each. `CINT` is not the same rule — it
-  rounds halves away from zero.
+  rounds halves away from zero. `make attest` then fails on purpose: the screens now
+  agree, and the article's oracle paragraph says they do not. Revise the paragraph and
+  the claim in `validation/oracle/latex.ts`, then `make attest-update`.
 - **A conformance suite in CI.** A job like `figures`, in the pinned oracle image —
-  promote the spike's `Containerfile`, pinned the same way. It runs every archive
+  [`validation/oracle/`](validation/oracle/)'s `Containerfile`, pinned the same way. Its
+  first step is to run `make attest` in CI, which nothing does yet. It runs every archive
   program — each run of each model, with its `changes` applied — in PC-BASIC and in ours,
   and compares the results. From the spike:
   - **Drawn output is compared as screens.** `DEF SEG=&HB800: BSAVE "SCREEN.BIN",0,&H4000`

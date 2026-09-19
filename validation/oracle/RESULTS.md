@@ -1,5 +1,9 @@
 # Spike 0.1 results: IBM PC BASIC's arithmetic does not change Table 3's curves
 
+These are the findings of spike 0.1. Every number below is regenerated and checked by
+`make attest` (see [README.md](README.md)), and the article quotes them from `oracle.tex`,
+never from this page.
+
 **Decision: precision does not change Table 3's figure** (the first branch of the rule in
 [TODO.md](../../TODO.md#decision-rule)). Single precision goes into 0.2 for fidelity, not
 as a blocker to 0.3.
@@ -17,7 +21,7 @@ and it does change the figure. With ties rounded to even, the two screens are id
 | Oracle | PC-BASIC 2.0.8, `pysdl2-dll` 2.32.10, `pyserial` 3.5 ([`Containerfile`](Containerfile)) |
 | Oracle base image | `python:3.12.13-slim-bookworm@sha256:4766d8b510c428e595d74b9cc5bbb2fae8e26316fffb4adc89908d79aacd58a2` (Python 3.12.13, arm64) |
 | Our interpreter | `src/basic/interpreter.ts` and `src/basic/screen.ts` at `debe228` (main) |
-| Node | 26.5.1, in the repository's own `odum-basic` image |
+| Node | `node:26.5.1-slim@sha256:deae974a69e140f44f434ab29cb519fb5f8fe250fd364b8ca446bd0761acdc6a`, for our interpreter and the harness |
 | Containers | Apple `container` CLI 1.0.0 |
 
 ## The runs
@@ -54,8 +58,8 @@ that silently rounds nothing.
 ## Comparisons
 
 Full tables are in [`comparisons.md`](comparisons.md), [`replay.md`](replay.md) and
-[`screens.md`](screens.md). All three are generated, and `run.sh` remakes everything from clean
-in about 1.5 minutes.
+[`screens.md`](screens.md). All three are generated, and `make attest` remakes everything from
+clean in about 1.5 minutes and checks it against [`SHA256SUMS`](SHA256SUMS).
 
 | Pair | Largest difference, D | Largest relative difference (variable) | Threshold step | Steps lighting a different pixel (N, A, M, D) | Largest difference, unrounded px |
 | --- | --- | --- | --- | --- | --- |

@@ -1,0 +1,35 @@
+{
+  "pixels": 64000,
+  "cases": [
+    {
+      "image": "r1",
+      "run": "r1",
+      "label": "R1, as the site draws it",
+      "halfEven": false,
+      "differing": 111,
+      "onlyOracle": 52,
+      "onlyOurs": 55,
+      "colour": 4
+    },
+    {
+      "image": "r4b",
+      "run": "r4b",
+      "label": "R4b, as the site draws it",
+      "halfEven": false,
+      "differing": 111,
+      "onlyOracle": 52,
+      "onlyOurs": 55,
+      "colour": 4
+    },
+    {
+      "image": "r1-half-even",
+      "run": "r1",
+      "label": "R1, PSET rounding halves to even",
+      "halfEven": true,
+      "differing": 0,
+      "onlyOracle": 0,
+      "onlyOurs": 0,
+      "colour": 0
+    }
+  ]
+}
