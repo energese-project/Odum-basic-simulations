@@ -12,12 +12,16 @@
  *
  * Supported: PRINT (, ; separators), LET (optional), numeric and string
  * variables, 1-D and 2-D arrays (DIM), FOR/TO/STEP/NEXT, IF/THEN (line number
- * or statement), GOTO, GOSUB/RETURN, INPUT, DATA/READ/RESTORE, REM, END, STOP,
- * RANDOMIZE, and multiple statements per line via ':'.
+ * or statement), IF .. GOTO, GOSUB/RETURN, INPUT, DATA/READ/RESTORE, REM, END,
+ * STOP, RANDOMIZE, and multiple statements per line via ':'. CONT, through
+ * cont(), carries on after END or STOP.
  *
- * Not yet supported, and needed before most of the published mini-models will
- * run unmodified: PSET/LINE/SCREEN/CLS, WHILE/WEND, DEF FN, ON..GOTO,
- * SELECT CASE, PRINT USING. See TODO.md.
+ * Graphics: SCREEN 1 and 2, COLOR, CLS, PSET, PRESET and LINE (with STEP, B
+ * and BF). They draw nothing here: each is checked and handed to `draw` as a
+ * DrawOp, and screen.ts turns those into the picture.
+ *
+ * Not yet supported: WHILE/WEND, DEF FN, ON..GOTO, SELECT CASE, PRINT USING.
+ * See TODO.md.
  */
 
 export class BasicError extends Error {}
@@ -35,7 +39,41 @@ export interface BasicIO {
    * runaway FOR loop can only be stopped by tearing down the whole worker.
    */
   shouldHalt?: () => boolean;
+  /**
+   * Receives each graphics statement as it runs, in screen coordinates exactly
+   * as the program computed them — not rounded to pixels, so a plot can be read
+   * back from the record at the precision it was calculated.
+   */
+  draw?: (op: DrawOp) => void;
 }
+
+/** One graphics statement. `line` is the BASIC line that drew it. */
+export type DrawOp =
+  | { op: 'screen'; mode: number }
+  | { op: 'color'; background: number; palette: number }
+  | { op: 'cls' }
+  | { op: 'pset'; x: number; y: number; color: number; line: number }
+  | {
+      op: 'line';
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      color: number;
+      box: 'B' | 'BF' | null;
+      line: number;
+    };
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/** The modes a listing can draw in: width, height, and the highest colour. */
+const SCREEN_MODES: Record<number, { width: number; height: number; maxColor: number }> = {
+  1: { width: 320, height: 200, maxColor: 3 },
+  2: { width: 640, height: 200, maxColor: 1 },
+};
 
 interface Line {
   num: number;
@@ -79,6 +117,15 @@ export class Basic {
   private running = false;
   private stopped = false;
   private jumped = false;
+  /** Stopped by END or STOP with statements still to run: CONT may go on. */
+  private resumable = false;
+
+  /** 0 is text; SCREEN 1 or 2 is a graphics mode. */
+  private screenMode = 0;
+  private palette = 1;
+  private background = 0;
+  /** Where PSET and LINE last drew: LINE's default start, and STEP's origin. */
+  private lastPoint: Point = { x: 0, y: 0 };
 
   /** Scalar variables. Public because the expression parser reads it. */
   vars: Record<string, BasicValue> = {};
@@ -101,6 +148,11 @@ export class Basic {
     this.running = false;
     this.stopped = false;
     this.jumped = false;
+    this.resumable = false;
+    this.screenMode = 0;
+    this.palette = 1;
+    this.background = 0;
+    this.lastPoint = { x: 0, y: 0 };
   }
 
   // ---------------------------------------------------------------- load
@@ -139,9 +191,33 @@ export class Basic {
   // ----------------------------------------------------------------- run
 
   async run(): Promise<void> {
+    this.pc = { lineIdx: 0, stmtIdx: 0 };
+    return this.execute();
+  }
+
+  /** True after END or STOP with more of the program left to run. */
+  get canContinue(): boolean {
+    return this.resumable;
+  }
+
+  /**
+   * CONT: carry on from the statement after the END or STOP that stopped the
+   * program, with its variables, loops and screen as they were. Odum's 1989
+   * macroeconomics listing ENDs after its first run and tells the reader to
+   * "type CONT" for the second.
+   */
+  async cont(): Promise<void> {
+    if (!this.resumable) {
+      this.io.print("\n?CAN'T CONTINUE\n");
+      return;
+    }
+    return this.execute();
+  }
+
+  private async execute(): Promise<void> {
     this.running = true;
     this.stopped = false;
-    this.pc = { lineIdx: 0, stmtIdx: 0 };
+    this.resumable = false;
     let steps = 0;
 
     while (this.running && this.pc.lineIdx < this.lines.length) {
@@ -158,7 +234,11 @@ export class Basic {
         }
         throw e;
       }
-      if (this.stopped) return;
+      if (this.stopped) {
+        this.pc = nextPc;
+        this.resumable = this.pc.lineIdx < this.lines.length;
+        return;
+      }
       if (!this.jumped) this.pc = nextPc;
       this.jumped = false;
 
@@ -240,6 +320,19 @@ export class Basic {
         // program's output. Silently erroring on it instead would stop the many
         // published listings that open with RANDOMIZE TIMER.
         return;
+      case 'SCREEN':
+        return this.doScreen(rest);
+      case 'COLOR':
+        return this.doColor(rest);
+      case 'CLS':
+        this.io.draw?.({ op: 'cls' });
+        return;
+      case 'PSET':
+        return this.doPset(rest, lineNum, this.foreground());
+      case 'PRESET':
+        return this.doPset(rest, lineNum, 0);
+      case 'LINE':
+        return this.doLine(rest, lineNum);
       case 'END':
       case 'STOP':
         this.running = false;
@@ -312,6 +405,12 @@ export class Basic {
   }
 
   private async doIf(rest: string, lineNum: number): Promise<void> {
+    // IF .. GOTO n, with no THEN: how the 1989 Simulation listings branch.
+    const go = /^(.*?)\bGOTO\s*(\d+)\s*$/i.exec(rest);
+    if (go && !/\bTHEN\b/i.test(go[1])) {
+      if (evalExpr(go[1], this)) this.gotoLine(parseInt(go[2], 10));
+      return;
+    }
     const m = /^(.*?)\bTHEN\b\s*(.*)$/i.exec(rest);
     if (!m) throw new BasicError('SYNTAX (IF without THEN)');
     if (!evalExpr(m[1], this)) return;
@@ -356,6 +455,133 @@ export class Basic {
     }
     this.pc = frame.bodyPc;
     this.jumped = true;
+  }
+
+  // ------------------------------------------------------------ graphics
+
+  private doScreen(rest: string): void {
+    const [modeText] = splitTopLevel(rest, ',');
+    const mode = Math.round(toNum(evalExpr(modeText, this)));
+    if (mode !== 0 && !(mode in SCREEN_MODES)) throw new BasicError(`SCREEN ${mode} NOT SUPPORTED`);
+    this.screenMode = mode;
+    // What SCREEN leaves behind on the PC: palette 1 on black, and the last
+    // point at the centre of the screen.
+    this.palette = 1;
+    this.background = 0;
+    const size = SCREEN_MODES[mode];
+    this.lastPoint = size ? { x: size.width / 2, y: size.height / 2 } : { x: 0, y: 0 };
+    this.io.draw?.({ op: 'screen', mode });
+  }
+
+  /** In SCREEN 1: COLOR background, palette. In text mode it sets text colours,
+   *  which the console does not show. SCREEN 2 is black and white only. */
+  private doColor(rest: string): void {
+    if (this.screenMode === 0) return;
+    if (this.screenMode === 2) throw new BasicError('ILLEGAL FUNCTION CALL');
+    const [bg, pal] = splitTopLevel(rest, ',').map((p) => p.trim());
+    if (bg) this.background = Math.round(toNum(evalExpr(bg, this)));
+    if (pal) this.palette = Math.round(toNum(evalExpr(pal, this))) % 2;
+    if (this.background < 0 || this.background > 15) throw new BasicError('ILLEGAL FUNCTION CALL');
+    this.io.draw?.({ op: 'color', background: this.background, palette: this.palette });
+  }
+
+  private foreground(): number {
+    return SCREEN_MODES[this.screenMode]?.maxColor ?? 0;
+  }
+
+  private graphicsMode(): { width: number; height: number; maxColor: number } {
+    const mode = SCREEN_MODES[this.screenMode];
+    // As on the PC: there is nothing to draw on in text mode.
+    if (!mode) throw new BasicError('ILLEGAL FUNCTION CALL');
+    return mode;
+  }
+
+  /** A colour argument, which the mode must have. */
+  private colour(text: string | undefined, fallback: number): number {
+    if (text === undefined || text.trim() === '') return fallback;
+    const color = Math.round(toNum(evalExpr(text, this)));
+    if (color < 0 || color > this.graphicsMode().maxColor) throw new BasicError('ILLEGAL FUNCTION CALL');
+    return color;
+  }
+
+  /**
+   * `[STEP](x, y)` at the start of `text`, and whatever follows it. With STEP
+   * the coordinates are relative to `origin`.
+   */
+  private point(text: string, origin: Point): Point & { rest: string } {
+    const m = /^\s*(STEP\s*)?\(/i.exec(text);
+    if (!m) throw new BasicError('SYNTAX (expected a point like (X, Y))');
+    const open = m[0].length - 1;
+    let depth = 0;
+    let close = -1;
+    let inStr = false;
+    for (let i = open; i < text.length && close < 0; i++) {
+      const ch = text[i];
+      if (ch === '"') inStr = !inStr;
+      if (inStr) continue;
+      if (ch === '(') depth++;
+      if (ch === ')' && --depth === 0) close = i;
+    }
+    if (close < 0) throw new BasicError('SYNTAX (missing ")")');
+    const coords = splitTopLevel(text.slice(open + 1, close), ',');
+    if (coords.length !== 2) throw new BasicError('SYNTAX (expected a point like (X, Y))');
+    let x = toNum(evalExpr(coords[0], this));
+    let y = toNum(evalExpr(coords[1], this));
+    if (m[1]) {
+      x += origin.x;
+      y += origin.y;
+    }
+    // The PC held graphics coordinates as 16-bit integers. A diverging model
+    // reaches this, and so does a NaN from LOG of a negative.
+    if (![x, y].every((v) => Number.isFinite(v) && Math.round(v) >= -32768 && Math.round(v) <= 32767)) {
+      throw new BasicError('OVERFLOW');
+    }
+    return { x, y, rest: text.slice(close + 1) };
+  }
+
+  private doPset(rest: string, lineNum: number, fallback: number): void {
+    this.graphicsMode();
+    const { x, y, rest: after } = this.point(rest, this.lastPoint);
+    const args = after.trim();
+    if (args && !args.startsWith(',')) throw new BasicError('SYNTAX');
+    const color = this.colour(args ? args.slice(1) : undefined, fallback);
+    this.lastPoint = { x, y };
+    this.io.draw?.({ op: 'pset', x, y, color, line: lineNum });
+  }
+
+  /** LINE [[STEP](x1,y1)]-[STEP](x2,y2) [,[color][,B|BF]] */
+  private doLine(rest: string, lineNum: number): void {
+    this.graphicsMode();
+    let text = rest.trim();
+    let from: Point = this.lastPoint;
+    if (/^(STEP\s*)?\(/i.test(text)) {
+      const first = this.point(text, this.lastPoint);
+      from = { x: first.x, y: first.y };
+      text = first.rest.trim();
+    }
+    if (!text.startsWith('-')) throw new BasicError('SYNTAX (LINE needs "-" before its end point)');
+    // A STEP end point is relative to the start of the line.
+    const to = this.point(text.slice(1), from);
+
+    const after = to.rest.trim();
+    if (after && !after.startsWith(',')) throw new BasicError('SYNTAX');
+    const [colorText, boxText, style] = after ? splitTopLevel(after.slice(1), ',') : [];
+    if (style !== undefined) throw new BasicError('LINE STYLE NOT SUPPORTED');
+    const boxArg = (boxText ?? '').trim().toUpperCase();
+    if (boxArg !== '' && boxArg !== 'B' && boxArg !== 'BF') throw new BasicError('SYNTAX');
+    const color = this.colour(colorText, this.foreground());
+
+    this.lastPoint = { x: to.x, y: to.y };
+    this.io.draw?.({
+      op: 'line',
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      color,
+      box: boxArg === '' ? null : (boxArg as 'B' | 'BF'),
+      line: lineNum,
+    });
   }
 
   private doDim(rest: string): void {
