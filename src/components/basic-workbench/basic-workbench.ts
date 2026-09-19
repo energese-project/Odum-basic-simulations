@@ -2,7 +2,7 @@ import { BaseComponent } from '../../core/base-component.ts';
 import { bindInternalLinks } from '../../core/internal-links.ts';
 import { Router } from '../../core/router/router.ts';
 import { Runner } from '../../basic/runner.ts';
-import { extractPlot, toCsv, type Plot } from '../../basic/output.ts';
+import { TableReader, toCsv, type Plot } from '../../basic/output.ts';
 import { diagramUrl, findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
 import { sidebarOpen } from '../../basic/program-library.ts';
 import { issueFormUrl, type FormFields } from '../../basic/submission.ts';
@@ -29,9 +29,10 @@ import type {
 } from '../program-explorer/program-explorer.ts';
 import type { ProgramFormComponent } from '../program-form/program-form.ts';
 
-/** How often the chart is re-derived while a program is still running. Often
+/** How often the chart is redrawn while a program is still running. Often
  *  enough that a long integration visibly draws itself, rarely enough that
- *  re-parsing the transcript is not the dominant cost. */
+ *  redrawing is not the dominant cost. The table itself is read as the output
+ *  arrives (TableReader), so a replot costs only the draw. */
 const REPLOT_MS = 250;
 
 /** Used to link a listing to its history. The archive is only checkable if you
@@ -63,6 +64,8 @@ export class BasicWorkbenchComponent extends BaseComponent {
   private programs: Program[] = [];
   private runner: Runner | null = null;
   private plot: Plot | null = null;
+  /** Reads the run's output as it arrives, so a replot never re-reads it. */
+  private table = new TableReader();
   private running = false;
   private replotTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -108,11 +111,11 @@ export class BasicWorkbenchComponent extends BaseComponent {
     bindInternalLinks(this);
 
     this.runner = new Runner({
-      onOutput: (text) => this.console?.append(text),
+      onOutput: (text) => this.print(text),
       onInputRequest: () => this.console?.askForInput(),
       onDone: () => this.finish(),
       onError: (message) => {
-        this.console?.append(`\n?${message}\n`);
+        this.print(`\n?${message}\n`);
         this.finish();
       },
     });
@@ -207,7 +210,11 @@ export class BasicWorkbenchComponent extends BaseComponent {
     });
 
     this.console?.addEventListener('console-input', (event) => {
-      this.runner?.sendInput((event as CustomEvent<string>).detail);
+      const value = (event as CustomEvent<string>).detail;
+      // The console has echoed the answer into the transcript; the table is
+      // read from the same transcript, so it sees the echo too.
+      this.table.push(value + '\n');
+      this.runner?.sendInput(value);
     });
   }
 
@@ -281,6 +288,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.console?.clear();
     this.chart?.show(null);
     this.plot = null;
+    this.table = new TableReader();
     this.setStatus('');
     this.refreshButtons();
   }
@@ -542,6 +550,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.console?.clear();
     this.chart?.show(null);
     this.plot = null;
+    this.table = new TableReader();
     this.running = true;
     this.setStatus('running…');
     this.refreshButtons();
@@ -550,8 +559,14 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.startReplotting();
   }
 
+  private print(text: string): void {
+    this.console?.append(text);
+    this.table.push(text);
+  }
+
   private finish(): void {
     this.stopReplotting();
+    this.table.end();
     this.running = false;
     this.replot();
     this.setStatus(this.plot ? '' : 'finished — no numeric table to plot');
@@ -572,8 +587,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   private replot(): void {
-    const text = this.console?.text ?? '';
-    this.plot = extractPlot(text);
+    this.plot = this.table.plot;
     this.chart?.show(this.plot);
     if (!this.running) this.refreshButtons();
   }

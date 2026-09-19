@@ -314,6 +314,21 @@ the true relationship; a second scale makes them look comparable when they are n
 The console beside the chart is the table view: everything the program printed stays
 readable there, so the plot is never the only reading of a run. Do not collapse it.
 
+**Nothing on the main thread may cost more as the run gets longer.** The interpreter
+is in a worker, but its output is laid out, parsed and drawn here, and each of those
+was once quadratic: 60,000 rows held the page for 5.9 seconds of a 6.7-second run. So:
+
+- the console appends each flushed piece as a block of its own, never to one growing
+  text node — see `write()` in
+  [`console-panel.ts`](src/components/console-panel/console-panel.ts);
+- the table is read as it arrives, by `TableReader` in
+  [`output.ts`](src/basic/output.ts), never re-read from the transcript;
+- the chart is drawn from at most `MAX_ROWS` rows, thinned by `thinPlot`, which keeps
+  every column's extremes and only real rows. Chart.js re-parses every point on every
+  update, whatever it is handed. The CSV and the console keep every row.
+
+`e2e/workbench.spec.ts` holds a 60,000-row run to no main-thread task over 250ms.
+
 ## 13. Deployment
 
 `main` → [`deploy.yml`](.github/workflows/deploy.yml) → GitHub Pages. The workflow

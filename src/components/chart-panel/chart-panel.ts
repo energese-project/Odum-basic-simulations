@@ -1,6 +1,6 @@
 import { BaseComponent } from '../../core/base-component.ts';
 import { seriesColours, token } from '../../core/theme.ts';
-import type { Plot } from '../../basic/output.ts';
+import { thinPlot, type Plot } from '../../basic/output.ts';
 import template from './chart-panel.html?raw';
 import style from './chart-panel.css?raw';
 
@@ -33,6 +33,13 @@ Chart.register(
  */
 const SERIES_DASHES: number[][] = [[], [6, 3], [2, 3], [8, 3, 2, 3]];
 
+/**
+ * The most rows the chart is drawn from — a few per pixel of a wide plot.
+ * Chart.js re-parses every point on every update, and the plot is redrawn four
+ * times a second while a program runs; see thinPlot for what is kept.
+ */
+const MAX_ROWS = 4000;
+
 export class ChartPanelComponent extends BaseComponent {
   static tagName = 'chart-panel';
 
@@ -57,6 +64,15 @@ export class ChartPanelComponent extends BaseComponent {
   }
 
   show(plot: Plot | null): void {
+    // The same plot, grown in place while the program runs (see TableReader):
+    // new rows, same series, so only the data changes.
+    if (plot !== null && plot === this.plot && this.chart) {
+      const drawn = thinPlot(plot, MAX_ROWS);
+      this.chart.data.datasets.forEach((ds, i) => (ds.data = drawn.series[i].points));
+      this.chart.update('none');
+      return;
+    }
+
     this.plot = plot;
     const empty = this.querySelector<HTMLElement>('.empty');
     const wrap = this.querySelector<HTMLElement>('.canvas-wrap');
@@ -74,7 +90,7 @@ export class ChartPanelComponent extends BaseComponent {
     empty.hidden = true;
     wrap.hidden = false;
 
-    const datasets = this.datasets(plot);
+    const datasets = this.datasets(thinPlot(plot, MAX_ROWS));
     if (this.chart) {
       this.chart.data.datasets = datasets;
       this.chart.options.scales!.x!.title = { display: true, text: plot.xLabel };
