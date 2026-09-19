@@ -2,22 +2,26 @@
 
 Ordered by what unblocks the most published listings.
 
-## 1. Graphics statements as data emitters
+## 1. Graphics: from the screen to a plot
 
-`SCREEN`, `CLS`, `PSET (x, y)`, `LINE (x1, y1)-(x2, y2)`, `LOCATE`, `COLOR`.
+**Done:** `SCREEN` 1 and 2, `COLOR`, `CLS`, `PSET`, `PRESET`, `LINE` (with `STEP`, `B`,
+`BF`), and `CONT`. The interpreter records each as a `DrawOp` in the program's own
+coordinates, with the line that drew it, and the Plot pane shows the screen rebuilt
+from that record ([`screen.ts`](src/basic/screen.ts)) — which is what Odum's published
+figures are pictures of.
 
-The later mini-models plot to a 320×200 screen rather than printing a table, so they
-currently produce no chart at all. **Implement `PSET` and `LINE` as emitters of
-`(x, y, series)` samples rather than as pixels** and the screen plot becomes a real
-Chart.js series with axes, hover and a CSV export. This is the single change that
-gives the graphical listings new life instead of a facsimile of a CGA screen.
+**Next: read series back from the record.** The plan here used to be "`COLOR` picks
+the series slot". The 1989 *Simulation* listing refutes it: it plots A (line 330) and
+M (line 360) both in colour 2, in different bands of the screen. What identifies a
+series is the **`PSET` statement**, so group points by `line`, label each with its
+y expression (`180 - N / N0`), and chart them in screen coordinates with the y axis
+reversed. Converting to model units needs the inverse of each expression and is not
+attempted; comparing with a digitised figure does not need it, because the figure is
+in screen coordinates too, and the listing's own `LINE (0,0)-(319,180),3,B` frame gives
+the corners to calibrate against.
 
-`SCREEN` and `CLS` become series-lifecycle statements: `CLS` starts a new plot,
-`COLOR` picks the series slot. `LINE` in its `(x1,y1)-(x2,y2),,B` box form draws
-chrome, not data, and should be ignored rather than plotted.
-
-This sits alongside the table heuristic in [`output.ts`](src/basic/output.ts), not in
-place of it — plenty of listings print a table and never draw.
+Still missing for other listings: `LOCATE`, `PRINT` onto the graphics screen,
+`CIRCLE`, `PAINT`, `VIEW`/`WINDOW`, `LINE` styles, EGA/VGA modes.
 
 ## 2. Structured control flow
 

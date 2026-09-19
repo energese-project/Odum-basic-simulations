@@ -99,7 +99,7 @@ export class Screen {
   }
 
   /** The screen as RGBA bytes, for a canvas's ImageData. */
-  rgba(): Uint8ClampedArray {
+  rgba(): Uint8ClampedArray<ArrayBuffer> {
     const colours = this.colours();
     const out = new Uint8ClampedArray(this.pixels.length * 4);
     this.pixels.forEach((c, i) => {

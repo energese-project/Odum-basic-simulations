@@ -279,6 +279,33 @@
   color: var(--e-ink);
 }
 
+:host .status-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+:host .continue {
+  height: 1.2rem;
+  padding: 0 0.5rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--e-ground);
+  background-color: var(--e-accent);
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+:host .continue:hover {
+  background-color: var(--e-accent-hover);
+}
+
+:host .continue:focus-visible {
+  outline: 2px solid var(--e-accent);
+  outline-offset: 1px;
+}
+
 :host .status {
   font-weight: 500;
   letter-spacing: 0;
@@ -287,6 +314,7 @@
 
 :host .editor-pane code-editor,
 :host .chart-block chart-panel,
+:host .chart-block screen-panel,
 :host .console-block console-panel {
   flex: 1 1 auto;
   min-height: 0;

@@ -185,6 +185,20 @@ cheap way to check a language change.
 against an internal method.** The tests run a program and assert on what it printed,
 because that is the only thing the published listings care about.
 
+**Graphics statements leave through `draw`, never as pixels.** Each is a `DrawOp` in
+the program's own coordinates, unrounded, with the line that drew it; `screen.ts`
+rasterises them for the Plot pane. Keep the two apart: the pixels are how the run
+looked, which is what the published figures show, and the record is what it
+computed, which is what a series is read back from. A series is a `PSET` statement,
+not a colour — Odum (1989) plots two variables in colour 2.
+
+**Nothing a diverging model computes may hang the page.** Coordinates past the PC's
+16 bits are an `OVERFLOW`, as they were on the PC, and `screen.ts` skips non-finite
+ends and clamps fills to the screen as well, because it takes DrawOps from anywhere.
+
+`CONT` is `cont()`. END and STOP leave the program counter on the next statement and
+set `canContinue`; the worker keeps the interpreter until the next run.
+
 `run()` yields every `YIELD_INTERVAL` statements and checks `shouldHalt` there. That
 yield is a `setTimeout`, not a microtask, deliberately — a microtask drains straight
 back into the loop without letting the worker's event loop deliver the stop message.

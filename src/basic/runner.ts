@@ -9,12 +9,15 @@
  * it never completes a statement.
  */
 
+import type { DrawOp } from './interpreter.ts';
 import { type FromWorker, type ToWorker } from './protocol.ts';
 
 export interface RunnerHandlers {
   onOutput: (text: string) => void;
+  onDraw: (ops: DrawOp[]) => void;
   onInputRequest: () => void;
-  onDone: () => void;
+  /** `canContinue`: stopped by END or STOP with more to run — see cont(). */
+  onDone: (canContinue: boolean) => void;
   onError: (message: string) => void;
 }
 
@@ -44,12 +47,15 @@ export class Runner {
         case 'out':
           this.handlers.onOutput(msg.text);
           break;
+        case 'draw':
+          this.handlers.onDraw(msg.ops);
+          break;
         case 'input-request':
           this.handlers.onInputRequest();
           break;
         case 'done':
           this.clearHaltTimer();
-          this.handlers.onDone();
+          this.handlers.onDone(msg.canContinue);
           break;
         case 'error':
           this.clearHaltTimer();
@@ -72,6 +78,11 @@ export class Runner {
     this.send({ type: 'run', source });
   }
 
+  /** CONT: carry on in the program that stopped at END or STOP. */
+  cont(): void {
+    this.send({ type: 'cont' });
+  }
+
   sendInput(value: string): void {
     this.send({ type: 'input', value });
   }
@@ -83,7 +94,7 @@ export class Runner {
     this.clearHaltTimer();
     this.haltTimer = setTimeout(() => {
       this.terminate();
-      this.handlers.onDone();
+      this.handlers.onDone(false);
     }, HALT_GRACE_MS);
   }
 

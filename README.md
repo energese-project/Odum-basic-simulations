@@ -97,19 +97,24 @@ one the x axis, with a non-numeric line above it naming the columns.
 
 ## Language support
 
-`PRINT` (with `,` and `;`), `LET` (optional), `INPUT`, `IF`/`THEN`, `FOR`/`TO`/`STEP`/`NEXT`,
-`GOTO`, `GOSUB`/`RETURN`, `DIM` (1-D and 2-D), `DATA`/`READ`/`RESTORE`, `REM`,
-`END`/`STOP`, `RANDOMIZE`, and several statements per line via `:`.
+`PRINT` (with `,` and `;`), `LET` (optional), `INPUT`, `IF`/`THEN` and `IF`…`GOTO`,
+`FOR`/`TO`/`STEP`/`NEXT`, `GOTO`, `GOSUB`/`RETURN`, `DIM` (1-D and 2-D),
+`DATA`/`READ`/`RESTORE`, `REM`, `END`/`STOP`, `RANDOMIZE`, and several statements per
+line via `:`. **Continue** in the Output pane is `CONT`: it carries on after `END` or
+`STOP`, as listings that run in stages expect.
+
+Graphics: `SCREEN 1` (320×200, CGA palettes) and `SCREEN 2` (640×200), `COLOR`, `CLS`,
+`PSET`, `PRESET`, and `LINE` with `STEP`, `B` and `BF`. The screen is drawn as the PC
+showed it, and every point is also kept exactly as the program computed it.
 
 Functions: `LEN`, `MID$`, `LEFT$`, `RIGHT$`, `STR$`, `VAL`, `CHR$`, `ASC`, `INT`,
 `ABS`, `SGN`, `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `EXP`, `LOG`, `RND`.
 
 Operators: `+ - * / ^`, `= <> < > <= >=`, `AND OR NOT`, string concatenation with `+`.
 
-**Not yet supported**, and needed before most of the graphical mini-models will
-run unaltered: `SCREEN`, `CLS`, `PSET`, `LINE`, `WHILE`/`WEND`, `DEF FN`,
-`ON…GOTO`, `SELECT CASE`, `PRINT USING`. See [TODO.md](TODO.md) — `PSET` and
-`LINE` as data emitters rather than pixels is the piece that matters most.
+**Not yet supported:** `WHILE`/`WEND`, `DEF FN`, `ON…GOTO`, `SELECT CASE`,
+`PRINT USING`, `LOCATE`, `CIRCLE`, `PAINT`, `SCREEN` modes beyond 2, and `LINE` styles.
+See [TODO.md](TODO.md).
 
 ## Licence
 
