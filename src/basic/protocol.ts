@@ -1,15 +1,22 @@
 /** The messages crossing the Worker boundary. Shared by both sides so a change
  *  to one is a type error in the other. */
 
+import type { DrawOp } from './interpreter.ts';
+
 export type ToWorker =
   | { type: 'run'; source: string }
+  /** CONT: carry on after END or STOP, in the program that stopped. */
+  | { type: 'cont' }
   | { type: 'input'; value: string }
   | { type: 'halt' };
 
 export type FromWorker =
   | { type: 'out'; text: string }
+  /** Graphics statements since the last flush, in the order they ran. */
+  | { type: 'draw'; ops: DrawOp[] }
   | { type: 'input-request' }
-  | { type: 'done' }
+  /** `canContinue`: stopped by END or STOP with more of the program to run. */
+  | { type: 'done'; canContinue: boolean }
   | { type: 'error'; message: string };
 
 /** How long output accumulates before being posted. A simulation printing a row

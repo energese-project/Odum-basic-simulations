@@ -14,6 +14,7 @@ import style from './basic-workbench.css?raw';
 import '../code-editor/code-editor.ts';
 import '../console-panel/console-panel.ts';
 import '../chart-panel/chart-panel.ts';
+import '../screen-panel/screen-panel.ts';
 import '../theme-toggle/theme-toggle.ts';
 import '../program-meta/program-meta.ts';
 import '../program-explorer/program-explorer.ts';
@@ -22,6 +23,8 @@ import '../program-form/program-form.ts';
 import type { CodeEditorComponent } from '../code-editor/code-editor.ts';
 import type { ConsolePanelComponent } from '../console-panel/console-panel.ts';
 import type { ChartPanelComponent } from '../chart-panel/chart-panel.ts';
+import type { ScreenPanelComponent } from '../screen-panel/screen-panel.ts';
+import type { DrawOp } from '../../basic/interpreter.ts';
 import type { ProgramMetaComponent } from '../program-meta/program-meta.ts';
 import type {
   ProgramExplorerComponent,
@@ -85,6 +88,10 @@ export class BasicWorkbenchComponent extends BaseComponent {
     return this.querySelector('chart-panel');
   }
 
+  private get screen(): ScreenPanelComponent | null {
+    return this.querySelector('screen-panel');
+  }
+
   private get meta(): ProgramMetaComponent | null {
     return this.querySelector('program-meta');
   }
@@ -113,10 +120,11 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.runner = new Runner({
       onOutput: (text) => this.print(text),
       onInputRequest: () => this.console?.askForInput(),
-      onDone: () => this.finish(),
+      onDraw: (ops) => this.draw(ops),
+      onDone: (canContinue) => this.finish(canContinue),
       onError: (message) => {
         this.print(`\n?${message}\n`);
-        this.finish();
+        this.finish(false);
       },
     });
 
@@ -205,6 +213,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.querySelector('[data-testid="stop"]')?.addEventListener('click', () => {
       this.runner?.halt();
     });
+    this.querySelector('[data-testid="continue"]')?.addEventListener('click', () => this.cont());
     this.querySelector('[data-testid="download"]')?.addEventListener('click', () => {
       this.downloadCsv();
     });
@@ -289,6 +298,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.chart?.show(null);
     this.plot = null;
     this.table = new TableReader();
+    this.clearScreen();
     this.setStatus('');
     this.refreshButtons();
   }
@@ -551,6 +561,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.chart?.show(null);
     this.plot = null;
     this.table = new TableReader();
+    this.clearScreen();
     this.running = true;
     this.setStatus('running…');
     this.refreshButtons();
@@ -564,14 +575,57 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.table.push(text);
   }
 
-  private finish(): void {
+  /** CONT: carry on in the program that stopped at END or STOP. */
+  private cont(): void {
+    if (!this.runner) return;
+    this.setContinue(false);
+    this.running = true;
+    this.setStatus('running…');
+    this.refreshButtons();
+    this.runner.cont();
+    this.startReplotting();
+  }
+
+  private finish(canContinue: boolean): void {
     this.stopReplotting();
-    this.table.end();
+    // Only once the output is complete: after END, CONT may still finish the
+    // line the program was part-way through printing.
+    if (!canContinue) this.table.end();
     this.running = false;
     this.replot();
-    this.setStatus(this.plot ? '' : 'finished — no numeric table to plot');
+    const drew = this.screen?.active ?? false;
+    this.setStatus(
+      canContinue
+        ? 'stopped — Continue runs the rest'
+        : this.plot || drew
+          ? ''
+          : 'finished — no numeric table to plot'
+    );
+    this.setContinue(canContinue);
     this.refreshButtons();
     this.console?.hideInput();
+  }
+
+  private setContinue(available: boolean): void {
+    const button = this.querySelector<HTMLElement>('[data-testid="continue"]');
+    if (button) button.hidden = !available;
+  }
+
+  private draw(ops: DrawOp[]): void {
+    const screen = this.screen;
+    if (!screen) return;
+    screen.draw(ops);
+    if (screen.active && screen.hidden) {
+      screen.hidden = false;
+      if (this.chart) this.chart.hidden = true;
+    }
+  }
+
+  private clearScreen(): void {
+    this.screen?.reset();
+    if (this.screen) this.screen.hidden = true;
+    if (this.chart) this.chart.hidden = false;
+    this.setContinue(false);
   }
 
   private startReplotting(): void {

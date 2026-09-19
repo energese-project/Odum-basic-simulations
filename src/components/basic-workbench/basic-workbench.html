@@ -77,11 +77,18 @@
         <div class="pane-block chart-block">
           <h2 class="pane-title">Plot</h2>
           <chart-panel></chart-panel>
+          <!-- In place of the chart once a program sets a graphics mode: what it
+               drew is its plot, and Odum's figures are pictures of this screen. -->
+          <screen-panel hidden></screen-panel>
         </div>
         <div class="pane-block console-block">
           <h2 class="pane-title">
             Output
-            <span class="status" data-testid="status"></span>
+            <span class="status-group">
+              <span class="status" data-testid="status"></span>
+              <!-- CONT. Only there when there is something to continue. -->
+              <button type="button" class="continue" data-testid="continue" hidden>Continue</button>
+            </span>
           </h2>
           <console-panel></console-panel>
         </div>

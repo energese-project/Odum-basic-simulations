@@ -26,12 +26,13 @@ export const KEYWORDS = [
   'PRINT', 'LET', 'INPUT', 'IF', 'THEN', 'FOR', 'TO', 'STEP', 'NEXT',
   'GOTO', 'GOSUB', 'RETURN', 'DIM', 'READ', 'DATA', 'RESTORE',
   'REM', 'END', 'STOP', 'RANDOMIZE', 'AND', 'OR', 'NOT',
+  'SCREEN', 'COLOR', 'CLS', 'PSET', 'PRESET', 'LINE',
 ];
 
 export const PLANNED = [
   'WHILE', 'WEND', 'DO', 'LOOP', 'UNTIL', 'SELECT', 'CASE', 'ELSE',
-  'DEF', 'FN', 'ON', 'SCREEN', 'CLS', 'PSET', 'LINE', 'LOCATE',
-  'COLOR', 'USING', 'TIMER', 'CIRCLE', 'PAINT', 'VIEW', 'WINDOW',
+  'DEF', 'FN', 'ON', 'LOCATE',
+  'USING', 'TIMER', 'CIRCLE', 'PAINT', 'VIEW', 'WINDOW',
 ];
 
 export const BUILTINS = [
