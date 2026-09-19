@@ -8,7 +8,7 @@ The unmodified `table3.bas`, PC-BASIC's CGA memory against our DrawOps rasterise
 | --- | --- | --- | --- | --- |
 | R1, as the site draws it | 111 | 52 | 55 | 4 |
 | R4b, as the site draws it | 111 | 52 | 55 | 4 |
-| R1, PSET rounding halves to even | 0 | 0 | 0 | 0 |
+| R1, adjusted to PC-BASIC's PSET, halves to even | 0 | 0 | 0 | 0 |
 
 R1, the first pixels that differ:
 
@@ -24,3 +24,14 @@ R1, the first pixels that differ:
 | (38, 31) | 2 | 0 |
 | (44, 32) | 2 | 0 |
 | (67, 35) | 0 | 2 |
+
+PC-BASIC's rounding of a half, from `rounding.bas`: the pixel its `PSET` lit, read back with `POINT`, beside its own
+`CINT`. GW-BASIC reads graphics coordinates through the routine `CINT` uses (`FRCINT`, MATH2.ASM), so on the PC
+each point would land on the `CINT` column.
+
+| Coordinate | `PSET`, column | `PSET`, row | `CINT` |
+| --- | --- | --- | --- |
+| 0.5 | 0 | 0 | 1 |
+| 1.5 | 2 | 2 | 2 |
+| 2.5 | 2 | 2 | 3 |
+| 3.5 | 4 | 4 | 4 |

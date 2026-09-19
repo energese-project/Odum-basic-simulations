@@ -9,8 +9,8 @@ compared with its own figures. The interpreter now draws what its listings draw 
 Before a comparison can mean anything, we have to know that differences come from
 Odum, not from us — so the order matters:
 
-1. **0.1 Oracle spike** — does IBM PC BASIC's arithmetic change the curves? **Done:** no,
-   but `PSET`'s rounding of half pixels does. See
+1. **0.1 Oracle spike** — does IBM PC BASIC's arithmetic change the curves? **Done:** no.
+   PC-BASIC's `PSET` rounds half pixels differently, and GW-BASIC's source sides with us. See
    [`validation/oracle/RESULTS.md`](validation/oracle/RESULTS.md).
 2. **0.2 Conformance tests and dialect profiles** — prove we behave like the BASIC
    each listing was written for.
@@ -25,7 +25,8 @@ rule below. In every pair of runs, all four series light the same pixel on all 6
 and `D > 30` fires on step 263 in each. Single precision goes into 0.2 for fidelity, not
 as a blocker. The screen comparison found what does change the figure: PC-BASIC's `PSET`
 rounds a half-pixel coordinate to even, ours rounds it up, and Table 3 is on a half pixel
-every other step — 111 pixels differ, and none once ties go to even. `Math.fround` is not
+every other step — 111 pixels differ, and none once ties go to even. (0.2 found that
+GW-BASIC rounds it away from zero, as we do: PC-BASIC is the one that departs.) `Math.fround` is not
 bit-exact with Microsoft Binary Format (60 of 640 rows), and nothing needs it to be. PC-BASIC
 works as the oracle, screens included. Evidence and the answers to Q1–Q5:
 [`validation/oracle/RESULTS.md`](validation/oracle/RESULTS.md).
@@ -149,14 +150,19 @@ rule. This TODO is updated with the decision, and 0.2 is re-scoped to match.
 Re-scoped after 0.1, whose [results](validation/oracle/RESULTS.md) are the evidence
 for each point here.
 
-- **First: `PSET` breaks half-pixel ties to even.** PC-BASIC puts `PSET (0.5, y)` on x = 0,
-  `1.5` on 2 and `2.5` on 2, and y likewise; `screen.ts` uses `Math.round`, which rounds
-  up. This one changes figures, so it comes before anything else here, test first. Check
-  `LINE` and box end points against the oracle as well, and GW-BASIC's source for the rule
-  itself. Expect the figure goldens to move; review each. `CINT` is not the same rule — it
-  rounds halves away from zero. `make attest` then fails on purpose: the screens now
-  agree, and the article's oracle paragraph says they do not. Revise the paragraph and
-  the claim in `validation/oracle/latex.ts`, then `make attest-update`.
+- **Done: half-pixel ties.** The plan was to round them to even, as PC-BASIC's `PSET` does.
+  GW-BASIC's source refuted it: `SCAND` reads every coordinate of `PSET`, `PRESET` and `LINE`
+  through `FRCINT`, the routine `CINT` uses, which rounds a half away from zero. PC-BASIC's
+  graphics use Python's `round`, and its own `CINT` disagrees with its `PSET`
+  (`validation/oracle/rounding.bas`). So `screen.ts` was already right for x ≥ 0; it now
+  rounds negative halves away from zero too, and the figure goldens did not move. PC-BASIC's
+  rule is the first entry in [`validation/KNOWN-DIFFERENCES.md`](validation/KNOWN-DIFFERENCES.md),
+  and the article's oracle paragraph says so.
+- **`STEP` builds on rounded points.** GW-BASIC rounds each coordinate before adding it to
+  its integer graphics accumulator (`GRPACX`, `GRPACY` in `SCAND`), so `STEP` is relative to
+  the pixel last drawn. Ours adds the unrounded values: from `PSET (0.5, 0)`, `PSET STEP
+  (0.5, 0)` lands on 1 here and on 2 on the PC. Test it against the oracle, then decide what
+  the DrawOp records: the program's value or the PC's.
 - **A conformance suite in CI.** A job like `figures`, in the pinned oracle image —
   [`validation/oracle/`](validation/oracle/)'s `Containerfile`, pinned the same way. Its
   first step is to run `make attest` in CI, which nothing does yet. It runs every archive
@@ -185,7 +191,9 @@ for each point here.
   - `ibm-pc-basic` (BASICA and GW-BASIC): PC-BASIC is its oracle.
   - `quickbasic`: the 1989 paper says its runs were "accelerated by using QUICK
     BASIC". There is no open QuickBASIC to test against; record what evidence stands
-    in for one.
+    in for one. First question for it: how it rounds a graphics coordinate half-way
+    between two pixels. It may be to even, unlike GW-BASIC, but that is a recollection,
+    not evidence, and the article lists it as open.
 
   A profile selects behaviour where the dialects differ: default precision, `PRINT`
   number formatting, `INT`/`CINT` rounding, the keyword set, graphics modes. Each

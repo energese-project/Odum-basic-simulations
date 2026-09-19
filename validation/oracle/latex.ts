@@ -5,9 +5,10 @@
  *
  * The prose also makes claims these numbers could stop supporting — one threshold
  * step in every run, no pixel moved by precision, every screen difference caused
- * by PSET's rounding. Each claim is checked here, and a claim that no longer holds
- * stops the attestation with the paragraph to revise, rather than letting a macro
- * print a number the sentence around it contradicts.
+ * by PC-BASIC's rounding of halves, which its own CINT does not share. Each claim
+ * is checked here, and a claim that no longer holds stops the attestation with the
+ * paragraph to revise, rather than letting a macro print a number the sentence
+ * around it contradicts.
  *
  * Usage: node validation/oracle/latex.ts
  */
@@ -17,14 +18,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Comparisons, PairResult } from './compare.ts';
 import type { Replay } from './replay.ts';
-import type { ScreenCase } from './screens.ts';
+import type { RoundingRow, ScreenCase } from './screens.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const json = <T>(name: string): T => JSON.parse(readFileSync(join(here, name), 'utf8')) as T;
 
 const { pairs, bitwise, printRounding } = json<Comparisons>('comparisons.json');
 const replay = json<Replay>('replay.json');
-const screens = json<{ pixels: number; cases: ScreenCase[] }>('screens.json');
+const screens = json<{ pixels: number; cases: ScreenCase[]; rounding: RoundingRow[] }>('screens.json');
 
 function claim(holds: boolean, what: string): void {
   if (!holds) {
@@ -74,7 +75,22 @@ claim(
   asDrawn.differing > 0 && screen('r4b').differing === asDrawn.differing,
   "that the site's screen differs from PC-BASIC's, and not because of precision",
 );
-claim(halfEven.differing === 0, 'that rounding PSET ties to even leaves no pixel different');
+claim(halfEven.differing === 0, "that adjusting for PC-BASIC's rounding of halves leaves no pixel different");
+
+// GW-BASIC reads a graphics coordinate through CINT's routine, so a PSET that
+// disagrees with CINT is PC-BASIC's departure, not the PC's.
+const { rounding } = screens;
+const toEven = (v: number): number => 2 * Math.round(v / 2);
+claim(
+  rounding.length > 0 && rounding.every((r) => r.psetX === toEven(r.value) && r.psetY === toEven(r.value)),
+  "that PC-BASIC's PSET rounds a half to even, on both axes",
+);
+claim(
+  rounding.every((r) => r.cint === r.value + 0.5),
+  "that PC-BASIC's CINT rounds the same halves away from zero",
+);
+const probe = rounding.find((r) => r.psetX !== r.cint);
+claim(probe !== undefined, "that PC-BASIC's PSET and CINT disagree on some half");
 
 // ------------------------------------------------------------------ the file
 
@@ -100,6 +116,9 @@ const macros: [string, string][] = [
   ['oracleReplayDiffering', num(replay.stepsDiffering)],
   ['oracleScreenPixels', num(screens.pixels)],
   ['oracleScreenDiffering', num(asDrawn.differing)],
+  ['oracleProbeValue', String(probe!.value)],
+  ['oracleProbePset', num(probe!.psetX)],
+  ['oracleProbeCint', num(probe!.cint)],
   ['oraclePrintValues', num(printRounding.values)],
   ['oraclePrintRoundedUp', num(printRounding.roundedUp)],
   ['oraclePcbasicVersion', version(/pcbasic==(\S+)/)],
