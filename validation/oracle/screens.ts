@@ -113,6 +113,15 @@ function png(file: string, rgb: (i: number) => [number, number, number]): void {
 // SCREEN 1, COLOR 0,0: palette 0 on black. Only for looking at; the comparison is by colour number.
 const PALETTE_0: [number, number, number][] = [[0, 0, 0], [0, 0xaa, 0], [0xaa, 0, 0], [0xaa, 0x55, 0]];
 
+/**
+ * How far the reference screen is dimmed under the white difference pixels. A quarter,
+ * which is what `>> 2` gave, survives on a monitor and not on paper: the brightest
+ * palette colour lands at 42 of 255 on black, and the figure printed as white dots with
+ * no curve under them. At 0.55 the curves are legible at print size and white is still
+ * unambiguously the brightest thing on the screen (140 of 255 against it).
+ */
+const dim = (c: number): number => Math.round(c * 0.55);
+
 const oracle = cga(join(here, 'runs', 'r2-screen.bin'));
 mkdirSync(join(here, 'screens'), { recursive: true });
 png(join(here, 'screens', 'r2.png'), (i) => PALETTE_0[oracle[i]]);
@@ -163,7 +172,7 @@ for (const [image, run, label, halfEven] of CASES) {
   png(join(here, 'screens', `${image}.png`), (i) => PALETTE_0[px[i]]);
   // White where the two differ, the PC-BASIC screen dimmed underneath.
   png(join(here, 'screens', `${image}-diff.png`), (i) =>
-    px[i] !== oracle[i] ? [255, 255, 255] : (PALETTE_0[oracle[i]].map((c) => c >> 2) as [number, number, number]),
+    px[i] !== oracle[i] ? [255, 255, 255] : (PALETTE_0[oracle[i]].map(dim) as [number, number, number]),
   );
 }
 if (firstDiffs.length) {
