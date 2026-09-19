@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 // baseURL carries the Vite base, so './' is the app root and './about' is a
 // route under it. A leading-slash path would escape to the domain root.
@@ -68,6 +68,65 @@ test('INPUT round-trips through the console', async ({ page }) => {
     /TOO LOW|TOO HIGH|CORRECT/,
     { timeout: 15_000 }
   );
+  // The answer is echoed onto the line that asked for it, not onto a new one.
+  await expect(page.getByTestId('console-output')).toContainText('YOUR GUESS? 50\n', {
+    useInnerText: false,
+  });
+});
+
+/** The stock listing, with a step small enough to print `rows` rows. */
+async function withRows(page: Page, rows: number): Promise<void> {
+  await page.route('**/programs/index.json', async (route) => {
+    const catalog = await (await route.fetch()).json();
+    const program = catalog.programs.find((p: { id: string }) => p.id === 'charge-discharge');
+    program.listing = program.listing.replace('LET DT = 0.5', `LET DT = ${60 / rows}`);
+    await route.fulfill({ json: catalog });
+  });
+}
+
+test('a long run leaves the page free while it prints', async ({ page }) => {
+  // The interpreter is in a worker, but what it prints is laid out here. Output
+  // appended to one <pre> re-laid out every line above it on each flush, and
+  // the plot re-read the whole transcript on each redraw: 60,000 rows held the
+  // main thread in tasks of up to 720ms, 5.9s of a 6.7s run.
+  await page.addInitScript(() => {
+    const w = window as unknown as { longTasks: number[] };
+    w.longTasks = [];
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) w.longTasks.push(entry.duration);
+    }).observe({ type: 'longtask' });
+  });
+  await withRows(page, 60_000);
+  await page.goto('./?prg=charge-discharge');
+  await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+  await page.evaluate(() => ((window as unknown as { longTasks: number[] }).longTasks = []));
+
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('run')).toBeEnabled({ timeout: 60_000 });
+  await expect(page.getByTestId('console-output')).toContainText('STEADY STATE');
+
+  const tasks = await page.evaluate(() => (window as unknown as { longTasks: number[] }).longTasks);
+  const longest = Math.max(0, ...tasks);
+  expect(longest, `long tasks: ${tasks.map(Math.round).join(', ')}ms`).toBeLessThan(250);
+});
+
+test('the output copies exactly as it was printed', async ({ page }) => {
+  // The console holds a run in pieces now. A copy of it is how a table leaves
+  // the page, so the pieces must not add a line break where they join.
+  await withRows(page, 6_000);
+  await page.goto('./?prg=charge-discharge');
+  await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('run')).toBeEnabled({ timeout: 30_000 });
+
+  const { copied, printed } = await page.getByTestId('console-output').evaluate((out) => {
+    const selection = window.getSelection()!;
+    selection.selectAllChildren(out);
+    return { copied: selection.toString(), printed: out.textContent ?? '' };
+  });
+  const rows = printed.split('\n').filter((l) => /^ ?-?\d/.test(l)).length;
+  expect(rows, 'long enough to arrive in many pieces').toBeGreaterThanOrEqual(6_000);
+  expect(copied.replace(/\n+$/, '')).toBe(printed.replace(/\n+$/, ''));
 });
 
 test('a runaway program can be stopped', async ({ page }) => {

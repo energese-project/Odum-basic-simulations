@@ -16,6 +16,8 @@ export class ConsolePanelComponent extends BaseComponent {
   private out: HTMLElement | null = null;
   private form: HTMLFormElement | null = null;
   private input: HTMLInputElement | null = null;
+  /** The end of the output that is not yet a whole line. See write(). */
+  private tail: Text | null = null;
 
   constructor() {
     super(template, style);
@@ -41,6 +43,7 @@ export class ConsolePanelComponent extends BaseComponent {
 
   clear(): void {
     if (this.out) this.out.textContent = '';
+    this.tail = null;
     this.hideInput();
   }
 
@@ -50,12 +53,32 @@ export class ConsolePanelComponent extends BaseComponent {
     // through a long run is not yanked forward by the next flush.
     const atBottom =
       this.out.scrollHeight - this.out.scrollTop - this.out.clientHeight < 40;
-    this.out.textContent += text;
+    this.write(text);
     if (atBottom) this.out.scrollTop = this.out.scrollHeight;
   }
 
-  get text(): string {
-    return this.out?.textContent ?? '';
+  /**
+   * Each piece of output that finishes a line becomes a block of its own; a line
+   * not yet finished waits in a trailing text node. One <pre> of text is one
+   * run of inline layout, so appending to it re-lays out every line above: a
+   * 60,000-row run spent most of its 6.7 seconds doing that on the main thread.
+   * A new block is laid out alone. The blocks carry their newlines, so the
+   * transcript's text is unchanged, and copying it gives back what was printed.
+   */
+  private write(text: string): void {
+    const out = this.out!;
+    const end = text.lastIndexOf('\n');
+    if (end === -1) {
+      if (this.tail) this.tail.appendData(text);
+      else if (text) out.append((this.tail = new Text(text)));
+      return;
+    }
+    const block = document.createElement('div');
+    block.textContent = (this.tail?.data ?? '') + text.slice(0, end + 1);
+    this.tail?.remove();
+    const rest = text.slice(end + 1);
+    this.tail = rest ? new Text(rest) : null;
+    out.append(block, ...(this.tail ? [this.tail] : []));
   }
 
   askForInput(): void {
