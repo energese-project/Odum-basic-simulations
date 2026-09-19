@@ -196,6 +196,25 @@ not a colour — Odum (1989) plots two variables in colour 2.
 16 bits are an `OVERFLOW`, as they were on the PC, and `screen.ts` skips non-finite
 ends and clamps fills to the screen as well, because it takes DrawOps from anywhere.
 
+**When references disagree about what the PC did, the order of authority is fixed.**
+Consult them in this order, and cite the one that decided:
+
+1. a published standard, where one covers the behaviour (ECMA-55 Minimal BASIC covers
+   the core; no standard covers `SCREEN`, `PSET` or `LINE`);
+2. the published source of the original implementation — Microsoft's
+   [GW-BASIC source](https://github.com/microsoft/GW-BASIC) (MIT) for `ibm-pc-basic`;
+3. the original manuals;
+4. an open-source emulator — PC-BASIC is the oracle, which makes its agreement
+   evidence, not authority;
+5. a closed implementation (QuickBASIC) only through its manual or a run someone else
+   can repeat. Never through recollection.
+
+"PC-BASIC does it" is not a reason to copy a behaviour. A deliberate departure from the
+oracle goes in [`validation/KNOWN-DIFFERENCES.md`](validation/KNOWN-DIFFERENCES.md)
+with its evidence. Port code only from MIT sources; PC-BASIC is GPL-3.0, so read it to
+find a cause and copy none of it. The article states this rule as a design principle
+(`docs/article.tex`, §Design principles); change both together.
+
 `CONT` is `cont()`. END and STOP leave the program counter on the next statement and
 set `canContinue`; the worker keeps the interpreter until the next run.
 
