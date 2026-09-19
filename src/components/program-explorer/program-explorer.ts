@@ -49,9 +49,7 @@ export class ProgramExplorerComponent extends BaseComponent {
       const { id, file: name } = file.dataset;
       if (id && name) this.emit('file-selected', { id, file: name });
     });
-    this.querySelector('[data-testid="workspace-new"]')?.addEventListener('click', (event) => {
-      // The button sits in the <summary>; without this it would also fold the root.
-      event.preventDefault();
+    this.querySelector('[data-testid="workspace-new"]')?.addEventListener('click', () => {
       this.emit('workspace-new', null);
     });
   }

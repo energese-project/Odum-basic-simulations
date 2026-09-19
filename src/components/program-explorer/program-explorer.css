@@ -71,13 +71,28 @@
   outline-offset: -2px;
 }
 
+/* The New program button sits on the My programs row but outside its summary —
+   see the template. The summary keeps the height the button used to give it. */
+:host .root-group {
+  position: relative;
+}
+
+:host .root-title.has-action {
+  min-height: 1.8rem;
+  padding-right: 2.3rem;
+}
+
 :host .new {
-  margin-left: auto;
+  position: absolute;
+  top: 0.25rem;
+  right: 0.5rem;
   width: 1.3rem;
   height: 1.3rem;
   padding: 0;
   font: inherit;
   font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
   line-height: 1;
   color: var(--e-muted);
   background: none;

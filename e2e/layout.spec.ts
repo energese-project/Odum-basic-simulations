@@ -104,6 +104,25 @@ test('the library lists every program, and picking one loads it', async ({ page 
   );
 });
 
+test('nothing interactive sits inside a <summary>', async ({ page }) => {
+  // A <summary> is itself the control that folds its <details>. A button nested
+  // in one is a control inside a control: keyboard and screen-reader users get
+  // it inconsistently or not at all, and browsers flag it as a disallowed
+  // descendant. The New program button used to live in the My programs summary.
+  await page.goto('./?prg=charge-discharge');
+  await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+  await expect(page.getByTestId('workspace-new')).toBeVisible();
+
+  const nested = page.locator('summary').locator('a[href], button, input, select, textarea, [tabindex]');
+  await expect(nested).toHaveCount(0);
+
+  // Still on the My programs heading row, where it was.
+  const heading = await page.locator('summary', { hasText: 'My programs' }).boundingBox();
+  const add = await box(page, 'workspace-new');
+  expect(add.y).toBeGreaterThanOrEqual(heading!.y);
+  expect(add.y + add.height).toBeLessThanOrEqual(heading!.y + heading!.height);
+});
+
 test('the filter narrows the library, and a tag in the details filters by it', async ({
   page,
 }) => {
