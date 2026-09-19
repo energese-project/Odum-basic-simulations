@@ -81,7 +81,12 @@ export interface ProgramDiagram {
   caption: string;
   /** Where it is in the source, e.g. "Figure 5-3, p. 112". */
   figure?: string;
-  rights: { basis: RightsBasis; statement: string };
+  rights: Rights;
+}
+
+export interface Rights {
+  basis: RightsBasis;
+  statement: string;
 }
 
 export interface ProgramMeta {
@@ -98,121 +103,137 @@ export interface ProgramMeta {
 
 export class MetadataError extends Error {}
 
-function fail(id: string, message: string): never {
-  throw new MetadataError(`programs/${id}.json: ${message}`);
+/** `file` is the path within programs/, so the message names the exact file. */
+export function fail(file: string, message: string): never {
+  throw new MetadataError(`programs/${file}: ${message}`);
 }
 
-function requireString(id: string, value: unknown, field: string): string {
+/** The file's JSON, which must be an object. */
+export function parseObject(file: string, json: string): Record<string, unknown> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(json);
+  } catch (e) {
+    fail(file, `is not valid JSON — ${e instanceof Error ? e.message : String(e)}`);
+  }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    fail(file, 'must contain a JSON object');
+  }
+  return raw as Record<string, unknown>;
+}
+
+export function requireString(file: string, value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim() === '') {
-    fail(id, `"${field}" is required and must be a non-empty string`);
+    fail(file, `"${field}" is required and must be a non-empty string`);
   }
   return value.trim();
 }
 
-function optionalString(id: string, value: unknown, field: string): string | undefined {
+export function optionalString(file: string, value: unknown, field: string): string | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== 'string') fail(id, `"${field}" must be a string`);
+  if (typeof value !== 'string') fail(file, `"${field}" must be a string`);
   const trimmed = value.trim();
   return trimmed === '' ? undefined : trimmed;
 }
 
-function parseSource(id: string, raw: unknown): ProgramSource {
+export function parseSource(file: string, raw: unknown): ProgramSource {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    fail(id, '"source" must be an object');
+    fail(file, '"source" must be an object');
   }
   const s = raw as Record<string, unknown>;
 
-  const type = requireString(id, s.type, 'source.type');
+  const type = requireString(file, s.type, 'source.type');
   if (!(SOURCE_TYPES as readonly string[]).includes(type)) {
-    fail(id, `"source.type" must be one of ${SOURCE_TYPES.join(', ')} (got "${type}")`);
+    fail(file, `"source.type" must be one of ${SOURCE_TYPES.join(', ')} (got "${type}")`);
   }
 
   if (!Array.isArray(s.author) || s.author.length === 0) {
-    fail(id, '"source.author" is required and must be a non-empty array');
+    fail(file, '"source.author" is required and must be a non-empty array');
   }
-  const author = s.author.map((a, i) => requireString(id, a, `source.author[${i}]`));
+  const author = s.author.map((a, i) => requireString(file, a, `source.author[${i}]`));
 
   let year: number | undefined;
   if (s.year !== undefined && s.year !== null) {
     if (typeof s.year !== 'number' || !Number.isInteger(s.year)) {
-      fail(id, '"source.year" must be an integer, not a string');
+      fail(file, '"source.year" must be an integer, not a string');
     }
     year = s.year;
   }
 
-  const doi = optionalString(id, s.doi, 'source.doi');
+  const doi = optionalString(file, s.doi, 'source.doi');
   if (doi && !/^10\.\d{4,9}\//.test(doi)) {
     // A bare DOI, not a doi.org URL: the display layer builds the link, so a
     // URL here would produce https://doi.org/https://doi.org/...
-    fail(id, `"source.doi" must be a bare DOI beginning "10." (got "${doi}")`);
+    fail(file, `"source.doi" must be a bare DOI beginning "10." (got "${doi}")`);
   }
 
   return {
     type: type as SourceType,
     author,
-    title: requireString(id, s.title, 'source.title'),
-    booktitle: optionalString(id, s.booktitle, 'source.booktitle'),
-    journal: optionalString(id, s.journal, 'source.journal'),
-    publisher: optionalString(id, s.publisher, 'source.publisher'),
-    institution: optionalString(id, s.institution, 'source.institution'),
-    address: optionalString(id, s.address, 'source.address'),
+    title: requireString(file, s.title, 'source.title'),
+    booktitle: optionalString(file, s.booktitle, 'source.booktitle'),
+    journal: optionalString(file, s.journal, 'source.journal'),
+    publisher: optionalString(file, s.publisher, 'source.publisher'),
+    institution: optionalString(file, s.institution, 'source.institution'),
+    address: optionalString(file, s.address, 'source.address'),
     year,
-    volume: optionalString(id, s.volume, 'source.volume'),
-    pages: optionalString(id, s.pages, 'source.pages'),
-    edition: optionalString(id, s.edition, 'source.edition'),
-    isbn: optionalString(id, s.isbn, 'source.isbn'),
+    volume: optionalString(file, s.volume, 'source.volume'),
+    pages: optionalString(file, s.pages, 'source.pages'),
+    edition: optionalString(file, s.edition, 'source.edition'),
+    isbn: optionalString(file, s.isbn, 'source.isbn'),
     doi,
-    url: optionalString(id, s.url, 'source.url'),
+    url: optionalString(file, s.url, 'source.url'),
   };
 }
 
 function parseDiagram(id: string, raw: unknown, hasSource: boolean): ProgramDiagram {
+  const file = `${id}.json`;
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    fail(id, '"diagram" must be an object');
+    fail(file, '"diagram" must be an object');
   }
   const d = raw as Record<string, unknown>;
 
-  const file = requireString(id, d.file, 'diagram.file');
+  const image = requireString(file, d.file, 'diagram.file');
   const named = new RegExp(`^${id}\\.(${DIAGRAM_EXTENSIONS.join('|')})$`);
-  if (!named.test(file)) {
+  if (!named.test(image)) {
     fail(
-      id,
+      file,
       `"diagram.file" must be ${id}.${DIAGRAM_EXTENSIONS.join(` or ${id}.`)}, ` +
-        `beside the listing (got "${file}")`
+        `beside the listing (got "${image}")`
     );
   }
 
-  const caption = requireString(id, d.caption, 'diagram.caption');
-  const figure = optionalString(id, d.figure, 'diagram.figure');
+  const caption = requireString(file, d.caption, 'diagram.caption');
+  const figure = optionalString(file, d.figure, 'diagram.figure');
+  const rights = parseRights(file, d.rights, 'diagram.rights');
 
-  if (typeof d.rights !== 'object' || d.rights === null || Array.isArray(d.rights)) {
+  if (rights.basis !== 'own-work' && !hasSource) {
     fail(
-      id,
-      `"diagram.rights" is required: an object with "basis" (${RIGHTS_BASES.join(', ')}) ` +
+      file,
+      `a reproduced diagram needs a "source" to say where it was reproduced from ` +
+        `(rights basis is "${rights.basis}"). A diagram drawn for this repository is "own-work".`
+    );
+  }
+
+  return { file: image, caption, ...(figure ? { figure } : {}), rights };
+}
+
+/** `{ basis, statement }`, both required: the basis from RIGHTS_BASES, and in
+ *  words why this image may be published here. */
+export function parseRights(file: string, raw: unknown, field: string): Rights {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    fail(
+      file,
+      `"${field}" is required: an object with "basis" (${RIGHTS_BASES.join(', ')}) ` +
         'and a "statement" saying why this image may be published here'
     );
   }
-  const r = d.rights as Record<string, unknown>;
-  const basis = requireString(id, r.basis, 'diagram.rights.basis');
+  const r = raw as Record<string, unknown>;
+  const basis = requireString(file, r.basis, `${field}.basis`);
   if (!(RIGHTS_BASES as readonly string[]).includes(basis)) {
-    fail(id, `"diagram.rights.basis" must be one of ${RIGHTS_BASES.join(', ')} (got "${basis}")`);
+    fail(file, `"${field}.basis" must be one of ${RIGHTS_BASES.join(', ')} (got "${basis}")`);
   }
-  const statement = requireString(id, r.statement, 'diagram.rights.statement');
-
-  if (basis !== 'own-work' && !hasSource) {
-    fail(
-      id,
-      `a reproduced diagram needs a "source" to say where it was reproduced from ` +
-        `(rights basis is "${basis}"). A diagram drawn for this repository is "own-work".`
-    );
-  }
-
-  return {
-    file,
-    caption,
-    ...(figure ? { figure } : {}),
-    rights: { basis: basis as RightsBasis, statement },
-  };
+  return { basis: basis as RightsBasis, statement: requireString(file, r.statement, `${field}.statement`) };
 }
 
 /**
@@ -221,54 +242,48 @@ function parseDiagram(id: string, raw: unknown, hasSource: boolean): ProgramDiag
  * has just added a program, not someone who knows this code.
  */
 export function parseProgramMeta(id: string, json: string): ProgramMeta {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(json);
-  } catch (e) {
-    fail(id, `is not valid JSON — ${e instanceof Error ? e.message : String(e)}`);
-  }
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    fail(id, 'must contain a JSON object');
-  }
-  const m = raw as Record<string, unknown>;
+  const file = `${id}.json`;
+  const m = parseObject(file, json);
 
-  const fidelity = requireString(id, m.fidelity, 'fidelity');
+  const fidelity = requireString(file, m.fidelity, 'fidelity');
   if (!(FIDELITIES as readonly string[]).includes(fidelity)) {
-    fail(id, `"fidelity" must be one of ${FIDELITIES.join(', ')} (got "${fidelity}")`);
+    fail(file, `"fidelity" must be one of ${FIDELITIES.join(', ')} (got "${fidelity}")`);
   }
 
   const hasSource = m.source !== undefined && m.source !== null;
   if (fidelity !== 'original' && !hasSource) {
-    fail(id, `"source" is required unless fidelity is "original" (fidelity is "${fidelity}")`);
+    fail(file, `"source" is required unless fidelity is "original" (fidelity is "${fidelity}")`);
   }
   if (fidelity === 'original' && hasSource) {
-    fail(id, '"source" must be omitted when fidelity is "original" — there is nothing to cite');
+    fail(file, '"source" must be omitted when fidelity is "original" — there is nothing to cite');
   }
 
-  const notes = optionalString(id, m.notes, 'notes');
+  const notes = optionalString(file, m.notes, 'notes');
   if (fidelity === 'corrected' && !notes) {
     // The whole value of "corrected" over "verbatim" is knowing what changed.
-    fail(id, '"notes" is required when fidelity is "corrected": list what was changed and why');
+    fail(file, '"notes" is required when fidelity is "corrected": list what was changed and why');
   }
 
-  let tags: string[] = [];
-  if (m.tags !== undefined && m.tags !== null) {
-    if (!Array.isArray(m.tags)) fail(id, '"tags" must be an array');
-    tags = m.tags.map((t, i) => requireString(id, t, `tags[${i}]`));
-  }
+  const tags = parseTags(file, m.tags);
 
   return {
     id,
-    title: requireString(id, m.title, 'title'),
-    description: requireString(id, m.description, 'description'),
+    title: requireString(file, m.title, 'title'),
+    description: requireString(file, m.description, 'description'),
     fidelity: fidelity as Fidelity,
-    source: hasSource ? parseSource(id, m.source) : undefined,
+    source: hasSource ? parseSource(file, m.source) : undefined,
     notes,
     tags,
     ...(m.diagram !== undefined && m.diagram !== null
       ? { diagram: parseDiagram(id, m.diagram, hasSource) }
       : {}),
   };
+}
+
+export function parseTags(file: string, raw: unknown): string[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) fail(file, '"tags" must be an array');
+  return raw.map((t, i) => requireString(file, t, `tags[${i}]`));
 }
 
 /** "Odum, Howard T." -> "H. T. Odum"; anything else is passed through. */

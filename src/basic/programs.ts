@@ -15,13 +15,23 @@
  * checked, and a missing field is a failed build rather than a blank panel.
  */
 
+import type { CatalogRun } from './program-archive.ts';
 import type { ProgramDiagram, ProgramMeta, ProgramSource } from './program-catalog.ts';
+import type { ProgramCrop } from './work-catalog.ts';
 
 export interface Program extends ProgramMeta {
-  /** Filename within programs/, e.g. "two-tank.bas". */
+  /** Path within programs/: "two-tank.bas", or "<work>/<model>/model.bas". */
   file: string;
   /** The listing itself. */
   listing: string;
+  /** The metadata's path within programs/. */
+  sidecar: string;
+  /** The published work a model belongs to; null for a single program. */
+  work: { id: string; file: string } | null;
+  /** The listing as printed, cropped from the page. Works only. */
+  programImage: (ProgramCrop & { file: string }) | null;
+  /** The published figures, each drawn by one run of the listing. */
+  runs: CatalogRun[];
 }
 
 interface Catalog {

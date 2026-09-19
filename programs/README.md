@@ -4,7 +4,8 @@ Each program here is a BASIC listing from the systems-ecology literature — or 
 worked example of one — kept so that anyone can run it and check it against the
 source it came from.
 
-**Every program is two files, and optionally a third:**
+**A single program is two files, and optionally a third.** A published article or
+book is a folder instead — see [Adding an article or book](#adding-an-article-or-book).
 
 ```
 programs/
@@ -13,7 +14,7 @@ programs/
   charge-discharge.png     optional: its energy systems diagram
 ```
 
-That is the whole structure. There is no index to update: the build finds the
+For a single program that is the whole structure. There is no index to update: the build finds the
 files, checks them, and publishes both at
 `https://energese-project.github.io/Odum-basic-simulations/programs/<id>.bas`.
 
@@ -173,6 +174,121 @@ from nowhere is worse than no scan.
   the citation, what was hard to read, what differs from the source.
 - `tags` — optional, free-form. The library filter searches them, and clicking one
   in the details panel lists every program that shares it.
+
+## Adding an article or book
+
+A published work — a paper, a book, a report — often prints more than one model,
+and runs each model more than once for its figures. Odum's 1989 paper in
+*Simulation* prints two listings and seven plots drawn from them. So a work gets a
+folder, laid out like the publication:
+
+```
+programs/
+  odum_simulation_1989/            one folder per work
+    source.json                    its citation, and the rights its crops are under
+    macroeconomics/                one folder per model in it
+      model.bas                    the listing
+      meta-data.json               what it is, and what each crop shows
+      program.png                  the listing as printed, cropped from the page
+      diagram.png                  the energy systems diagram, cropped from the page
+      runs/
+        fig3a.json                 one published figure, and how the run differs
+        fig3a.png                  that figure, cropped from the page
+```
+
+The crops are the point. With them anyone can check two things against the page:
+that `model.bas` is what was printed, and whether it draws what was printed.
+
+**The PDF of the work is never added.** It is someone else's copyright, and this
+directory is published as it stands. The build refuses a PDF anywhere in
+`programs/`, and git ignores them.
+
+### The folder name
+
+The first author's family name, the first word of the title that is not "a", "an"
+or "the", and the year — lowercase, joined by underscores: `odum_simulation_1989`.
+Accents are dropped and a hyphenated name keeps its hyphen (`muller-brandt_…`).
+If one author has two works in a year, add a letter, as the papers cite them:
+`odum_energy_1967a`, `odum_biological_1967b`.
+
+The build checks the name against `source.json`, so a typo in either fails. The
+name is also the work's BibTeX key.
+
+### `source.json`
+
+```json
+{
+  "source": {
+    "type": "article",
+    "author": ["Odum, Howard T."],
+    "title": "Simulation models of ecological economics developed with energy language methods",
+    "journal": "Simulation",
+    "volume": "53",
+    "year": 1989,
+    "doi": "10.1177/003754978905300205"
+  },
+  "rights": {
+    "basis": "fair-use",
+    "statement": "Cropped from the article for scholarship and review, beside the reproduction of its models."
+  }
+}
+```
+
+- `source` — the same BibLaTeX fields as [above](#source--biblatex-fields), and
+  `year` is required: it is part of the name. The models in the work do not
+  repeat it.
+- `rights` — the basis every crop in the work is published under, from the
+  [same list](#diagram--optional-with-its-rights), except `own-work`: a crop of a
+  printed page is not.
+
+### A model: `<model>/model.bas` and `meta-data.json`
+
+The model folder is lowercase-kebab, named for what the model is
+(`macroeconomics`, `state-development`). Every model gets a folder, even in a
+work that prints only one, so adding a second never means moving the first.
+
+```json
+{
+  "title": "Macroeconomics Minimodel",
+  "description": "Assets grow on renewable and nonrenewable sources.",
+  "fidelity": "verbatim",
+  "program": { "caption": "The BASIC listing, as printed.", "where": "Table 2, p. 71" },
+  "diagram": { "caption": "The minimodel in energy systems symbols: …", "figure": "Figure 2, p. 71" },
+  "notes": "Anything a reader checking this against the page should know.",
+  "tags": ["macroeconomics", "minimodel"]
+}
+```
+
+- `fidelity` — as [above](#fidelity--required-and-the-field-that-matters-most),
+  except that `original` is not allowed: a work always has a source.
+- `program` and `diagram` — describe `program.png` and `diagram.png`. Each image
+  and its description come together or not at all: the caption is the image's alt
+  text. PNG, JPEG or WebP, at most 2 MB, one image each.
+
+### A run: `runs/<run>.json` and its plot
+
+One published figure, and what the listing was run with to draw it. Name it for
+the figure (`fig5`, `fig3a`).
+
+```json
+{
+  "figure": "Figure 5, p. 73",
+  "caption": "Without investment or external trade (IV = 0 and K = 0).",
+  "changes": { "22": "22 IV = 0", "30": "30 K = 0" }
+}
+```
+
+- `figure` and `caption` — required. The caption says what the published caption
+  says; it is also the plot crop's alt text.
+- `changes` — whole numbered lines of `model.bas` to replace for this run. Each
+  keeps its line number, so the run reads as a diff against the page. Leave it out
+  for a figure drawn by the listing as printed.
+
+`model.bas` itself is never edited for a run: that is what keeps `verbatim`
+true. A change naming a line the listing does not have fails the build.
+
+`<run>.png` is the published figure, cropped from the page, and needs its
+`<run>.json`.
 
 ## Checking your work locally
 

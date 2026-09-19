@@ -220,6 +220,26 @@ in [`programs/README.md`](programs/README.md); what matters for changing the cod
   default, for the same reason as `fidelity`, and anything other than `own-work`
   needs a `source`. An image no sidecar claims fails the build: nobody has said it
   may be published. Page photos for the reviewer still belong in the pull request.
+- **A published work is a folder: `programs/<author_title_year>/<model>/`.** One
+  article or book, one `source.json` (citation, and the rights every crop in it is
+  published under), and a folder per model holding `model.bas`, `meta-data.json`,
+  the crops `program.png` (the listing as printed) and `diagram.png`, and
+  `runs/<run>.json` + `<run>.png` — one per published figure. The rules are in
+  [`work-catalog.ts`](src/basic/work-catalog.ts); the reading is `readWork` in
+  `program-archive.ts`. What matters when changing them:
+  - **The folder name is checked against the citation.** First author's family
+    name, first title word that is not an article, year, and an optional letter
+    (`odum_energy_1967a`). It doubles as the BibTeX key.
+  - **A run never edits `model.bas`.** It replaces whole numbered lines, keeping
+    their numbers, so `verbatim` stays true and every departure from the page is a
+    visible diff. A change naming a line the listing lacks fails the build.
+  - **`original` is refused inside a work**, and a model never restates the
+    source: the work states it once.
+  - **A PDF anywhere in `programs/` fails the build**, and `.gitignore` ignores
+    them as a second guard. The article is someone else's copyright; only crops
+    cut from it are published, under the work's `rights`.
+  - **The build publishes exactly `publishedFiles(catalog)`.** A new kind of file
+    is published by adding it to the catalog, never by copying a directory.
 - **Programs can arrive through an issue form.**
   [`add-program.yml`](.github/ISSUE_TEMPLATE/add-program.yml) →
   [`program-submission.yml`](.github/workflows/program-submission.yml) →
