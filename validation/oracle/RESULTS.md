@@ -8,11 +8,19 @@ never from this page.
 [TODO.md](../../TODO.md#decision-rule)). Single precision goes into 0.2 for fidelity, not
 as a blocker to 0.3.
 
-**Something else does.** The screen comparison (the stretch goal) found that our
-`PSET` rounds a coordinate exactly half-way between two pixels up, and PC-BASIC's
-rounds it to even. Table 3's x is `T / T0` with `DT = .5`, so every other point is such
-a tie: 111 of 64,000 pixels differ. That comes from the rasteriser, not the arithmetic,
-and it does change the figure. With ties rounded to even, the two screens are identical.
+**The screens differ, and PC-BASIC is the one that is wrong.** The screen comparison (the
+stretch goal) found that our `PSET` rounds a coordinate exactly half-way between two pixels
+up, and PC-BASIC's rounds it to even. Table 3's x is `T / T0` with `DT = .5`, so every other
+point is such a tie: 111 of 64,000 pixels differ. That comes from the rasteriser, not the
+arithmetic. With PC-BASIC's rounding applied to our points, the two screens are identical.
+
+*Corrected in 0.2.* This page first concluded that we should round ties to even, like
+PC-BASIC. GW-BASIC's source says otherwise: every graphics coordinate goes through `FRCINT`,
+the routine `CINT` uses, which rounds a half **away from zero**. `rounding.bas` shows PC-BASIC's
+own `PSET` and `CINT` disagreeing. So our rounding was already the PC's for every point on
+the screen. Only negative halves were wrong: we rounded them towards zero. The evidence, and
+how to compare screens with PC-BASIC regardless, is in
+[`../KNOWN-DIFFERENCES.md`](../KNOWN-DIFFERENCES.md).
 
 ## Versions
 
@@ -26,8 +34,8 @@ and it does change the figure. With ties rounded to even, the two screens are id
 
 ## The runs
 
-All of them are made from [`table3.bas`](table3.bas) by [`variants.ts`](variants.ts), so none
-can drift from it by hand. Each row is one of the 640 steps: `T D IV N A M`.
+All but the rounding probe are made from [`table3.bas`](table3.bas) by [`variants.ts`](variants.ts),
+so none can drift from it by hand. Each row is one of the 640 steps: `T D IV N A M`.
 
 | Run | Interpreter | Arithmetic | Listing | Raw output |
 | --- | --- | --- | --- | --- |
@@ -39,6 +47,7 @@ can drift from it by hand. Each row is one of the 640 steps: `T D IV N A M`.
 | R4a | ours | `Math.fround` on assignment | `table3-trace.bas` | [`runs/r4a.txt`](runs/r4a.txt) |
 | R4b | ours | `Math.fround` on assignment, literals and every `+ - * / ^` | `table3-trace.bas` | [`runs/r4b.txt`](runs/r4b.txt) |
 | Screen | PC-BASIC | the unmodified listing, CGA memory saved by `BSAVE` | `table3-screen.bas` | [`runs/r2-screen.bin`](runs/r2-screen.bin) |
+| Rounding | PC-BASIC | where `PSET` puts a half, read back with `POINT`, beside `CINT` (added in 0.2) | [`rounding.bas`](rounding.bas) | [`runs/rounding.txt`](runs/rounding.txt) |
 
 Two runs go beyond the spec, and both turned out to matter:
 
@@ -87,7 +96,7 @@ The screens, for the unmodified listing:
 | --- | --- |
 | R1, as the site draws it | 111 |
 | R4b, as the site draws it | 111 |
-| R1, `PSET` rounding halves to even | **0** |
+| R1, adjusted to PC-BASIC's `PSET`, halves to even | **0** |
 
 Images: [`screens/r2.png`](screens/r2.png) (PC-BASIC), [`screens/r1.png`](screens/r1.png) (ours),
 and [`screens/r1-diff.png`](screens/r1-diff.png), where the differences are white. They
@@ -96,14 +105,15 @@ fall where the curves are steep, which is what a half-pixel shift in x looks lik
 ## Answers
 
 **Q1. Does our interpreter draw the same curves as IBM PC BASIC, at screen pixels?**
-*The arithmetic, yes. The rasteriser, not yet.* In the trace, all four series light the same
+*The arithmetic, yes. The rasteriser, yes as GW-BASIC's source has it; PC-BASIC's differs.* In the trace, all four series light the same
 pixel on all 640 steps in every pair. The largest difference is 6.8e-5 of a pixel, and no point
 lies close enough to a pixel boundary for that to move it. On the screen, 111 pixels differ. The cause is
 `PSET` tie-breaking, not the arithmetic: R4b gets the same 111, and rounding ties to even
 before rasterising brings it to 0. PC-BASIC rounds `PSET (0.5, y)` to x = 0, `1.5` to 2, and
-`2.5` to 2, and y the same way. We checked this with a separate probe listing. `screen.ts`
-uses `Math.round`, and its comment already notes the PC's rule was never verified. Note that
-`CINT` is different: it rounds halves away from zero (`CINT(0.5)` is 1).
+`2.5` to 2, and y the same way: [`rounding.bas`](rounding.bas), in [`screens.md`](screens.md).
+Its `CINT` rounds the same values away from zero (`CINT(0.5)` is 1), and in GW-BASIC's source
+the two are one routine, so PC-BASIC's `PSET` is the one that departs from the PC
+([`../KNOWN-DIFFERENCES.md`](../KNOWN-DIFFERENCES.md)).
 
 **Q2. On which step does `D > 30` first hold?** Step 263, T = 131.5, in all six trace runs. D
 is 29.890 at step 262 and 30.040 at step 263. Across runs, D differs by at most 9e-5,
@@ -158,5 +168,6 @@ PC-BASIC's GPL code. No figure needs it.
 ## What changes as a result
 
 Recorded in [TODO.md](../../TODO.md): 0.1 is marked done, and 0.2 is re-scoped to start with
-the `PSET` tie-breaking fix, since that one changes figures, followed by conformance against
-the oracle image, with screens compared as screens.
+the `PSET` tie-breaking, followed by conformance against the oracle image, with screens
+compared as screens. The tie-breaking turned out to be PC-BASIC's departure, not ours (above);
+0.2 fixed only negative halves, and recorded the rest as a known difference.

@@ -35,12 +35,13 @@ $C build -f Containerfile -t $ORACLE . >/dev/null 2>&1
 node validation/oracle/variants.ts
 mkdir -p runs .work
 
-echo "running PC-BASIC: R2, R3, R3d, R2 bits (the slow one), the screen"
+echo "running PC-BASIC: R2, R3, R3d, R2 bits (the slow one), the screen, the rounding probe"
 oracle table3-trace.bas runs/r2.txt
 oracle table3-trace-defdbl.bas runs/r3.txt
 oracle table3-trace-double.bas runs/r3d.txt
 oracle table3-trace-bits.bas runs/r2-bits.txt
 screen runs/r2-screen.bin
+oracle rounding.bas runs/rounding.txt
 
 # The oracle has to give the same bytes twice.
 oracle table3-trace.bas .work/r2-again.txt

@@ -24,12 +24,38 @@
     {
       "image": "r1-half-even",
       "run": "r1",
-      "label": "R1, PSET rounding halves to even",
+      "label": "R1, adjusted to PC-BASIC's PSET, halves to even",
       "halfEven": true,
       "differing": 0,
       "onlyOracle": 0,
       "onlyOurs": 0,
       "colour": 0
+    }
+  ],
+  "rounding": [
+    {
+      "value": 0.5,
+      "psetX": 0,
+      "psetY": 0,
+      "cint": 1
+    },
+    {
+      "value": 1.5,
+      "psetX": 2,
+      "psetY": 2,
+      "cint": 2
+    },
+    {
+      "value": 2.5,
+      "psetX": 2,
+      "psetY": 2,
+      "cint": 3
+    },
+    {
+      "value": 3.5,
+      "psetX": 4,
+      "psetY": 4,
+      "cint": 4
     }
   ]
 }

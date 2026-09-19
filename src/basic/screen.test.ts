@@ -44,6 +44,42 @@ test('PSET lights the pixel nearest the point the program computed', () => {
   assert.equal(screen.pixel(10, 174), 2);
 });
 
+// GW-BASIC turns every graphics coordinate into an integer with FRCINT, the
+// routine CINT uses (MATH2.ASM): a half goes away from zero. PC-BASIC rounds it
+// to even instead, which is PC-BASIC's own departure — see
+// validation/KNOWN-DIFFERENCES.md.
+test('PSET puts a point half-way between two pixels on the one further from zero, as GW-BASIC does', () => {
+  const screen = mode1();
+  for (const x of [0.5, 1.5, 2.5]) screen.apply({ op: 'pset', x, y: 10.5, color: 1, line: 10 });
+  assert.deepEqual(lit(screen), [[1, 11], [2, 11], [3, 11]]);
+});
+
+test('a negative half rounds away from zero too, and so falls off the screen', () => {
+  const screen = mode1();
+  screen.apply({ op: 'pset', x: -0.5, y: 5, color: 1, line: 10 });
+  screen.apply({ op: 'pset', x: 5, y: -0.5, color: 1, line: 10 });
+  assert.deepEqual(lit(screen), [], '-0.5 is pixel -1, not 0');
+});
+
+test("LINE's end points round the same way as PSET's", () => {
+  // SCAND reads every coordinate through FRCINT, whichever statement it is in.
+  const screen = mode1();
+  screen.apply({ op: 'line', x1: -0.5, y1: 0, x2: -0.5, y2: 3, color: 1, box: null, line: 10 });
+  assert.deepEqual(lit(screen), [], 'x = -0.5 is column -1');
+
+  const sloped = mode1();
+  sloped.apply({ op: 'line', x1: 0.5, y1: 0.5, x2: 2.5, y2: 0.5, color: 1, box: null, line: 10 });
+  assert.deepEqual(lit(sloped), [[1, 1], [2, 1], [3, 1]]);
+});
+
+test("a box's corners round the same way as PSET's", () => {
+  const screen = mode1();
+  screen.apply({ op: 'line', x1: -0.5, y1: -0.5, x2: 2.5, y2: 2.5, color: 1, box: 'B', line: 10 });
+  assert.equal(screen.pixel(0, 1), 0, 'the left edge is column -1, off the screen');
+  assert.equal(screen.pixel(3, 1), 1, 'the right edge is column 3');
+  assert.equal(screen.pixel(1, 3), 1, 'the bottom edge is row 3');
+});
+
 test('a point off the screen is clipped, not wrapped', () => {
   const screen = mode1();
   for (const [x, y] of [[-1, 5], [320, 5], [5, -1], [5, 200], [1e9, 1e9]]) {
