@@ -113,7 +113,9 @@ export class Workspace {
   }
 
   async copyFromArchive(program: ArchiveProgram, image?: Uint8Array): Promise<string> {
-    const id = await this.unusedId(`${program.id}-copy`);
+    // A work's model has a path for an id (odum_simulation_1989/macroeconomics);
+    // a file here needs a kebab name.
+    const id = await this.unusedId(`${program.id.replace(/[^a-z0-9]+/g, '-')}-copy`);
     const fields = sidecarToFields(id, program);
 
     fields.fidelity = '';

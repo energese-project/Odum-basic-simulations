@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { PROGRAMS_DIR, readCatalog } from './src/basic/program-archive.ts';
+import { PROGRAMS_DIR, publishedFiles, readCatalog } from './src/basic/program-archive.ts';
 
 /**
  * Serves and publishes the program archive in `programs/`.
@@ -16,8 +16,8 @@ import { PROGRAMS_DIR, readCatalog } from './src/basic/program-archive.ts';
  *   1. builds `programs/index.json` — the whole catalog, listings inline — so
  *      the browser gets the library in one fetch;
  *   2. serves that index and reloads the page when a program changes in dev;
- *   3. copies every raw `.bas` and `.json` into `dist/`, so each published
- *      program has a real URL its citation can point at.
+ *   3. copies every file the catalog refers to into `dist/` — listings,
+ *      metadata, crops — so each has a real URL a citation can point at.
  *
  * All the rules about what a valid archive is live in
  * src/basic/program-archive.ts, where they are typechecked and unit-tested.
@@ -72,27 +72,14 @@ export default function programsPlugin() {
       this.emitFile({ type: 'asset', fileName: INDEX, source: JSON.stringify(catalog) });
 
       // The raw files as well as the index: a citation that says "this listing"
-      // should link to the listing, not to a JSON blob that contains it.
-      for (const program of catalog.programs) {
+      // should link to the listing, not to a JSON blob that contains it. Only
+      // what the catalog refers to — readCatalog has already refused the rest.
+      for (const file of publishedFiles(catalog)) {
         this.emitFile({
           type: 'asset',
-          fileName: `${PROGRAMS_DIR}/${program.file}`,
-          source: program.listing,
+          fileName: `${PROGRAMS_DIR}/${file}`,
+          source: readFileSync(join(root, PROGRAMS_DIR, file)),
         });
-        this.emitFile({
-          type: 'asset',
-          fileName: `${PROGRAMS_DIR}/${program.id}.json`,
-          source: readFileSync(join(root, PROGRAMS_DIR, `${program.id}.json`), 'utf8'),
-        });
-        // Only a diagram its sidecar declares — readCatalog has already refused
-        // any image whose rights are not recorded.
-        if (program.diagram) {
-          this.emitFile({
-            type: 'asset',
-            fileName: `${PROGRAMS_DIR}/${program.diagram.file}`,
-            source: readFileSync(join(root, PROGRAMS_DIR, program.diagram.file)),
-          });
-        }
       }
     },
   };

@@ -177,6 +177,19 @@ test('a copy of an archive program keeps its listing and citation but not its fi
   assert.match(sidecar.notes, /Copied from the archive's two-tank, which is verbatim/);
 });
 
+test('a model copied from a work gets a file name, not its path in the archive', async () => {
+  // A work's model is programs/<work>/<model>/: its id has a slash in it, which
+  // a file in the reader's own store cannot.
+  const { store, workspace } = setup();
+  const id = await workspace.copyFromArchive({ ...ARCHIVE_PROGRAM, id: 'odum_simulation_1989/state-development' });
+  assert.equal(id, 'odum-simulation-1989-state-development-copy');
+  assert.equal(store.text(`${id}.bas`), ARCHIVE_PROGRAM.listing);
+  assert.match(
+    JSON.parse(store.text(`${id}.json`)).notes,
+    /Copied from the archive's odum_simulation_1989\/state-development/
+  );
+});
+
 test('a copied diagram comes along, under the new id', async () => {
   const { store, workspace } = setup();
   const id = await workspace.copyFromArchive(

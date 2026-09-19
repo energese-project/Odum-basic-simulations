@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { ArchiveError, readCatalog } from './program-archive.ts';
+import { ArchiveError, publishedFiles, readCatalog } from './program-archive.ts';
 import { MetadataError } from './program-catalog.ts';
 
 /**
@@ -175,4 +175,204 @@ test('the README is documentation, not a stray file', () => {
   add('tank.json', META);
   add('README.md', '# Programs');
   assert.equal(readCatalog(root).programs.length, 1);
+});
+
+// Works: programs/<author_title_year>/<model>/ -------------------------------
+//
+// A published article or book gets a folder, and each model in it a folder of
+// its own: one paper can print several listings, and each listing several runs.
+
+const WORK = 'odum_simulation_1989';
+
+const SOURCE = JSON.stringify({
+  source: {
+    type: 'article',
+    author: ['Odum, Howard T.'],
+    title: 'Simulation models of ecological economics developed with energy language methods',
+    journal: 'Simulation',
+    year: 1989,
+  },
+  rights: { basis: 'fair-use', statement: 'Cropped for scholarship and review.' },
+});
+
+const MODEL_META = JSON.stringify({
+  title: 'Macroeconomics Minimodel',
+  description: 'Assets grow on renewable and nonrenewable sources.',
+  fidelity: 'verbatim',
+  program: { caption: 'The listing as printed.', where: 'Table 2, p. 71' },
+  diagram: { caption: 'The minimodel in energy systems symbols.', figure: 'Figure 2' },
+});
+
+/** Write a file anywhere under programs/, making its folders. */
+function put(path: string, content: string | Buffer): void {
+  const full = join(root, 'programs', path);
+  mkdirSync(join(full, '..'), { recursive: true });
+  writeFileSync(full, content);
+}
+
+/** A complete work with one model, one run, and every crop. */
+function addWork(): void {
+  put(`${WORK}/source.json`, SOURCE);
+  put(`${WORK}/macroeconomics/model.bas`, '10 K = 0.1\n20 PRINT K\n30 END\n');
+  put(`${WORK}/macroeconomics/meta-data.json`, MODEL_META);
+  put(`${WORK}/macroeconomics/program.png`, PNG);
+  put(`${WORK}/macroeconomics/diagram.png`, PNG);
+  put(`${WORK}/macroeconomics/runs/fig3a.json`, JSON.stringify({ figure: 'Figure 3a', caption: 'Unlimited resources.' }));
+  put(`${WORK}/macroeconomics/runs/fig3a.png`, PNG);
+  put(`${WORK}/macroeconomics/runs/fig3b.json`, JSON.stringify({ figure: 'Figure 3b', caption: 'Limited.', changes: { '10': '10 K = 0' } }));
+}
+
+test('each model of a work is catalogued, cited from the work', () => {
+  addWork();
+  const [entry] = readCatalog(root).programs;
+  assert.equal(entry.id, `${WORK}/macroeconomics`);
+  assert.equal(entry.file, `${WORK}/macroeconomics/model.bas`);
+  assert.equal(entry.sidecar, `${WORK}/macroeconomics/meta-data.json`);
+  assert.equal(entry.listing, '10 K = 0.1\n20 PRINT K\n30 END\n');
+  assert.equal(entry.fidelity, 'verbatim');
+  assert.equal(entry.source?.journal, 'Simulation');
+  assert.deepEqual(entry.work, { id: WORK, file: `${WORK}/source.json` });
+});
+
+test('the crops of a model carry the rights the work states for them', () => {
+  addWork();
+  const [entry] = readCatalog(root).programs;
+  assert.equal(entry.diagram?.file, `${WORK}/macroeconomics/diagram.png`);
+  assert.equal(entry.diagram?.rights.basis, 'fair-use');
+  assert.deepEqual(entry.programImage, {
+    file: `${WORK}/macroeconomics/program.png`,
+    caption: 'The listing as printed.',
+    where: 'Table 2, p. 71',
+  });
+});
+
+test('the runs of a model are catalogued in order, each with its published plot', () => {
+  addWork();
+  const [entry] = readCatalog(root).programs;
+  assert.deepEqual(
+    entry.runs.map((r) => [r.id, r.plot, r.changes]),
+    [
+      ['fig3a', `${WORK}/macroeconomics/runs/fig3a.png`, {}],
+      ['fig3b', null, { '10': '10 K = 0' }],
+    ]
+  );
+});
+
+test('works and single programs share one catalog, sorted by id', () => {
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  const catalog = readCatalog(root);
+  assert.deepEqual(catalog.programs.map((p) => p.id), [`${WORK}/macroeconomics`, 'tank']);
+  const tank = catalog.programs[1];
+  assert.equal(tank.sidecar, 'tank.json');
+  assert.equal(tank.work, null);
+  assert.equal(tank.programImage, null);
+  assert.deepEqual(tank.runs, []);
+});
+
+test('every file the catalog refers to is published, and nothing else', () => {
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  const m = `${WORK}/macroeconomics`;
+  assert.deepEqual(publishedFiles(readCatalog(root)), [
+    `${m}/diagram.png`,
+    `${m}/meta-data.json`,
+    `${m}/model.bas`,
+    `${m}/program.png`,
+    `${m}/runs/fig3a.json`,
+    `${m}/runs/fig3a.png`,
+    `${m}/runs/fig3b.json`,
+    `${WORK}/source.json`,
+    'tank.bas',
+    'tank.json',
+  ]);
+});
+
+test('a work folder named differently from its citation is refused', () => {
+  addWork();
+  // Renaming is how a typo in either the folder or the year gets caught.
+  put('odum_simulation_1988/source.json', SOURCE);
+  put('odum_simulation_1988/m/model.bas', '10 END\n');
+  put('odum_simulation_1988/m/meta-data.json', MODEL_META);
+  assert.throws(() => readCatalog(root), /odum_simulation_1988.*odum_simulation_1989/);
+});
+
+test('a folder in programs/ must be named like a work', () => {
+  put('Odum Simulation 1989/source.json', SOURCE);
+  assert.throws(() => readCatalog(root), /Odum Simulation 1989.*author_title_year/);
+});
+
+test('a work without its source.json is refused', () => {
+  put(`${WORK}/m/model.bas`, '10 END\n');
+  put(`${WORK}/m/meta-data.json`, MODEL_META);
+  assert.throws(() => readCatalog(root), /programs\/odum_simulation_1989\/source\.json/);
+});
+
+test('a work with no model folder is refused', () => {
+  put(`${WORK}/source.json`, SOURCE);
+  assert.throws(() => readCatalog(root), /programs\/odum_simulation_1989 has no model/);
+});
+
+test('a model needs both its listing and its metadata', () => {
+  put(`${WORK}/source.json`, SOURCE);
+  put(`${WORK}/m/model.bas`, '10 END\n');
+  assert.throws(() => readCatalog(root), /programs\/odum_simulation_1989\/m\/meta-data\.json/);
+  rmSync(join(root, 'programs', WORK, 'm', 'model.bas'));
+  put(`${WORK}/m/meta-data.json`, MODEL_META);
+  assert.throws(() => readCatalog(root), /programs\/odum_simulation_1989\/m\/model\.bas/);
+});
+
+test('model folders are lowercase-kebab, like program ids', () => {
+  addWork();
+  put(`${WORK}/Macro_Model/model.bas`, '10 END\n');
+  assert.throws(() => readCatalog(root), /lowercase-kebab.*Macro_Model/);
+});
+
+test('a crop the metadata does not describe is refused — it has no caption', () => {
+  addWork();
+  put(`${WORK}/macroeconomics/meta-data.json`, JSON.stringify({ ...JSON.parse(MODEL_META), program: undefined }));
+  assert.throws(() => readCatalog(root), /program\.png.*"program"/);
+});
+
+test('a crop the metadata describes but that was never added is refused', () => {
+  addWork();
+  rmSync(join(root, 'programs', WORK, 'macroeconomics', 'diagram.png'));
+  assert.throws(() => readCatalog(root), /meta-data\.json describes a "diagram" but there is no diagram image/);
+});
+
+test('two images for one crop are refused — which one is it?', () => {
+  addWork();
+  put(`${WORK}/macroeconomics/diagram.jpg`, JPEG);
+  assert.throws(() => readCatalog(root), /diagram\.jpg.*diagram\.png|diagram\.png.*diagram\.jpg/);
+});
+
+test('a plot with no run to say what it shows is refused', () => {
+  addWork();
+  put(`${WORK}/macroeconomics/runs/fig9.png`, PNG);
+  assert.throws(() => readCatalog(root), /runs\/fig9\.png/);
+});
+
+test('a run changing a line the listing does not have is refused, naming the run', () => {
+  addWork();
+  put(`${WORK}/macroeconomics/runs/fig3b.json`, JSON.stringify({ figure: 'Figure 3b', caption: 'x', changes: { '15': '15 K = 0' } }));
+  assert.throws(() => readCatalog(root), /runs\/fig3b\.json.*line 15/);
+});
+
+test('a note or a scan dropped into a work is refused, as it is at the top', () => {
+  addWork();
+  put(`${WORK}/macroeconomics/notes.txt`, 'hard to read');
+  assert.throws(() => readCatalog(root), /Unexpected file\(s\).*notes\.txt/);
+});
+
+test('the article itself is never published, wherever it is put', () => {
+  // The PDF is the natural thing to leave beside the files cut from it. It is
+  // someone else's copyright, and programs/ is published as it stands.
+  addWork();
+  put(`${WORK}/HTOdum_1989_Simulation.pdf`, '%PDF-1.4');
+  assert.throws(() => readCatalog(root), /HTOdum_1989_Simulation\.pdf.*never published/);
+  rmSync(join(root, 'programs', WORK, 'HTOdum_1989_Simulation.pdf'));
+  add('paper.pdf', '%PDF-1.4');
+  assert.throws(() => readCatalog(root), /paper\.pdf.*never published/);
 });

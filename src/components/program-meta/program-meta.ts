@@ -76,7 +76,10 @@ export class ProgramMetaComponent extends BaseComponent {
     );
     const bibtexBlock = this.querySelector<HTMLDetailsElement>('[data-testid="bibtex-block"]');
     if (bibtexBlock) bibtexBlock.hidden = !program.source;
-    this.text('bibtex', program.source ? toBibtex(program.id, program.source) : '');
+    // A work's folder name is already a citation key (odum_simulation_1989), and
+    // every model in the work cites the same entry.
+    const key = program.work?.id ?? program.id;
+    this.text('bibtex', program.source ? toBibtex(key, program.source) : '');
 
     const diagram = program.diagram;
     this.reveal('[data-testid="meta-diagram"]', Boolean(diagram));

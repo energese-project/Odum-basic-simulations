@@ -5,3 +5,8 @@ playwright-report/
 test-results/
 .DS_Store
 *.log
+
+# An article or book is never published: only crops cut from it belong in
+# programs/. The build refuses a PDF there too; this keeps one from being
+# committed in the first place. See programs/README.md.
+programs/**/*.pdf
