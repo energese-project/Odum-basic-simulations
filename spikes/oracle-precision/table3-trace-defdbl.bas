@@ -1,0 +1,55 @@
+1 DEFDBL A-Z
+2 REM IBM PC
+3 REM DEVELOP (Developing economy) H.T.Odum
+9 REM coefficients
+10 K0 = 2.3
+20 K1 = 3
+25 K2 = .033
+30 K3 = .1
+37 K4 = .02
+40 K5 = .01
+47 K6 = 2.1
+48 K7 = .02
+49 K8= .01
+50 K9 = .0067
+52 N1 = .0067
+54 N2 = .033
+56 N3 = .1
+58 N4 = .067
+59 N5 = .01
+60 N6 = .0022
+61 REM Sources
+63 P1 = 100
+64 P2 = 100
+65 P3 = 70
+72 I0 = 1
+74 NE = 3
+76 IV = .3
+78 IR = .1
+100 REM Scaling factors
+105 DT = .5
+110 T0 = 1
+115 N0 = .05
+120 A0 = .02
+130 M0 = .05
+140 D0 = 2
+150 REM Starting conditions
+155 A = .1
+160 N = .3
+170 M = .01
+180 D = 0
+200 R = I0 / (1 + K0 * N*A +K1)
+210 DD = IV -N5*D*M
+220 DN = K7*A*N -K8*N -K9*N +N1*A*NE - N2*R*A*N -N6*N*N
+230 DA =K2*R*A*N +K3*R-K4*A -K5*A*N +K6 *M/P3
+240 DM = P1*N3*R +P2*N4*R*A*N -K6*M +IV - N5*D*M -IR*D
+250 A = A + DA * DT
+255 IF A <.001 THEN A= .001
+260 N = N + DN * DT
+270 M = M + DM*DT
+275 IF M <.0001 THEN M = .0001
+280 D = D +DD*DT
+285 IF D >30 THEN IV = 0
+290 T = T + DT
+395 PRINT T; D; IV; N; A; M
+400  IF T / T0 < 320 GOTO 200

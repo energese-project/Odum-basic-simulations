@@ -9,7 +9,9 @@ compared with its own figures. The interpreter now draws what its listings draw 
 Before a comparison can mean anything, we have to know that differences come from
 Odum, not from us — so the order matters:
 
-1. **0.1 Oracle spike** — does IBM PC BASIC's arithmetic change the curves? Half a day.
+1. **0.1 Oracle spike** — does IBM PC BASIC's arithmetic change the curves? **Done:** no,
+   but `PSET`'s rounding of half pixels does. See
+   [`spikes/oracle-precision/RESULTS.md`](spikes/oracle-precision/RESULTS.md).
 2. **0.2 Conformance tests and dialect profiles** — prove we behave like the BASIC
    each listing was written for.
 3. **0.3 Transcribe the paper**, with the command-line tool and run snapshots.
@@ -17,6 +19,18 @@ Odum, not from us — so the order matters:
    Releases and npm.
 
 ### 0.1 Oracle spike: does IBM PC BASIC's arithmetic change the curves?
+
+**Done. Decision: precision does not change Table 3's figure** — the first branch of the
+rule below. In every pair of runs, all four series light the same pixel on all 640 steps,
+and `D > 30` fires on step 263 in each. Single precision goes into 0.2 for fidelity, not
+as a blocker. The screen comparison found what does change the figure: PC-BASIC's `PSET`
+rounds a half-pixel coordinate to even, ours rounds it up, and Table 3 is on a half pixel
+every other step — 111 pixels differ, and none once ties go to even. `Math.fround` is not
+bit-exact with Microsoft Binary Format (60 of 640 rows), and nothing needs it to be. PC-BASIC
+works as the oracle, screens included. Evidence and the answers to Q1–Q5:
+[`spikes/oracle-precision/RESULTS.md`](spikes/oracle-precision/RESULTS.md).
+
+The specification as it was run:
 
 **Timebox: half a day.** A spike: its product is an answer and the evidence for it,
 recorded in [`spikes/oracle-precision/`](spikes/oracle-precision/). Nothing in it is
@@ -132,14 +146,36 @@ rule. This TODO is updated with the decision, and 0.2 is re-scoped to match.
 
 ### 0.2 Conformance tests and dialect profiles
 
-Re-scope after 0.1. As planned now:
+Re-scoped after 0.1, whose [results](spikes/oracle-precision/RESULTS.md) are the evidence
+for each point here.
 
-- **A conformance suite in CI.** A job like `figures`, in the pinned oracle image. It
-  runs every archive program — each run of each model, with its `changes` applied —
-  in PC-BASIC and in ours, and compares the results. Printed text is compared with a
-  numeric tolerance set by the dialect's precision. Drawn output is compared as trace
-  rows, or as screens if 0.1 found that possible. Known, deliberate differences live
-  in one file, each with its reason and a link to the evidence.
+- **First: `PSET` breaks half-pixel ties to even.** PC-BASIC puts `PSET (0.5, y)` on x = 0,
+  `1.5` on 2 and `2.5` on 2, and y likewise; `screen.ts` uses `Math.round`, which rounds
+  up. This one changes figures, so it comes before anything else here, test first. Check
+  `LINE` and box end points against the oracle as well, and GW-BASIC's source for the rule
+  itself. Expect the figure goldens to move; review each. `CINT` is not the same rule — it
+  rounds halves away from zero.
+- **A conformance suite in CI.** A job like `figures`, in the pinned oracle image —
+  promote the spike's `Containerfile`, pinned the same way. It runs every archive
+  program — each run of each model, with its `changes` applied — in PC-BASIC and in ours,
+  and compares the results. From the spike:
+  - **Drawn output is compared as screens.** `DEF SEG=&HB800: BSAVE "SCREEN.BIN",0,&H4000`
+    saves CGA memory headless; `screens.ts` decodes it. That is the comparison that found
+    the `PSET` rule, which a trace cannot see.
+  - **Printed text is compared with a tolerance**, never digit for digit: PC-BASIC's `PRINT`
+    of a single is not correctly rounded (one unit high in 288 of 3,840 values), and IEEE
+    single parts from MBF by ulps that accumulate. MKS$ bytes are the exact comparison, for
+    diagnosis; they cost seven times the run time.
+  - Run it as `pcbasic <file> -n -q -o=<out>`, and read `-o` as a stream of numbers: it is the
+    80-column screen, and wide rows wrap. A run of Table 3 takes about 6 s.
+  - Known, deliberate differences live in one file, each with its reason and a link to the
+    evidence.
+- **Single precision, for fidelity.** For `ibm-pc-basic`, IEEE single: `Math.fround` on
+  every literal, every assignment and after every operation (the spike's R4b; rounding on
+  assignment alone, R4a, is measurably worse). It is not bit-exact with Microsoft Binary
+  Format, which keeps a guard byte and drops the bits beyond it. **Bit-exact MBF is a
+  separate task**, taken on only if a listing shows a difference that can be seen, and
+  written from GW-BASIC's MIT math routines — never from PC-BASIC's GPL code.
 - **Dialect profiles.** A `dialect` field in every sidecar and `meta-data.json`,
   required and with no default, for the same reason as `fidelity`. Add profiles only
   for dialects an archived listing uses:
@@ -152,12 +188,18 @@ Re-scope after 0.1. As planned now:
   number formatting, `INT`/`CINT` rounding, the keyword set, graphics modes. Each
   difference is backed by an oracle run or a manual reference, never by memory.
 - **Type declarations and suffixes** (`DEFINT`, `DEFSNG`, `DEFDBL`, `%`, `!`, `#`):
-  GW-BASIC listings use them, and single precision needs them.
+  GW-BASIC listings use them, and single precision needs them. Under `DEFDBL`, a literal
+  is still single unless it has a `#`: `DEFDBL A-Z: K = .033: PRINT K` prints
+  `3.299999982118607D-02` in PC-BASIC. Whether more than seven digits also makes a literal
+  double is not yet checked against the oracle.
 - **Known before the suite exists — confirm each against the oracle:**
   - `PRINT` of a number. GW-BASIC's manual has every printed number followed by a
-    space, as well as a positive one preceded by one. Ours omits the trailing space,
-    so `PRINT T; D` runs a negative D into T. The table heuristic in `output.ts`
-    splits on whitespace and would read `0.5-1` as one field.
+    space, as well as a positive one preceded by one — **confirmed by the oracle**
+    (`.3333334 -2  .00001`). Ours omits the trailing space, so `PRINT T; D` runs a
+    negative D into T. The table heuristic in `output.ts` splits on whitespace and would
+    read `0.5-1` as one field.
+  - `PRINT` of a small single uses E notation: 0.09885257 prints as `9.885257E-02`. Ours
+    prints six decimal places.
 - **Fix the interpreter's header**, which calls it "BASIC V2-style". That is Commodore
   BASIC, the wrong family for Odum.
 
