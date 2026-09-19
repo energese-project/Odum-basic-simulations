@@ -16,7 +16,7 @@ RUN           := $(CONTAINER_BIN) run --rm --init -m $(MEMORY) -c $(CPUS) \
 	-v $(shell pwd):$(WORKDIR) $(IMAGE_APP)
 
 .PHONY: help start image install dev build preview typecheck test-unit test check clean \
-        figures figures-update article
+        figures figures-update article attest attest-update
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -82,6 +82,23 @@ figures: start ## Compare the paper's figures against their goldens
 
 figures-update: start ## Rewrite the figure goldens. Look at the PNGs before committing
 	$(RUN) npm run e2e -- --project=figures --update-snapshots
+
+# --------------------------------------------------
+# The oracle attestation
+#
+# validation/oracle/ runs Odum (1989) Table 3 in our interpreter and in PC-BASIC,
+# a GW-BASIC emulator kept in its own image (GPL-3.0), and records every result
+# in SHA256SUMS. The article's oracle table and numbers come from it. `attest`
+# regenerates everything and fails on any byte that differs from the record;
+# `attest-update` rewrites the record — then look at the diff before committing.
+# Needs neither this repository's image nor Node on the host.
+# --------------------------------------------------
+
+attest: start ## Rerun the oracle comparison and check it against its record
+	CONTAINER_BIN=$(CONTAINER_BIN) validation/oracle/attest.sh
+
+attest-update: start ## Rerun the oracle comparison and rewrite its record
+	CONTAINER_BIN=$(CONTAINER_BIN) validation/oracle/attest.sh --update
 
 # pdflatex on the host if there is one; otherwise the container shim this machine
 # uses. Twice, because \ref and \cite resolve from the first run's .aux.

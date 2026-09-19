@@ -14,5 +14,5 @@
      "skipLibCheck": true,
      "lib": ["esnext", "dom", "dom.asynciterable"]
   },
-  "include": ["src/**/*.ts", "e2e/**/*.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts", "e2e/**/*.ts", "scripts/**/*.ts", "validation/**/*.ts"]
 }

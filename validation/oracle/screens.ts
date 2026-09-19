@@ -6,8 +6,9 @@
  * Ours is the same listing run in our interpreter, its DrawOps rasterised by
  * src/basic/screen.ts — the code the site's Plot pane uses.
  *
- * Writes `screens.md`, and `screens/<run>.png` for each screen and for the
- * difference. Usage: node spikes/oracle-precision/screens.ts
+ * Writes `screens.md`, `screens.json`, and `screens/<run>.png` for each screen and
+ * for the difference, three times the size so that a printed figure stays sharp.
+ * Usage: node validation/oracle/screens.ts
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -20,6 +21,8 @@ import { loadInterpreter } from './single-precision.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [W, H] = [320, 200];
+/** Each screen pixel becomes SCALE × SCALE, nearest neighbour: a PDF viewer would otherwise blur 320 × 200. */
+const SCALE = 3;
 
 /**
  * SCREEN 1 memory: two bits a pixel, leftmost in the high bits, 80 bytes a row,
@@ -58,7 +61,7 @@ async function ours(run: string, halfEven: boolean): Promise<Uint8Array> {
   return px;
 }
 
-/** A minimal PNG: 8-bit RGB, one IDAT, no filtering. */
+/** A minimal PNG: 8-bit RGB, one IDAT, no filtering, each screen pixel SCALE times over. */
 function png(file: string, rgb: (i: number) => [number, number, number]): void {
   const crcTable = Array.from({ length: 256 }, (_, n) => {
     let c = n;
@@ -78,13 +81,16 @@ function png(file: string, rgb: (i: number) => [number, number, number]): void {
     out.writeUInt32BE(crc(body), body.length + 4);
     return out;
   };
-  const raw = Buffer.alloc(H * (1 + W * 3));
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) raw.set(rgb(y * W + x), y * (1 + W * 3) + 1 + x * 3);
+  const [w, h] = [W * SCALE, H * SCALE];
+  const raw = Buffer.alloc(h * (1 + w * 3));
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      raw.set(rgb(Math.floor(y / SCALE) * W + Math.floor(x / SCALE)), y * (1 + w * 3) + 1 + x * 3);
+    }
   }
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(W, 0);
-  ihdr.writeUInt32BE(H, 4);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
   ihdr.set([8, 2, 0, 0, 0], 8);
   writeFileSync(
     file,
@@ -115,6 +121,17 @@ const out = [
   '| --- | --- | --- | --- | --- |',
 ];
 const firstDiffs: string[] = [];
+export interface ScreenCase {
+  image: string;
+  run: string;
+  label: string;
+  halfEven: boolean;
+  differing: number;
+  onlyOracle: number;
+  onlyOurs: number;
+  colour: number;
+}
+const cases: ScreenCase[] = [];
 /** Image name, interpreter, label, and whether PSET rounds halves to even. */
 const CASES: [string, string, string, boolean][] = [
   ['r1', 'r1', 'R1, as the site draws it', false],
@@ -135,6 +152,7 @@ for (const [image, run, label, halfEven] of CASES) {
     }
   }
   out.push(`| ${label} | ${total} | ${onlyOracle} | ${onlyOurs} | ${colour} |`);
+  cases.push({ image, run, label, halfEven, differing: total, onlyOracle, onlyOurs, colour });
   png(join(here, 'screens', `${image}.png`), (i) => PALETTE_0[px[i]]);
   // White where the two differ, the PC-BASIC screen dimmed underneath.
   png(join(here, 'screens', `${image}-diff.png`), (i) =>
@@ -146,4 +164,4 @@ if (firstDiffs.length) {
 }
 const report = out.join('\n') + '\n';
 writeFileSync(join(here, 'screens.md'), report);
-console.log(report);
+writeFileSync(join(here, 'screens.json'), JSON.stringify({ pixels: W * H, cases }, null, 2) + '\n');

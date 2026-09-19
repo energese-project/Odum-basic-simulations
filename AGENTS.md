@@ -397,8 +397,17 @@ runner skips them — its fonts differ, and every figure would fail on text alon
 ```sh
 make figures           # compare against the goldens
 make figures-update    # rewrite them — then look at every changed PNG before committing
+make attest            # rerun the oracle comparison, check it against its record
+make attest-update     # rewrite that record — then review the diff before committing
 make article           # build docs/article.pdf
 ```
+
+**The oracle comparison is the third.** [`validation/oracle/`](validation/oracle/) runs a
+published listing in our interpreter and in PC-BASIC, an emulator of GW-BASIC kept in its
+own image, and records every result in `SHA256SUMS`. The article `\input`s the table and
+numbers it generates, `oracle.tex`, and `latex.ts` there checks each claim the article
+makes about them. Run `make attest` after any change to `interpreter.ts` or `screen.ts`:
+our side of every comparison is that code. CI does not run it yet.
 
 A failing figure is a question, not an obstacle: either the change was meant to alter
 what the workbench looks like, in which case regenerate and review the images, or it

@@ -8,7 +8,7 @@
  *
  * The runs, r1, r4a and r4b, are described in single-precision.ts.
  *
- * Usage: node spikes/oracle-precision/run-ours.ts <r1|r4a|r4b>
+ * Usage: node validation/oracle/run-ours.ts <r1|r4a|r4b>
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';

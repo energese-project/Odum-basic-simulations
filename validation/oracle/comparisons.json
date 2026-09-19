@@ -1,0 +1,659 @@
+{
+  "pairs": [
+    {
+      "a": "r1",
+      "b": "r2",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 0.0000892308148365828,
+          "absAt": 621,
+          "rel": 0.000002970950909399451,
+          "relAt": 621
+        },
+        "IV": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "N": {
+          "abs": 0.000003412896738996807,
+          "absAt": 289,
+          "rel": 0.000001909899736053404,
+          "relAt": 370
+        },
+        "A": {
+          "abs": 0.000001099708146545808,
+          "absAt": 183,
+          "rel": 0.00000107971813729523,
+          "relAt": 183
+        },
+        "M": {
+          "abs": 7.461845392686683e-7,
+          "absAt": 37,
+          "rel": 0.000039581047961369576,
+          "relAt": 262
+        }
+      },
+      "digits": 7,
+      "rowsDifferingAtDigits": 617,
+      "firstDifferingStep": 1,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00006825793477105435
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000054985407331287206
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000014923690784485188
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.0000446154074182914
+        }
+      }
+    },
+    {
+      "a": "r1",
+      "b": "r3",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 9.563227969522359e-7,
+          "absAt": 640,
+          "rel": 3.9749866769952716e-8,
+          "relAt": 2
+        },
+        "IV": {
+          "abs": 1.1920929021691506e-8,
+          "absAt": 1,
+          "rel": 3.973642849332121e-8,
+          "relAt": 1
+        },
+        "N": {
+          "abs": 6.652036654841709e-8,
+          "absAt": 235,
+          "rel": 3.974263088362035e-8,
+          "relAt": 1
+        },
+        "A": {
+          "abs": 4.161933131463513e-8,
+          "absAt": 124,
+          "rel": 3.2638223892521005e-8,
+          "relAt": 156
+        },
+        "M": {
+          "abs": 9.076674611918634e-8,
+          "absAt": 2,
+          "rel": 0.000003836854857933581,
+          "relAt": 262
+        }
+      },
+      "digits": 16,
+      "rowsDifferingAtDigits": 640,
+      "firstDifferingStep": 1,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.0000013304073434028396
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.0000020809665670640243
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.0000018153349223837267
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 4.781614038051885e-7
+        }
+      }
+    },
+    {
+      "a": "r1",
+      "b": "r3d",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 4.973799150320701e-14,
+          "absAt": 622,
+          "rel": 1.6560416274516788e-15,
+          "relAt": 632
+        },
+        "IV": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "N": {
+          "abs": 1.9984014443252818e-15,
+          "absAt": 598,
+          "rel": 1.540434789079667e-15,
+          "relAt": 605
+        },
+        "A": {
+          "abs": 1.1102230246251565e-15,
+          "absAt": 258,
+          "rel": 1.6344495040877177e-15,
+          "relAt": 258
+        },
+        "M": {
+          "abs": 1.6930901125533637e-15,
+          "absAt": 258,
+          "rel": 3.6867043061173103e-13,
+          "relAt": 262
+        }
+      },
+      "digits": 16,
+      "rowsDifferingAtDigits": 634,
+      "firstDifferingStep": 3,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 5.684341886080802e-14
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 5.684341886080802e-14
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 3.552713678800501e-14
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 2.842170943040401e-14
+        }
+      }
+    },
+    {
+      "a": "r2",
+      "b": "r3",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 0.00009018713313935223,
+          "absAt": 621,
+          "rel": 0.0000030027915488134923,
+          "relAt": 621
+        },
+        "IV": {
+          "abs": 1.1920929021691506e-8,
+          "absAt": 1,
+          "rel": 3.973642849332121e-8,
+          "relAt": 1
+        },
+        "N": {
+          "abs": 0.000003471577603164633,
+          "absAt": 289,
+          "rel": 0.0000019398760815895487,
+          "relAt": 370
+        },
+        "A": {
+          "abs": 0.00000113177371297013,
+          "absAt": 183,
+          "rel": 0.000001111200795024001,
+          "relAt": 183
+        },
+        "M": {
+          "abs": 6.76413655975594e-7,
+          "absAt": 37,
+          "rel": 0.000035744330249243156,
+          "relAt": 262
+        }
+      },
+      "digits": 7,
+      "rowsDifferingAtDigits": 621,
+      "firstDifferingStep": 4,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00006943155207750351
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00005658868565205921
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000013528273118623702
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000045093566569676113
+        }
+      }
+    },
+    {
+      "a": "r2",
+      "b": "r3d",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 0.00008923081487921536,
+          "absAt": 621,
+          "rel": 0.0000029709509108189034,
+          "relAt": 621
+        },
+        "IV": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "N": {
+          "abs": 0.0000034128967381086284,
+          "absAt": 289,
+          "rel": 0.0000019098997354950667,
+          "relAt": 370
+        },
+        "A": {
+          "abs": 0.0000010997081469898973,
+          "absAt": 183,
+          "rel": 0.0000010797181377312461,
+          "relAt": 183
+        },
+        "M": {
+          "abs": 7.461845390466237e-7,
+          "absAt": 37,
+          "rel": 0.00003958104759271373,
+          "relAt": 262
+        }
+      },
+      "digits": 7,
+      "rowsDifferingAtDigits": 617,
+      "firstDifferingStep": 1,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00006825793477105435
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000054985407359708915
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000014923690780932475
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00004461540743960768
+        }
+      }
+    },
+    {
+      "a": "r2",
+      "b": "r4a",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 0.0000062414550789924306,
+          "absAt": 389,
+          "rel": 4.944252151275312e-7,
+          "relAt": 94
+        },
+        "IV": {
+          "abs": 1.1920928966180355e-8,
+          "absAt": 1,
+          "rel": 3.973642830828406e-8,
+          "relAt": 1
+        },
+        "N": {
+          "abs": 0.0000032909774780875978,
+          "absAt": 324,
+          "rel": 0.000001889406442296712,
+          "relAt": 370
+        },
+        "A": {
+          "abs": 8.993759155195846e-7,
+          "absAt": 141,
+          "rel": 8.08360696891684e-7,
+          "relAt": 408
+        },
+        "M": {
+          "abs": 7.40730285553326e-7,
+          "absAt": 47,
+          "rel": 0.00004397523598500699,
+          "relAt": 262
+        }
+      },
+      "digits": 7,
+      "rowsDifferingAtDigits": 581,
+      "firstDifferingStep": 4,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.0000658195495475411
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00004496879577686741
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000014814605709290163
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000003120727541272572
+        }
+      }
+    },
+    {
+      "a": "r2",
+      "b": "r4b",
+      "rows": 640,
+      "variables": {
+        "T": {
+          "abs": 0,
+          "absAt": 0,
+          "rel": 0,
+          "relAt": 0
+        },
+        "D": {
+          "abs": 0.0000062414550789924306,
+          "absAt": 389,
+          "rel": 4.944252151275312e-7,
+          "relAt": 94
+        },
+        "IV": {
+          "abs": 1.1920928966180355e-8,
+          "absAt": 1,
+          "rel": 3.973642830828406e-8,
+          "relAt": 1
+        },
+        "N": {
+          "abs": 0.0000032909774780875978,
+          "absAt": 324,
+          "rel": 0.000001889406442296712,
+          "relAt": 370
+        },
+        "A": {
+          "abs": 8.993759155195846e-7,
+          "absAt": 141,
+          "rel": 7.841952510501843e-7,
+          "relAt": 183
+        },
+        "M": {
+          "abs": 5.52444457957435e-7,
+          "absAt": 37,
+          "rel": 0.000025926981712453116,
+          "relAt": 262
+        }
+      },
+      "digits": 7,
+      "rowsDifferingAtDigits": 576,
+      "firstDifferingStep": 4,
+      "threshold": {
+        "a": {
+          "step": 263,
+          "T": 131.5
+        },
+        "b": {
+          "step": 263,
+          "T": 131.5
+        }
+      },
+      "pixels": {
+        "N": {
+          "line": 310,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.0000658195495475411
+        },
+        "A": {
+          "line": 330,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.00004496879577686741
+        },
+        "M": {
+          "line": 360,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000011048889156484165
+        },
+        "D": {
+          "line": 365,
+          "steps": 0,
+          "maxRows": 0,
+          "maxUnrounded": 0.000003120727541272572
+        }
+      }
+    }
+  ],
+  "bitwise": [
+    {
+      "run": "r4a",
+      "rows": 640,
+      "identical": 22,
+      "firstDifference": {
+        "step": 2,
+        "columns": [
+          "M"
+        ]
+      },
+      "ulps": {
+        "T": {
+          "steps": 0,
+          "max": 0
+        },
+        "D": {
+          "steps": 0,
+          "max": 0
+        },
+        "IV": {
+          "steps": 0,
+          "max": 0
+        },
+        "N": {
+          "steps": 563,
+          "max": 24
+        },
+        "A": {
+          "steps": 568,
+          "max": 7
+        },
+        "M": {
+          "steps": 201,
+          "max": 434
+        }
+      }
+    },
+    {
+      "run": "r4b",
+      "rows": 640,
+      "identical": 60,
+      "firstDifference": {
+        "step": 5,
+        "columns": [
+          "M"
+        ]
+      },
+      "ulps": {
+        "T": {
+          "steps": 0,
+          "max": 0
+        },
+        "D": {
+          "steps": 0,
+          "max": 0
+        },
+        "IV": {
+          "steps": 0,
+          "max": 0
+        },
+        "N": {
+          "steps": 510,
+          "max": 24
+        },
+        "A": {
+          "steps": 537,
+          "max": 6
+        },
+        "M": {
+          "steps": 158,
+          "max": 256
+        }
+      }
+    }
+  ],
+  "printRounding": {
+    "values": 3840,
+    "roundedUp": 288,
+    "offByMore": 0
+  }
+}
