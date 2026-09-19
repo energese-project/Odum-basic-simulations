@@ -48,6 +48,18 @@ const SIZES: Record<number, { width: number; height: number }> = {
   2: { width: 640, height: 200 },
 };
 
+/**
+ * The pixel a graphics coordinate lands on. GW-BASIC reads every coordinate of
+ * PSET, PRESET and LINE through FRCINT, the routine CINT uses: it shifts the
+ * magnitude right and adds back the first bit shifted out (`ADC BX,0` in
+ * MATH2.ASM), so a half goes away from zero — 0.5 to 1, 2.5 to 3, -0.5 to -1.
+ * `Math.round` agrees for x ≥ 0 but sends -0.5 to 0. PC-BASIC rounds halves to
+ * even here, which GW-BASIC does not: validation/KNOWN-DIFFERENCES.md.
+ */
+function toPixel(v: number): number {
+  return Math.sign(v) * Math.round(Math.abs(v));
+}
+
 export class Screen {
   mode = 0;
   width = 0;
@@ -109,27 +121,23 @@ export class Screen {
     return out;
   }
 
-  /**
-   * One pixel, nearest the point the program computed. The listings compute
-   * fractional coordinates (T / T0); how the PC rounded a half is not verified
-   * here, and half a pixel is below what a printed figure can show.
-   */
+  /** One pixel, nearest the point the program computed. */
   private plot(x: number, y: number, color: number): void {
-    const px = Math.round(x);
-    const py = Math.round(y);
+    const px = toPixel(x);
+    const py = toPixel(y);
     if (px < 0 || py < 0 || px >= this.width || py >= this.height) return;
     this.pixels[py * this.width + px] = color;
   }
 
   /** Bresenham, pixel by pixel, so a line running off the screen is clipped. */
   private line(x1: number, y1: number, x2: number, y2: number, color: number): void {
-    // Math.round(NaN) is NaN, and a walk towards NaN never arrives. The
+    // toPixel(NaN) is NaN, and a walk towards NaN never arrives. The
     // interpreter refuses such a coordinate; this does not rely on it.
     if (![x1, y1, x2, y2].every(Number.isFinite)) return;
-    let x = Math.round(x1);
-    let y = Math.round(y1);
-    const xEnd = Math.round(x2);
-    const yEnd = Math.round(y2);
+    let x = toPixel(x1);
+    let y = toPixel(y1);
+    const xEnd = toPixel(x2);
+    const yEnd = toPixel(y2);
     const dx = Math.abs(xEnd - x);
     const dy = -Math.abs(yEnd - y);
     const sx = x < xEnd ? 1 : -1;
@@ -154,8 +162,8 @@ export class Screen {
 
   private box(x1: number, y1: number, x2: number, y2: number, color: number, fill: boolean): void {
     if (![x1, y1, x2, y2].every(Number.isFinite)) return;
-    const [left, right] = [Math.round(Math.min(x1, x2)), Math.round(Math.max(x1, x2))];
-    const [top, bottom] = [Math.round(Math.min(y1, y2)), Math.round(Math.max(y1, y2))];
+    const [left, right] = [toPixel(Math.min(x1, x2)), toPixel(Math.max(x1, x2))];
+    const [top, bottom] = [toPixel(Math.min(y1, y2)), toPixel(Math.max(y1, y2))];
     if (fill) {
       // Only the part on the screen: a box can be 65536 pixels on a side.
       for (let y = Math.max(top, 0); y <= Math.min(bottom, this.height - 1); y++) {

@@ -7,10 +7,11 @@ GW-BASIC and BASICA that reproduces their number format. You can rerun every ste
 yourself and check that you get the same results, byte for byte.
 
 It began as spike 0.1 of [TODO.md](../../TODO.md). **[RESULTS.md](RESULTS.md)** has the
-findings and the evidence for them. In short, precision does not change Table 3's figure,
-but our `PSET` rounds a point that falls half-way between two pixels the other way from
-PC-BASIC, and that does. The numbers, table and screens in the Validation section of
-[`docs/article.tex`](../../docs/article.tex) are generated here.
+findings and the evidence for them. In short, precision does not change Table 3's figure.
+PC-BASIC's `PSET` rounds a point that falls half-way between two pixels to even, which moves
+111 pixels; GW-BASIC's source, and PC-BASIC's own `CINT`, round it away from zero, as we do
+([`../KNOWN-DIFFERENCES.md`](../KNOWN-DIFFERENCES.md)). The numbers, table and screens in the
+Validation section of [`docs/article.tex`](../../docs/article.tex) are generated here.
 
 Nothing here is published on the site; the build reads `programs/` only.
 
@@ -30,7 +31,8 @@ It takes about 1.5 minutes, most of it one slow PC-BASIC run. Then it:
 1. builds the oracle image from [`Containerfile`](Containerfile), with Python, PC-BASIC
    and its dependencies pinned, and the base image pinned by digest;
 2. derives every listing it runs from [`table3.bas`](table3.bas);
-3. runs PC-BASIC five times and our interpreter three times, in a Node image pinned
+3. runs PC-BASIC six times (the sixth is [`rounding.bas`](rounding.bas), a probe of how it
+   rounds a half) and our interpreter three times, in a Node image pinned
    by digest, and runs PC-BASIC's trace and screen a second time to confirm they are
    deterministic;
 4. regenerates the comparisons, the screens and the article's LaTeX;
@@ -63,6 +65,7 @@ Both failures are loud. CI does not run it yet; 0.2's conformance job will.
 | R4a | ours | rounded to IEEE single on assignment | `table3-trace.bas` |
 | R4b | ours | rounded to IEEE single after every operation | `table3-trace.bas` |
 | Screen | PC-BASIC | the unmodified listing, its CGA memory saved with `BSAVE` | `table3-screen.bas` |
+| Rounding | PC-BASIC | where `PSET` puts a half, read back with `POINT`, beside `CINT` | `rounding.bas` |
 
 **R4 is not a feature of the interpreter.** [`single-precision.ts`](single-precision.ts)
 rewrites a copy of `interpreter.ts` into the ignored `.work/` at run time. Nothing in
@@ -73,6 +76,7 @@ rewrites a copy of `interpreter.ts` into the ignored `.work/` at run time. Nothi
 | File | What it is |
 | --- | --- |
 | [`table3.bas`](table3.bas) | the input: Table 3, read from the scan (below) |
+| [`rounding.bas`](rounding.bas) | the input to the rounding probe |
 | [`Containerfile`](Containerfile) | the oracle image. PC-BASIC is GPL-3.0: it runs here and is never copied into the site or the tool |
 | [`attest.sh`](attest.sh), [`run.sh`](run.sh) | the attestation, and the regeneration it checks |
 | [`variants.ts`](variants.ts) | derives the trace, DEFDBL, double, bits and screen listings from `table3.bas` |

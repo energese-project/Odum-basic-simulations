@@ -6,6 +6,12 @@
  * Ours is the same listing run in our interpreter, its DrawOps rasterised by
  * src/basic/screen.ts — the code the site's Plot pane uses.
  *
+ * The two differ only where a point falls half-way between two pixels. GW-BASIC
+ * rounds such a coordinate away from zero, as CINT does, and so does screen.ts;
+ * PC-BASIC's PSET rounds it to even. `rounding.bas` records that PC-BASIC's own
+ * CINT does not, and the third case shows that adjusting for it leaves nothing
+ * else. See validation/KNOWN-DIFFERENCES.md.
+ *
  * Writes `screens.md`, `screens.json`, and `screens/<run>.png` for each screen and
  * for the difference, three times the size so that a printed figure stays sharp.
  * Usage: node validation/oracle/screens.ts
@@ -46,7 +52,8 @@ const halfToEven = (v: number): number => (Math.abs(v % 1) === 0.5 ? 2 * Math.ro
 
 /**
  * `halfEven` rounds each PSET's point half to even before screen.ts sees it, which
- * rounds halves up. Table 3's x, T / T0, is exactly half a pixel on every other step.
+ * would round it away from zero, as GW-BASIC does. Table 3's x, T / T0, is exactly
+ * half a pixel on every other step.
  */
 async function ours(run: string, halfEven: boolean): Promise<Uint8Array> {
   const { Basic } = await loadInterpreter(run);
@@ -132,11 +139,11 @@ export interface ScreenCase {
   colour: number;
 }
 const cases: ScreenCase[] = [];
-/** Image name, interpreter, label, and whether PSET rounds halves to even. */
+/** Image name, interpreter, label, and whether to round PSET's halves to even, as PC-BASIC does. */
 const CASES: [string, string, string, boolean][] = [
   ['r1', 'r1', 'R1, as the site draws it', false],
   ['r4b', 'r4b', 'R4b, as the site draws it', false],
-  ['r1-half-even', 'r1', 'R1, PSET rounding halves to even', true],
+  ['r1-half-even', 'r1', "R1, adjusted to PC-BASIC's PSET, halves to even", true],
 ];
 for (const [image, run, label, halfEven] of CASES) {
   const px = await ours(run, halfEven);
@@ -162,6 +169,36 @@ for (const [image, run, label, halfEven] of CASES) {
 if (firstDiffs.length) {
   out.push('', 'R1, the first pixels that differ:', '', '| (x, y) | PC-BASIC | Ours |', '| --- | --- | --- |', ...firstDiffs);
 }
+/**
+ * `rounding.bas`, in PC-BASIC: for each value n + 0.5, the column and the row its
+ * PSET lit, read back with POINT, and its CINT of the same value. `-o` is the
+ * text screen, so it is read as a stream of numbers, four to a row.
+ */
+export interface RoundingRow {
+  value: number;
+  psetX: number;
+  psetY: number;
+  cint: number;
+}
+const probe = readFileSync(join(here, 'runs', 'rounding.txt'), 'utf8').trim().split(/\s+/).map(Number);
+if (probe.length === 0 || probe.length % 4 !== 0 || probe.some(Number.isNaN)) {
+  throw new Error('runs/rounding.txt is not rows of four numbers');
+}
+const rounding: RoundingRow[] = [];
+for (let i = 0; i < probe.length; i += 4) {
+  rounding.push({ value: probe[i], psetX: probe[i + 1], psetY: probe[i + 2], cint: probe[i + 3] });
+}
+out.push(
+  '',
+  "PC-BASIC's rounding of a half, from `rounding.bas`: the pixel its `PSET` lit, read back with `POINT`, beside its own",
+  "`CINT`. GW-BASIC reads graphics coordinates through the routine `CINT` uses (`FRCINT`, MATH2.ASM), so on the PC",
+  'each point would land on the `CINT` column.',
+  '',
+  '| Coordinate | `PSET`, column | `PSET`, row | `CINT` |',
+  '| --- | --- | --- | --- |',
+  ...rounding.map((r) => `| ${r.value} | ${r.psetX} | ${r.psetY} | ${r.cint} |`),
+);
+
 const report = out.join('\n') + '\n';
 writeFileSync(join(here, 'screens.md'), report);
-writeFileSync(join(here, 'screens.json'), JSON.stringify({ pixels: W * H, cases }, null, 2) + '\n');
+writeFileSync(join(here, 'screens.json'), JSON.stringify({ pixels: W * H, cases, rounding }, null, 2) + '\n');
