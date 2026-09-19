@@ -383,8 +383,14 @@
     border-bottom: 1px solid var(--e-rule);
   }
 
+  /* Heights, not min-heights. Stacked, the page scrolls rather than the panes,
+     so without one nothing above the canvas has a size of its own: Chart.js
+     fits the canvas to its box, the box grows to fit the canvas, and the output
+     grows by a line per row printed. A long run drew a plot 183,000px tall, and
+     repainting it froze the tab. The rows scroll inside their pane instead. */
   :host .chart-block {
-    min-height: 20rem;
+    flex: none;
+    height: 20rem;
   }
 
   :host .diagram-block {
@@ -393,6 +399,7 @@
   }
 
   :host .console-block {
-    min-height: 14rem;
+    flex: none;
+    height: 14rem;
   }
 }

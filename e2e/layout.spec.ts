@@ -197,4 +197,40 @@ test.describe('on a narrow screen', () => {
     await expect(page).toHaveURL(/\?prg=two-tank/);
     await expect(page.getByTestId('sidebar')).toBeHidden();
   });
+
+  test('a long run leaves the plot and the output at their own height', async ({ page }) => {
+    // Stacked, the page scrolls instead of the panes, so nothing above the
+    // canvas had a height of its own. Chart.js sized the canvas to its box, the
+    // box grew to fit the canvas, and the output beside it grew with every row
+    // printed: a 6,000-row run drew a plot 183,000px tall, and repainting that
+    // is what froze the tab.
+    await page.route('**/programs/index.json', async (route) => {
+      const catalog = await (await route.fetch()).json();
+      const program = catalog.programs.find((p: { id: string }) => p.id === 'charge-discharge');
+      program.listing = program.listing.replace('LET DT = 0.5', 'LET DT = 0.05');
+      await route.fulfill({ json: catalog });
+    });
+    await page.goto('./?prg=charge-discharge');
+    await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+
+    await page.getByTestId('run').click();
+    await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
+    await expect(page.getByTestId('console-output')).toContainText('STEADY STATE');
+
+    const plot = await box(page, 'chart-canvas');
+    const output = await box(page, 'console-output');
+    expect(plot.height, 'the plot keeps a screen-sized height').toBeLessThanOrEqual(400);
+    expect(output.height, 'the output keeps a screen-sized height').toBeLessThanOrEqual(400);
+
+    // And stays there: the runaway was a resize loop, still growing after the
+    // run had finished.
+    await page.waitForTimeout(500);
+    expect((await box(page, 'chart-canvas')).height).toBe(plot.height);
+
+    // The rows are all still there, a scroll away rather than a page away.
+    const scrolls = await page
+      .getByTestId('console-output')
+      .evaluate((el) => el.scrollHeight > el.clientHeight);
+    expect(scrolls, 'the output scrolls within its own pane').toBe(true);
+  });
 });
