@@ -16,7 +16,7 @@ RUN           := $(CONTAINER_BIN) run --rm --init -m $(MEMORY) -c $(CPUS) \
 	-v $(shell pwd):$(WORKDIR) $(IMAGE_APP)
 
 .PHONY: help start image install dev build preview typecheck test-unit test check clean \
-        figures figures-update article attest attest-update
+        figures figures-update article attest attest-update wasm wasm-check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -99,6 +99,25 @@ attest: start ## Rerun the oracle comparison and check it against its record
 
 attest-update: start ## Rerun the oracle comparison and rewrite its record
 	CONTAINER_BIN=$(CONTAINER_BIN) validation/oracle/attest.sh --update
+
+# --------------------------------------------------
+# The browser build of the C engine
+#
+# src/basic/engine.wasm is committed, because the site deploys with `npm ci &&
+# npm run build` on a runner that has Node and nothing else — no emscripten, no
+# containers. A committed binary can drift from the source that is supposed to
+# produce it, so `wasm-check` rebuilds it and fails if a byte moved. That is the
+# attestation's argument applied to a build product rather than to a result.
+#
+# The image is pinned by digest, and its emcc version is printed on every build
+# so a future difference is attributable.
+# --------------------------------------------------
+
+wasm: start ## Rebuild src/basic/engine.wasm from engine/ in the pinned emscripten image
+	CONTAINER_BIN=$(CONTAINER_BIN) engine/build-wasm.sh
+
+wasm-check: start ## Rebuild it and fail if the committed bytes moved
+	CONTAINER_BIN=$(CONTAINER_BIN) engine/build-wasm.sh --check
 
 # pdflatex on the host if there is one; otherwise the container shim this machine
 # uses. Twice, because \ref and \cite resolve from the first run's .aux.

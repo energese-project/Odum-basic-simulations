@@ -114,3 +114,34 @@ jobs:
           name: attest-regenerated
           path: validation/oracle/
           retention-days: 7
+
+  # src/basic/engine.wasm is a committed build product. It has to be committed,
+  # because Pages deploys with `npm ci && npm run build` on a runner with Node
+  # and nothing else — no emscripten, no containers. The hazard of a committed
+  # binary is that it stops following from the source it is supposed to be built
+  # from, and nothing notices. So rebuild it here and fail if a byte moved.
+  #
+  # arm64 because that is where it is built by hand: emscripten/emsdk publishes
+  # its version tags for amd64 only, so the pin is the multi-architecture index
+  # digest, and Apple silicon takes the arm64 variant from it. Whether the two
+  # variants emit identical bytes for the same source is not something this
+  # repository has tested, so the job does not rely on it — it asks the question
+  # it can answer, which is whether the committed artefact matches the source.
+  wasm:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      # The script, not `make wasm`, for the same reason the attestation calls
+      # attest.sh: the target depends on `start`, which runs `container system
+      # start`, and docker has no equivalent.
+      - name: Rebuild engine.wasm and check the committed bytes
+        run: CONTAINER_BIN=docker engine/build-wasm.sh --check
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: engine-wasm-rebuilt
+          path: src/basic/engine.wasm
+          retention-days: 7

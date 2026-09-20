@@ -173,9 +173,40 @@ R5 is now checked on every pull request: the `attest` job regenerates the whole 
 `validation/oracle/` and compares it byte for byte with the record (see 0.2). So the engine's
 agreement with the site's interpreter is a standing claim rather than a one-off measurement.
 
-Still open: nothing in the site itself uses the engine. The wasm build the stepping design
-exists for has not been written, and until it is, the engine is exercised only by the
-attestation.
+**The wasm build exists, and the site checks listings with it.** `make wasm` compiles the
+engine in a pinned emscripten image to [`src/basic/engine.wasm`](src/basic/engine.wasm), and
+the editor runs `BAS_Validate` on every keystroke, turning its diagnostics straight into
+Monaco markers — the document it returns is already in Monaco's marker shape, so nothing
+translates it. The artefact is committed, because Pages deploys with `npm ci && npm run build`
+on a runner with neither emscripten nor containers; the `wasm` job rebuilds it on every pull
+request and fails if a byte moved, so a committed binary cannot quietly stop following from
+its source.
+
+`-sSTANDALONE_WASM --no-entry` emits a `.wasm` and no JavaScript glue. The only import to
+satisfy is `emscripten_notify_memory_growth`, which the loader stubs in a line, because the
+validation path touches no stdio and so pulls in no WASI. Only `lexer.c`, `parser.c` and
+`validate.c` are linked: the export list is the contract, and it grows when execution does.
+
+**Still open: the site runs listings on the TypeScript interpreter, not the engine**, and
+that is a larger job than wiring, because the engine cannot yet do what running one needs:
+
+- **`INPUT` is unimplemented** — it fails with "this statement is not supported yet", and
+  `programs/guess.bas` uses it. It is not just a missing case. `INPUT` has to suspend and
+  resume across `BAS_Step`, and `BAS_Status` has no way to say *waiting for input*, so this
+  is a change to the API, not only to the interpreter.
+- **The engine emits no text.** `PRINT` emits one numeric row per numeric column and drops
+  string literals deliberately — "strings are transcript, not data". The workbench console
+  shows formatted text, and `output.ts` recovers its table from that text, so there is
+  nothing for it to read. This is where 0.2's `PRINT` formatting rules would have to be
+  implemented in C.
+- **It would change the arithmetic.** The engine is single precision by type; the TypeScript
+  interpreter computes in doubles. Moving execution across is the decision 0.2 records, and
+  its consequences reach the figure goldens, which are the images `docs/article.tex`
+  includes.
+
+Validation was taken first because it is the one thing the engine can already do completely,
+and doing it in the engine means the editor and the command-line tool's `check` agree by
+construction rather than by two implementations being kept in step.
 
 ### 0.2 Conformance tests and dialect profiles
 

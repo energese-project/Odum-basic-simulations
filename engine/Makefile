@@ -8,6 +8,7 @@
 # contract, FLT_EVAL_METHOD, which it can check and this cannot.
 
 CC      ?= cc
+EMCC    ?= emcc
 CFLAGS  ?= -std=c11 -Wall -Wextra -Wpedantic -O2 -ffp-contract=off
 INCLUDE  = -Iinclude -Isrc
 # macOS folds libm into libSystem and links it whether or not it is asked for;
@@ -18,7 +19,15 @@ SRC      = src/lexer.c src/parser.c src/validate.c src/interp.c
 TESTS    = tests/test_lexer.c tests/test_validate.c tests/test_eval.c
 BIN     ?= build
 
-.PHONY: all test cli clean
+# The browser build. Only what BAS_Validate needs is linked: the site uses the
+# engine to check a listing as it is typed, not yet to run one, and leaving
+# interp.c out keeps the committed artefact to what is actually reachable. Add
+# it here when execution moves to wasm, and the export list grows with it.
+WASM_SRC = src/lexer.c src/parser.c src/validate.c
+WASM_OUT ?= ../src/basic/engine.wasm
+WASM_EXPORTS = _BAS_Validate,_BAS_FreeString,_BAS_GetVersionString,_malloc,_free
+
+.PHONY: all test cli wasm clean
 
 all: test
 
@@ -39,6 +48,24 @@ test: $(BIN)
 # The command-line tool.
 cli: $(BIN)
 	$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/odum-basic src/main.c $(SRC) $(LDLIBS)
+
+# The browser build. Run it through `make wasm` at the repository root, which
+# supplies emcc from a pinned container; emcc on the host would be a different
+# toolchain from the one CI checks the committed bytes against.
+#
+# -sSTANDALONE_WASM with --no-entry emits a .wasm and no JavaScript. That is the
+# point: the only import is emscripten_notify_memory_growth, which the loader
+# stubs in a line, so there is no generated glue to commit or review. The
+# validation path touches no stdio, so nothing pulls in WASI.
+#
+# CFLAGS is passed through unchanged, -ffp-contract=off included. The contract in
+# include/basic_config.h is not native-only: a wasm build that contracts, or that
+# evaluates wider than float, disagrees with the CLI in the last bits, and a
+# disagreement between the two builds of one engine is the worst version of it.
+wasm:
+	$(EMCC) $(CFLAGS) $(INCLUDE) $(WASM_SRC) -o $(WASM_OUT) \
+		--no-entry -sSTANDALONE_WASM -sALLOW_MEMORY_GROWTH \
+		-sEXPORTED_FUNCTIONS=$(WASM_EXPORTS)
 
 clean:
 	rm -rf $(BIN)

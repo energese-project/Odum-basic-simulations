@@ -1,0 +1,21 @@
+# The C engine, built for the browser.
+#
+# Pinned by digest for the same reason the oracle and engine images are: the
+# .wasm this produces is committed, and CI rebuilds it to check that the
+# committed bytes still follow from the source. A toolchain that could change
+# under us would make that check fail for reasons unrelated to the code.
+#
+# Emscripten rather than bare clang because the engine uses malloc, realloc and
+# snprintf, and something has to provide them.
+#
+# The digest is emscripten/emsdk's multi-architecture index, not a version tag.
+# The versioned tags are published for amd64 only, and this machine is arm64 —
+# Apple's `container` has no emulation, so an amd64-only image builds here and
+# then dies with "Exec format error" the moment anything runs in it. A digest is
+# immutable whichever tag it was reached by, so pinning the index gives a fixed
+# toolchain that also runs in both places. `emcc --version` is recorded in the
+# build output so the version is attributable rather than implied by the tag.
+FROM emscripten/emsdk@sha256:96617f27fe16421588241def73908fd348a7f9d260440ed0d00b36dcf7a063cc
+
+WORKDIR /engine
+ENTRYPOINT ["/bin/sh", "-c"]

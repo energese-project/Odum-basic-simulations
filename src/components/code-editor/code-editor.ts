@@ -5,6 +5,7 @@ import {
   basicMonarch,
 } from '../../basic/basic-language.ts';
 import { EDITOR_THEME_ID, energeseEditorTheme } from './editor-theme.ts';
+import { watchDiagnostics } from './diagnostics.ts';
 import template from './code-editor.html?raw';
 import style from './code-editor.css?raw';
 
@@ -51,6 +52,8 @@ export class CodeEditorComponent extends BaseComponent {
 
   private editor: monaco.editor.IStandaloneCodeEditor | null = null;
   private onThemeChanged = (): void => this.applyTheme();
+  /** Stops the checker watching the model it was started on. */
+  private stopDiagnostics: (() => void) | null = null;
 
   constructor() {
     super(template, style);
@@ -93,6 +96,8 @@ export class CodeEditorComponent extends BaseComponent {
       this.dispatchEvent(new CustomEvent('editor-change', { bubbles: true }));
     });
 
+    this.watchModel();
+
     // Monaco paints its own pixels from a resolved palette, so like the chart
     // canvas it has to be told when the tokens move. See editor-theme.ts.
     window.addEventListener('theme-changed', this.onThemeChanged);
@@ -100,9 +105,19 @@ export class CodeEditorComponent extends BaseComponent {
 
   disconnectedCallback(): void {
     window.removeEventListener('theme-changed', this.onThemeChanged);
+    this.stopDiagnostics?.();
+    this.stopDiagnostics = null;
     this.editor?.getModel()?.dispose();
     this.editor?.dispose();
     this.editor = null;
+  }
+
+  /** Point the checker at the editor's current model, dropping the previous one. */
+  private watchModel(): void {
+    this.stopDiagnostics?.();
+    this.stopDiagnostics = null;
+    const model = this.editor?.getModel();
+    if (model) this.stopDiagnostics = watchDiagnostics(monaco, model);
   }
 
   private applyTheme(): void {
@@ -128,6 +143,9 @@ export class CodeEditorComponent extends BaseComponent {
     const previous = this.editor.getModel();
     this.editor.setModel(monaco.editor.createModel(source, BASIC_LANGUAGE_ID));
     previous?.dispose();
+    // The markers belong to the model, not the editor, so a new model starts
+    // unchecked until the checker is pointed at it.
+    this.watchModel();
   }
 }
 
