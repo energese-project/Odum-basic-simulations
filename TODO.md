@@ -12,11 +12,15 @@ Odum, not from us — so the order matters:
 1. **0.1 Oracle spike** — does IBM PC BASIC's arithmetic change the curves? **Done:** no.
    PC-BASIC's `PSET` rounds half pixels differently, and GW-BASIC's source sides with us. See
    [`validation/oracle/RESULTS.md`](validation/oracle/RESULTS.md).
-2. **0.2 Conformance tests and dialect profiles** — prove we behave like the BASIC
+2. **0.1b The C engine** — the dialect in C, single precision by type. **Done as a spike:**
+   it is R5 in the attestation and lights the same pixels as the site's interpreter. Nothing
+   uses it yet.
+3. **0.2 Conformance tests and dialect profiles** — prove we behave like the BASIC
    each listing was written for.
-3. **0.3 Transcribe the paper**, with the command-line tool and run snapshots.
-4. **0.4 Ship the command-line tool** as single-executable binaries, on GitHub
-   Releases and npm.
+4. **0.3 Transcribe the paper**, with the command-line tool and run snapshots.
+5. **0.4 Ship the command-line tool** as single-executable binaries, on GitHub
+   Releases and npm. **Re-scope first:** it is written for a JavaScript CLI, and the
+   tool is now C.
 
 ### 0.1 Oracle spike: does IBM PC BASIC's arithmetic change the curves?
 
@@ -145,6 +149,30 @@ the four raw outputs, and `RESULTS.md`. The results give the versions used, a ta
 the comparisons above, the answer to each of Q1–Q5, and the decision taken from the
 rule. This TODO is updated with the decision, and 0.2 is re-scoped to match.
 
+### 0.1b The C engine
+
+**Done as a spike, and it agrees with the site's interpreter.** [`engine/`](engine/) is the
+dialect in C: `BAS_Validate` parses and checks without executing, so an editor can call it on
+every keystroke; `BAS_Init`/`BAS_Step` execute a bounded number of statements at a time, so a
+Web Worker keeps the ability to stop a program that does not terminate and `CONT` can resume
+where `END` left the program counter. It emits rows in the program's own coordinates and never
+pixels — rasterising them stays someone else's job, which is what let R5 below reuse
+`screen.ts` unchanged.
+
+It is in the attestation as **R5**, and it lights the same pixels as R1: 111/52/55/4 against
+PC-BASIC, the same counts as the TypeScript interpreter. The engine cannot run in Node, so it
+writes its rows as CSV and `screens.ts` replays them through the same rasteriser both sides
+share — so a difference between R1 and R5 would be the arithmetic, not the drawing. There is
+none.
+
+Two things follow for the sections below, and they are recorded there rather than here: the
+engine settles 0.2's single-precision question in C rather than in `Math.fround`, and it is
+the beginning of 0.3's command-line tool, though not on the interpreter core 0.3 assumed.
+
+Still open: nothing in the site or in CI uses it yet. The wasm build the stepping design
+exists for has not been written, and `make attest` — which is what proves R5 — still does not
+run in CI (see 0.2).
+
 ### 0.2 Conformance tests and dialect profiles
 
 Re-scoped after 0.1, whose [results](validation/oracle/RESULTS.md) are the evidence
@@ -185,6 +213,20 @@ for each point here.
   Format, which keeps a guard byte and drops the bits beyond it. **Bit-exact MBF is a
   separate task**, taken on only if a listing shows a difference that can be seen, and
   written from GW-BASIC's MIT math routines — never from PC-BASIC's GPL code.
+
+  **Done in the C engine (0.1b), by type rather than by emulation.** `BAS_Real` is `float`,
+  so every operation rounds to single because that is what the type does, which is R4b's
+  behaviour without R4b's discipline. Two compiler hazards would silently undo it, and
+  [`engine/include/basic_config.h`](engine/include/basic_config.h) argues both out: the build
+  requires `FLT_EVAL_METHOD == 0` and refuses to compile without it, because evaluating
+  intermediates wider turns `A = A + DA * DT` into one rounding where GW-BASIC did three; and
+  `-ffp-contract=off` is passed because fusing a multiply and an add rounds once where the
+  original rounded twice. The worst form of that bug is that it would disagree *differently*
+  between the native CLI and the wasm build. The same file also narrows the MBF question:
+  within the exponent range these models occupy, an MBF single and an IEEE single denote the
+  same number, so bit-exact MBF is still only worth taking on if a listing shows a visible
+  difference. This does not carry over to the TypeScript interpreter, which still computes in
+  doubles — whether that matters depends on whether the site ends up on the wasm build.
 - **Dialect profiles.** A `dialect` field in every sidecar and `meta-data.json`,
   required and with no default, for the same reason as `fidelity`. Add profiles only
   for dialects an archived listing uses:
@@ -229,11 +271,20 @@ for each point here.
     it evidently is, and the note says so.
   - **`source.json`'s rights statement** is the maintainer's to write. The build
     requires a person to state it.
-- **The command-line tool**, built on the same interpreter core as the site:
-  - `odum-basic run <file.bas> [--run <run.json>] [--csv <out>] [--png <out>] [--trace]`
+- **The command-line tool.** This said "built on the same interpreter core as the site". It is
+  not: it is built on the C engine (0.1b), which is a second implementation, and R5 is the
+  evidence that the two agree. Whether the site later moves onto the same core through wasm —
+  which is what the engine's stepping design is for — is open, and until it does, "the same
+  core" has to be *proved* by the attestation rather than assumed from the source tree.
+  - `odum-basic run <file.bas> [--csv <out>] [--max-steps N]` — **built.**
+  - `odum-basic check <file.bas>` — **built**, but it validates a listing without executing
+    it, which is not what this line meant. The archive's validation, as the build does it, is
+    still to do and may not belong to the same subcommand.
+  - `--run <run.json>`, `--png <out>` and `--trace` — not built. `--png` needs a rasteriser,
+    which the engine deliberately does not have, so it is either a port of `screen.ts` or a
+    decision that the CLI emits rows and something else draws them.
   - `odum-basic snapshot [--update]`: every run in the archive, against its committed
-    snapshot.
-  - `odum-basic check`: the archive's validation, as the build does it.
+    snapshot. Not built.
   - Exit codes that CI and agents can rely on.
 - **Run snapshots.** Each run gets `runs/<run>.csv`: long format, one row per point,
   `line,expression,x,y,color` in draw order. It is published beside the run, so a
@@ -242,7 +293,30 @@ for each point here.
   catches *us* changing; it says nothing about whether we are right — that is 0.2's
   job, and the comparison with the figure is the reproduction's.
 
+  **The column list here is not the one the engine writes.** `BAS_WriteCSV` emits
+  `line,kind,x0,y0,x,y,color,box`: `kind` distinguishes `pset` from `line`, `x0,y0` carry a
+  line's start, and `box` carries `LINE`'s `B` and `BF` clauses, so a row says what it is
+  without the reader holding the listing. There is no `expression` column, and the series
+  grouping in section 1 wants one. It is recoverable rather than lost: every `BAS_Expr`
+  carries `line`, `column` and `end_column`, so the text is a slice of the source line — but
+  the engine does not keep the source after parsing, and `BAS_Expr` is in `parser.h`, not the
+  public header, so this is a decision about the API and not just about the writer. Settle
+  the schema once, in one place, before snapshots are committed and the format has to be
+  kept.
+
 ### 0.4 Ship the command-line tool: single executables, on GitHub Releases and npm
+
+**This section is written for a JavaScript CLI and the tool is now C (0.1b). Re-scope it
+before working from it.** Most of what follows was machinery for carrying a Node runtime
+inside the binary, and a C program has no runtime to carry: it compiles to a native
+executable per target directly, which removes the SEA build, the Node 26 requirement and the
+ESM-or-CommonJS question outright. What survives the change is the part that was never about
+Node — the target matrix, the npm `optionalDependencies` pattern for people who install that
+way, macOS signing, testing the built binaries rather than the source, and the release
+trigger. Cross-compiling C is also a different problem from cross-building a SEA, and may be
+easier or harder depending on the target; decide that before committing to a matrix.
+
+The original reasoning, kept because the distribution half of it still applies:
 
 People may not have Node, and the ones who do may have a version too old to run it.
 So the tool ships as Node single executable applications, which carry their own Node.
