@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { instantiateEngine, type Engine } from './engine.ts';
 
 /**
@@ -74,4 +74,28 @@ test('a source large enough to grow the heap still validates', async () => {
 test('the engine reports its version', async () => {
   const bas = await engine();
   assert.match(bas.version, /^\d+\.\d+\.\d+$/);
+});
+
+test('every published listing validates clean', async () => {
+  const bas = await engine();
+  const dir = new URL('../../programs/', import.meta.url);
+  const listings = readdirSync(dir).filter((f) => f.endsWith('.bas'));
+
+  // Not a sample of one. guess.bas was accused by the editor for as long as
+  // the checker shipped, because the test covering this ran charge-discharge
+  // and stopped there. The archive is small; check all of it.
+  assert.ok(listings.length >= 5, 'the archive should not have shrunk');
+
+  const accused = listings
+    .map((file) => ({
+      file,
+      diagnostics: bas.validate(readFileSync(new URL(file, dir), 'utf8')),
+    }))
+    .filter((r) => r.diagnostics.length > 0);
+
+  assert.deepEqual(
+    accused.map((r) => `${r.file}: ${r.diagnostics[0].message}`),
+    [],
+    'the checker must not accuse a published listing',
+  );
 });
