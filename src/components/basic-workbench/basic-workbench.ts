@@ -16,6 +16,7 @@ import '../console-panel/console-panel.ts';
 import '../chart-panel/chart-panel.ts';
 import '../screen-panel/screen-panel.ts';
 import '../theme-toggle/theme-toggle.ts';
+import '../engine-status/engine-status.ts';
 import '../program-meta/program-meta.ts';
 import '../program-explorer/program-explorer.ts';
 import '../program-form/program-form.ts';

@@ -1,0 +1,70 @@
+/* The pill sits in the topbar beside About. Its colour is a status colour, and
+   the design system is explicit that those never carry meaning alone — so the
+   dot always travels with the label, and the label says the same thing the
+   colour does. Colour-blind readers, and anyone who has not learned what the
+   dot means, read the words. */
+
+.engine-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--e-rule);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  white-space: nowrap;
+  color: rgb(var(--e-ink-rgb) / 0.72);
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex: none;
+  /* Until the state is known it is neither good nor bad. */
+  background: var(--e-tick);
+}
+
+.engine-status[data-state='ready'] .dot {
+  background: var(--e-good);
+}
+
+.engine-status[data-state='unavailable'] .dot {
+  background: var(--e-critical);
+}
+
+/* Loading is the only state that moves. A steady dot for a transient state
+   reads as a verdict; a pulsing one reads as "working". */
+.engine-status[data-state='loading'] .dot {
+  animation: engine-status-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes engine-status-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Respect a reader who has asked for less movement: the label already says
+   what the animation was conveying, so dropping it loses nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .engine-status[data-state='loading'] .dot {
+    animation: none;
+  }
+}
+
+/* The topbar gets tight before it wraps; the dot keeps working without the
+   word, and the title attribute still carries the full text. */
+@media (max-width: 52rem) {
+  .engine-status .label {
+    display: none;
+  }
+  .engine-status {
+    padding: 0.15rem 0.3rem;
+  }
+}

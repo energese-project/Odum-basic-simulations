@@ -22,6 +22,13 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 async function settle(page: Page): Promise<void> {
+  // The topbar's engine light is in the full-page figure, and it starts grey and
+  // pulsing before it turns green. Which of those a screenshot caught would
+  // otherwise depend on how fast the .wasm was fetched — so wait for the settled
+  // state. A figure in the paper must not depend on a race.
+  await expect(page.getByTestId('engine-status')).toHaveAttribute('data-state', 'ready', {
+    timeout: 15_000,
+  });
   await page.evaluate(async () => {
     await document.fonts.ready;
     // A clicked button keeps focus, and its ring would be in the picture.

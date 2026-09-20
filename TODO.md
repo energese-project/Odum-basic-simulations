@@ -182,6 +182,14 @@ on a runner with neither emscripten nor containers; the `wasm` job rebuilds it o
 request and fails if a byte moved, so a committed binary cannot quietly stop following from
 its source.
 
+The topbar carries a light for it. Loading the engine in a browser can fail — a blocked
+request, a stale cache, no WebAssembly — and when it does the editor simply stops underlining
+mistakes, which is indistinguishable from there being none. The light says which. It reports
+the engine the editor is actually using, not a second copy: both go through
+[`engine-loader.ts`](src/basic/engine-loader.ts), which holds the one instance. Its label says
+*engine*, and its title says that running a program does not depend on it — because it does
+not, yet. That wording is the thing to revisit when execution moves across.
+
 `-sSTANDALONE_WASM --no-entry` emits a `.wasm` and no JavaScript glue. The only import to
 satisfy is `emscripten_notify_memory_growth`, which the loader stubs in a line, because the
 validation path touches no stdio and so pulls in no WASI. Only `lexer.c`, `parser.c` and
