@@ -1,0 +1,20 @@
+# The C engine, built for R5.
+#
+# Pinned by digest for the same reason the oracle image is: a run whose
+# toolchain can change under it proves nothing the next time it is repeated.
+# The compiler version is recorded in the results, so a future difference is
+# attributable rather than mysterious.
+#
+# The engine's own arithmetic contract is enforced by the code, not by this
+# file — include/basic_config.h refuses to build where FLT_EVAL_METHOD is not
+# 0, and the Makefile passes -ffp-contract=off. Both matter here: this image
+# is where the CSV that R5 is judged on gets produced.
+
+FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251
+
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends gcc libc6-dev make \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /engine
+ENTRYPOINT ["/bin/sh", "-c"]

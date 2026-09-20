@@ -10,3 +10,7 @@ test-results/
 # programs/. The build refuses a PDF there too; this keeps one from being
 # committed in the first place. See programs/README.md.
 programs/**/*.pdf
+
+# The C engine's build output. Container builds leave Linux objects here;
+# `make -C engine clean` restores a native tree.
+engine/build/

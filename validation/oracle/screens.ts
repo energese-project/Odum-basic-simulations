@@ -12,6 +12,11 @@
  * CINT does not, and the third case shows that adjusting for it leaves nothing
  * else. See validation/KNOWN-DIFFERENCES.md.
  *
+ * R5 is the C engine (engine/), which does not run in Node: it writes its rows as
+ * CSV and they are replayed through the same `Screen` below. That is deliberate.
+ * Comparing R5 with R1 then isolates the *engine*, because both sides go through
+ * one rasteriser — if they differ, the arithmetic differs, not the drawing.
+ *
  * Writes `screens.md`, `screens.json`, and `screens/<run>.png` for each screen and
  * for the difference, three times the size so that a printed figure stays sharp.
  * Usage: node validation/oracle/screens.ts
@@ -63,6 +68,40 @@ async function ours(run: string, halfEven: boolean): Promise<Uint8Array> {
   const interp = new Basic({ print: (t) => { throw new Error(`${run} printed: ${t}`); }, draw });
   interp.load(readFileSync(join(here, 'table3.bas'), 'utf8'));
   await interp.run();
+  const px = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px[y * W + x] = screen.pixel(x, y);
+  return px;
+}
+
+/**
+ * The C engine's rows, replayed as DrawOps.  `SCREEN 1` is synthesised because
+ * the CSV records only what was drawn, not the mode that was set; every listing
+ * the archive compares this way is SCREEN 1, and a mode mismatch would show up
+ * as a wholesale difference rather than a subtle one.
+ */
+function fromCsv(file: string): Uint8Array {
+  const [header, ...lines] = readFileSync(file, 'utf8').trim().split(/\r?\n/);
+  const cols = header.split(',');
+  const at = (row: string[], name: string): string => row[cols.indexOf(name)] ?? '';
+  const screen = new Screen();
+  screen.apply({ op: 'screen', mode: 1 });
+  for (const text of lines) {
+    const row = text.split(',');
+    const num = (name: string): number => Number(at(row, name));
+    const kind = at(row, 'kind');
+    const line = num('line');
+    const color = num('color');
+    if (kind === 'pset' || kind === 'preset') {
+      screen.apply({ op: 'pset', x: num('x'), y: num('y'), color, line });
+    } else if (kind === 'line') {
+      const box = at(row, 'box');
+      screen.apply({
+        op: 'line',
+        x1: num('x0'), y1: num('y0'), x2: num('x'), y2: num('y'),
+        color, box: box === 'B' || box === 'BF' ? box : null, line,
+      });
+    }
+  }
   const px = new Uint8Array(W * H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) px[y * W + x] = screen.pixel(x, y);
   return px;
@@ -153,9 +192,10 @@ const CASES: [string, string, string, boolean][] = [
   ['r1', 'r1', 'R1, as the site draws it', false],
   ['r4b', 'r4b', 'R4b, as the site draws it', false],
   ['r1-half-even', 'r1', "R1, adjusted to PC-BASIC's PSET, halves to even", true],
+  ['r5', 'r5', 'R5, the C engine, as the site draws it', false],
 ];
 for (const [image, run, label, halfEven] of CASES) {
-  const px = await ours(run, halfEven);
+  const px = run === 'r5' ? fromCsv(join(here, 'runs', 'r5.csv')) : await ours(run, halfEven);
   let [total, onlyOracle, onlyOurs, colour] = [0, 0, 0, 0];
   for (let i = 0; i < px.length; i++) {
     if (px[i] === oracle[i]) continue;

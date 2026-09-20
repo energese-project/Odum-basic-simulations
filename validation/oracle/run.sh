@@ -11,6 +11,7 @@ spike=$(pwd)
 repo=$(cd ../.. && pwd)
 C=${CONTAINER_BIN:-container}
 ORACLE=odum-pcbasic:2.0.8
+ENGINE=odum-basic-engine:1
 # Node pinned by digest, like the oracle: the PNGs are deflated by the zlib inside
 # it, and a different build could compress the same pixels to different bytes.
 NODE=node:26.5.1-slim@sha256:deae974a69e140f44f434ab29cb519fb5f8fe250fd364b8ca446bd0761acdc6a
@@ -49,6 +50,20 @@ cmp runs/r2.txt .work/r2-again.txt
 screen .work/r2-screen-again.bin
 cmp runs/r2-screen.bin .work/r2-screen-again.bin
 echo "PC-BASIC: a second run of the trace and of the screen is byte-identical"
+
+# R5: the C engine. Built and run in its own image, writing only the CSV back —
+# the build stays inside the container so it cannot leave Linux objects in
+# engine/build/ for the next native link to pick up.
+echo "building the C engine image ($ENGINE)"
+$C build -f Containerfile.engine -t $ENGINE . >/dev/null 2>&1
+echo "running ours: R5, the C engine"
+$C run --rm -v "$repo":/repo $ENGINE \
+  'set -eu
+   gcc --version | head -1 > /repo/validation/oracle/runs/r5-toolchain.txt
+   make -C /repo/engine BIN=/tmp/build cli >/dev/null
+   /tmp/build/odum-basic run /repo/validation/oracle/table3.bas \
+     --csv /repo/validation/oracle/runs/r5.csv >/dev/null'
+test -s runs/r5.csv || { echo "the C engine wrote no rows" >&2; exit 1; }
 
 echo "running ours: R1, R4a, R4b"
 for run in r1 r4a r4b; do node validation/oracle/run-ours.ts $run; done
