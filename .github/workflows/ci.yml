@@ -74,3 +74,43 @@ jobs:
           name: figure-diffs
           path: test-results/
           retention-days: 7
+
+  # The oracle attestation: regenerate every result in validation/oracle/ from
+  # scratch — PC-BASIC's runs, the C engine's, the comparisons, the screens and
+  # oracle.tex — and check each against SHA256SUMS, which is where the article's
+  # numbers come from. A result that cannot be reproduced is not evidence, and
+  # until this ran in CI nothing but a maintainer's memory said it still could be.
+  #
+  # arm64 for the same reason as `figures`, one step further: this compares bytes,
+  # not pixels. The record was generated on Apple silicon, the PNGs are deflated by
+  # the zlib inside the pinned Node image, and the oracle, engine and Node images
+  # are pinned by digest — so the architecture is part of what makes the bytes
+  # reproducible, and an x86 runner would be asking a different question.
+  #
+  # attest.sh rather than `make attest`, because that target depends on `start`,
+  # which runs `container system start` — an Apple `container` command that docker
+  # has no equivalent of. The script itself is container-agnostic: everything it
+  # does goes through CONTAINER_BIN, and the two images' entrypoints (`pcbasic`,
+  # and `sh -c` for the engine) take the same arguments either way.
+  attest:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Attest
+        run: CONTAINER_BIN=docker validation/oracle/attest.sh
+
+      # A failure is a question, not an obstacle: either a change was meant to move
+      # the results, or it is a bug. The diff is the answer, so print it rather than
+      # making someone rerun the job locally to see it.
+      - name: What moved
+        if: ${{ failure() }}
+        run: git diff --stat validation/oracle/ && git diff -- validation/oracle/ ':!*.png' ':!*.bin' ':!*.csv'
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: attest-regenerated
+          path: validation/oracle/
+          retention-days: 7
