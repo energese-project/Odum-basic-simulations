@@ -169,9 +169,13 @@ Two things follow for the sections below, and they are recorded there rather tha
 engine settles 0.2's single-precision question in C rather than in `Math.fround`, and it is
 the beginning of 0.3's command-line tool, though not on the interpreter core 0.3 assumed.
 
-Still open: nothing in the site or in CI uses it yet. The wasm build the stepping design
-exists for has not been written, and `make attest` — which is what proves R5 — still does not
-run in CI (see 0.2).
+R5 is now checked on every pull request: the `attest` job regenerates the whole of
+`validation/oracle/` and compares it byte for byte with the record (see 0.2). So the engine's
+agreement with the site's interpreter is a standing claim rather than a one-off measurement.
+
+Still open: nothing in the site itself uses the engine. The wasm build the stepping design
+exists for has not been written, and until it is, the engine is exercised only by the
+attestation.
 
 ### 0.2 Conformance tests and dialect profiles
 
@@ -192,10 +196,16 @@ for each point here.
   (0.5, 0)` lands on 1 here and on 2 on the PC. Test it against the oracle, then decide what
   the DrawOp records: the program's value or the PC's.
 - **A conformance suite in CI.** A job like `figures`, in the pinned oracle image —
-  [`validation/oracle/`](validation/oracle/)'s `Containerfile`, pinned the same way. Its
-  first step is to run `make attest` in CI, which nothing does yet. It runs every archive
-  program — each run of each model, with its `changes` applied — in PC-BASIC and in ours,
-  and compares the results. From the spike:
+  [`validation/oracle/`](validation/oracle/)'s `Containerfile`, pinned the same way.
+
+  **The first step is done:** the `attest` job runs the attestation on every pull request,
+  on arm64 because it compares bytes rather than pixels, and calls `attest.sh` directly
+  because `make attest` depends on `container system start`, which docker has no equivalent
+  of. It passed on its first run, so the record reproduces off this machine as well as on it.
+
+  What remains is the suite proper: run every archive program — each run of each model, with
+  its `changes` applied — in PC-BASIC and in ours, and compare the results. The attestation
+  fixes one listing, `table3.bas`; this generalises it to the archive. From the spike:
   - **Drawn output is compared as screens.** `DEF SEG=&HB800: BSAVE "SCREEN.BIN",0,&H4000`
     saves CGA memory headless; `screens.ts` decodes it. That is the comparison that found
     the `PSET` rule, which a trace cannot see.
