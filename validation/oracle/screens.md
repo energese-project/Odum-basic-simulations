@@ -9,6 +9,7 @@ The unmodified `table3.bas`, PC-BASIC's CGA memory against our DrawOps rasterise
 | R1, as the site draws it | 111 | 52 | 55 | 4 |
 | R4b, as the site draws it | 111 | 52 | 55 | 4 |
 | R1, adjusted to PC-BASIC's PSET, halves to even | 0 | 0 | 0 | 0 |
+| R5, the C engine, as the site draws it | 111 | 52 | 55 | 4 |
 
 R1, the first pixels that differ:
 

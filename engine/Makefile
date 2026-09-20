@@ -16,7 +16,7 @@ LDLIBS   = -lm
 
 SRC      = src/lexer.c src/parser.c src/validate.c src/interp.c
 TESTS    = tests/test_lexer.c tests/test_validate.c tests/test_eval.c
-BIN      = build
+BIN     ?= build
 
 .PHONY: all test cli clean
 
@@ -32,7 +32,7 @@ test: $(BIN)
 		name=$$(basename $$t .c); \
 		$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/$$name $$t $(SRC) $(LDLIBS) || exit 1; \
 		printf '%-16s ' "$$name"; \
-		./$(BIN)/$$name || fail=1; \
+		$(BIN)/$$name || fail=1; \
 	done; \
 	exit $$fail
 

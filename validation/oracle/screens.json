@@ -30,6 +30,16 @@
       "onlyOracle": 0,
       "onlyOurs": 0,
       "colour": 0
+    },
+    {
+      "image": "r5",
+      "run": "r5",
+      "label": "R5, the C engine, as the site draws it",
+      "halfEven": false,
+      "differing": 111,
+      "onlyOracle": 52,
+      "onlyOurs": 55,
+      "colour": 4
     }
   ],
   "rounding": [

@@ -212,7 +212,8 @@ static BAS_Real eval(BAS_Instance *in, BAS_Expr *e) {
 /* --------------------------------------------------------------------- rows */
 
 static void emit(BAS_Instance *in, BAS_RowKind kind, int line, BAS_Real x0,
-                 BAS_Real y0, BAS_Real x, BAS_Real y, BAS_Real colour) {
+                 BAS_Real y0, BAS_Real x, BAS_Real y, BAS_Real colour,
+                 int box) {
   if (in->row_count == in->row_cap) {
     size_t cap = in->row_cap ? in->row_cap * 2 : 256;
     double *grown = realloc(in->rows, cap * BAS_ROW_STRIDE * sizeof *grown);
@@ -228,6 +229,7 @@ static void emit(BAS_Instance *in, BAS_RowKind kind, int line, BAS_Real x0,
   r[BAS_FIELD_X] = (double)x;
   r[BAS_FIELD_Y] = (double)y;
   r[BAS_FIELD_COLOR] = (double)colour;
+  r[BAS_FIELD_BOX] = (double)box;
   in->row_count++;
 }
 
@@ -287,7 +289,7 @@ static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
         if (s->e[i] && s->e[i]->type == BAS_EXPR_STRING) continue;
         BAS_Real v = eval(in, s->e[i]);
         emit(in, BAS_ROW_PRINT, s->line_number, (BAS_Real)i, 0.0f,
-             (BAS_Real)i, v, 0.0f);
+             (BAS_Real)i, v, 0.0f, 0);
       }
       in->pc++;
       return 1;
@@ -299,7 +301,7 @@ static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
       BAS_Real y = eval(in, s->e_count > 1 ? s->e[1] : NULL);
       BAS_Real c = s->e_count > 2 ? eval(in, s->e[2]) : in->colour;
       emit(in, s->type == BAS_ST_PSET ? BAS_ROW_PSET : BAS_ROW_PRESET,
-           s->line_number, x, y, x, y, c);
+           s->line_number, x, y, x, y, c, 0);
       in->pc++;
       return 1;
     }
@@ -310,7 +312,8 @@ static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
       BAS_Real x1 = eval(in, s->e_count > 2 ? s->e[2] : NULL);
       BAS_Real y1 = eval(in, s->e_count > 3 ? s->e[3] : NULL);
       BAS_Real c = s->e_count > 4 ? eval(in, s->e[4]) : in->colour;
-      emit(in, BAS_ROW_LINE, s->line_number, x0, y0, x1, y1, c);
+      emit(in, BAS_ROW_LINE, s->line_number, x0, y0, x1, y1, c,
+           s->box ? (s->filled ? 2 : 1) : 0);
       in->pc++;
       return 1;
     }
@@ -516,16 +519,19 @@ BAS_Status BAS_WriteCSV(BAS_Instance *in, char **out_csv) {
   char *buf = malloc(cap);
   if (!buf) return BAS_ERR_ALLOC;
 
-  size_t len = (size_t)snprintf(buf, cap, "line,kind,x0,y0,x,y,color\n");
+  size_t len = (size_t)snprintf(buf, cap, "line,kind,x0,y0,x,y,color,box\n");
   for (size_t i = 0; i < in->row_count; i++) {
     const double *r = in->rows + i * BAS_ROW_STRIDE;
     int kind = (int)r[BAS_FIELD_KIND];
     const char *name = (kind >= 0 && kind <= 3) ? ROW_KIND_NAME[kind] : "?";
+    static const char *const BOX_NAME[] = {"", "B", "BF"};
+    int box = (int)r[BAS_FIELD_BOX];
     len += (size_t)snprintf(buf + len, cap - len,
-                            "%d,%s,%.9g,%.9g,%.9g,%.9g,%d\n",
+                            "%d,%s,%.9g,%.9g,%.9g,%.9g,%d,%s\n",
                             (int)r[BAS_FIELD_LINE], name, r[BAS_FIELD_X0],
                             r[BAS_FIELD_Y0], r[BAS_FIELD_X], r[BAS_FIELD_Y],
-                            (int)r[BAS_FIELD_COLOR]);
+                            (int)r[BAS_FIELD_COLOR],
+                            (box >= 0 && box <= 2) ? BOX_NAME[box] : "");
     if (len + 160 > cap) {
       cap *= 2;
       char *grown = realloc(buf, cap);

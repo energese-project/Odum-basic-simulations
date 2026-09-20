@@ -85,6 +85,7 @@ int main(void) {
     CHECK_INT(plotted(i, 0, BAS_FIELD_X0), 0);
     CHECK_INT(plotted(i, 0, BAS_FIELD_X), 319);
     CHECK_INT(plotted(i, 0, BAS_FIELD_Y), 180);
+    CHECK_INT(plotted(i, 0, BAS_FIELD_BOX), 1);   /* the B clause */
     BAS_Free(i);
   }
 
@@ -240,7 +241,7 @@ int main(void) {
     BAS_Instance *i = run("10 PSET (3, 4), 2\n20 END\n", &s);
     char *csv = NULL;
     CHECK_INT(BAS_WriteCSV(i, &csv), BAS_OK);
-    CHECK(csv && strstr(csv, "line,kind,x0,y0,x,y,color") == csv);
+    CHECK(csv && strstr(csv, "line,kind,x0,y0,x,y,color,box") == csv);
     CHECK(csv && strstr(csv, "10,pset,") != NULL);
     BAS_FreeString(csv);
     BAS_Free(i);

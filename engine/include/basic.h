@@ -153,6 +153,9 @@ typedef enum {
   BAS_FIELD_X,
   BAS_FIELD_Y,
   BAS_FIELD_COLOR,
+  /** LINE's clause: 0 none, 1 B (box), 2 BF (filled).  0 for every other kind.
+      A row has to say what it is without the reader knowing the listing. */
+  BAS_FIELD_BOX,
   BAS_ROW_STRIDE
 } BAS_RowField;
 
