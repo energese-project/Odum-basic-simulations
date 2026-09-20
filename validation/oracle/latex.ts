@@ -18,14 +18,19 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Comparisons, PairResult } from './compare.ts';
 import type { Replay } from './replay.ts';
-import type { RoundingRow, ScreenCase } from './screens.ts';
+import type { PairScreen, RoundingRow, ScreenCase } from './screens.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const json = <T>(name: string): T => JSON.parse(readFileSync(join(here, name), 'utf8')) as T;
 
 const { pairs, bitwise, printRounding } = json<Comparisons>('comparisons.json');
 const replay = json<Replay>('replay.json');
-const screens = json<{ pixels: number; cases: ScreenCase[]; rounding: RoundingRow[] }>('screens.json');
+const screens = json<{
+  pixels: number;
+  cases: ScreenCase[];
+  pairs: PairScreen[];
+  rounding: RoundingRow[];
+}>('screens.json');
 
 function claim(holds: boolean, what: string): void {
   if (!holds) {
@@ -77,6 +82,31 @@ claim(
 );
 claim(halfEven.differing === 0, "that adjusting for PC-BASIC's rounding of halves leaves no pixel different");
 
+/**
+ * The independent-implementation claim, measured rather than inferred.
+ *
+ * R1 and R5 differing from PC-BASIC in the same number of pixels would not on
+ * its own mean they drew the same screen — equal totals can hide unequal
+ * pixels. These are the direct comparisons, and the article rests its
+ * reproducibility argument on them, so a divergence has to stop the build
+ * rather than quietly change a number in the paper.
+ */
+const pairScreen = (a: string, b: string): PairScreen => {
+  const p = screens.pairs.find((q) => q.a === a && q.b === b);
+  if (!p) throw new Error(`no screen comparison of ${a} with ${b}`);
+  return p;
+};
+const enginesAgree = pairScreen('r1', 'r5');
+const precisionsAgree = pairScreen('r1', 'r4b');
+claim(
+  enginesAgree.differing === 0,
+  'that the TypeScript interpreter and the C engine draw the same screen, pixel for pixel',
+);
+claim(
+  precisionsAgree.differing === 0,
+  'that rounding to single precision after every operation changes no pixel of the screen',
+);
+
 // GW-BASIC reads a graphics coordinate through CINT's routine, so a PSET that
 // disagrees with CINT is PC-BASIC's departure, not the PC's.
 const { rounding } = screens;
@@ -116,6 +146,10 @@ const macros: [string, string][] = [
   ['oracleReplayDiffering', num(replay.stepsDiffering)],
   ['oracleScreenPixels', num(screens.pixels)],
   ['oracleScreenDiffering', num(asDrawn.differing)],
+  // R5: the C engine, against the TypeScript interpreter and against PC-BASIC.
+  ['oracleEngineScreenDiffering', num(screen('r5').differing)],
+  ['oracleEnginesDiffering', num(enginesAgree.differing)],
+  ['oraclePrecisionsDiffering', num(precisionsAgree.differing)],
   ['oracleProbeValue', String(probe!.value)],
   ['oracleProbePset', num(probe!.psetX)],
   ['oracleProbeCint', num(probe!.cint)],

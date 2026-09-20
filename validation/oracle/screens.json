@@ -42,6 +42,20 @@
       "colour": 4
     }
   ],
+  "pairs": [
+    {
+      "a": "r1",
+      "b": "r5",
+      "label": "R1 vs R5 — TypeScript, double, against C, single",
+      "differing": 0
+    },
+    {
+      "a": "r1",
+      "b": "r4b",
+      "label": "R1 vs R4b — the same interpreter at two precisions",
+      "differing": 0
+    }
+  ],
   "rounding": [
     {
       "value": 0.5,
