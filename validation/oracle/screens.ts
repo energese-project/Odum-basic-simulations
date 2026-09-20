@@ -187,6 +187,8 @@ export interface ScreenCase {
   colour: number;
 }
 const cases: ScreenCase[] = [];
+/** Each case's screen, kept so the runs can also be compared with each other. */
+const buffers = new Map<string, Uint8Array>();
 /** Image name, interpreter, label, and whether to round PSET's halves to even, as PC-BASIC does. */
 const CASES: [string, string, string, boolean][] = [
   ['r1', 'r1', 'R1, as the site draws it', false],
@@ -209,6 +211,7 @@ for (const [image, run, label, halfEven] of CASES) {
   }
   out.push(`| ${label} | ${total} | ${onlyOracle} | ${onlyOurs} | ${colour} |`);
   cases.push({ image, run, label, halfEven, differing: total, onlyOracle, onlyOurs, colour });
+  buffers.set(image, px);
   png(join(here, 'screens', `${image}.png`), (i) => PALETTE_0[px[i]]);
   // White where the two differ, the PC-BASIC screen dimmed underneath.
   png(join(here, 'screens', `${image}-diff.png`), (i) =>
@@ -218,6 +221,47 @@ for (const [image, run, label, halfEven] of CASES) {
 if (firstDiffs.length) {
   out.push('', 'R1, the first pixels that differ:', '', '| (x, y) | PC-BASIC | Ours |', '| --- | --- | --- |', ...firstDiffs);
 }
+
+/**
+ * The runs against each other, rather than against PC-BASIC.
+ *
+ * Equal counts in the table above are not the same claim as an equal screen:
+ * two runs could differ from the oracle in the same number of pixels and not
+ * in the same pixels. This compares them directly, so "the implementations
+ * agree" is measured rather than inferred from a coincidence of totals.
+ *
+ * It is the strongest reproducibility statement the attestation makes. R1 is
+ * TypeScript in double precision, R4b is TypeScript rounded to single after
+ * every operation, and R5 is C in single precision by type — two languages and
+ * two precisions, independently written, drawing one screen.
+ */
+export interface PairScreen {
+  a: string;
+  b: string;
+  label: string;
+  differing: number;
+}
+const PAIRS: [string, string, string][] = [
+  ['r1', 'r5', 'R1 vs R5 — TypeScript, double, against C, single'],
+  ['r1', 'r4b', 'R1 vs R4b — the same interpreter at two precisions'],
+];
+const pairScreens: PairScreen[] = PAIRS.map(([a, b, label]) => {
+  const pa = buffers.get(a);
+  const pb = buffers.get(b);
+  if (!pa || !pb) throw new Error(`no screen for ${a} or ${b}`);
+  let differing = 0;
+  for (let i = 0; i < pa.length; i++) if (pa[i] !== pb[i]) differing++;
+  return { a, b, label, differing };
+});
+out.push(
+  '',
+  'The runs against each other. Differing from PC-BASIC in the same number of pixels is not the same as drawing the',
+  'same screen; this is the direct comparison.',
+  '',
+  '| Comparison | Pixels differing, of 64000 |',
+  '| --- | --- |',
+  ...pairScreens.map((p) => `| ${p.label} | ${p.differing} |`),
+);
 /**
  * `rounding.bas`, in PC-BASIC: for each value n + 0.5, the column and the row its
  * PSET lit, read back with POINT, and its CINT of the same value. `-o` is the
@@ -250,4 +294,7 @@ out.push(
 
 const report = out.join('\n') + '\n';
 writeFileSync(join(here, 'screens.md'), report);
-writeFileSync(join(here, 'screens.json'), JSON.stringify({ pixels: W * H, cases, rounding }, null, 2) + '\n');
+writeFileSync(
+  join(here, 'screens.json'),
+  JSON.stringify({ pixels: W * H, cases, pairs: pairScreens, rounding }, null, 2) + '\n',
+);

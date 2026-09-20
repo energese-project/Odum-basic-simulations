@@ -26,6 +26,14 @@ R1, the first pixels that differ:
 | (44, 32) | 2 | 0 |
 | (67, 35) | 0 | 2 |
 
+The runs against each other. Differing from PC-BASIC in the same number of pixels is not the same as drawing the
+same screen; this is the direct comparison.
+
+| Comparison | Pixels differing, of 64000 |
+| --- | --- |
+| R1 vs R5 — TypeScript, double, against C, single | 0 |
+| R1 vs R4b — the same interpreter at two precisions | 0 |
+
 PC-BASIC's rounding of a half, from `rounding.bas`: the pixel its `PSET` lit, read back with `POINT`, beside its own
 `CINT`. GW-BASIC reads graphics coordinates through the routine `CINT` uses (`FRCINT`, MATH2.ASM), so on the PC
 each point would land on the `CINT` column.
