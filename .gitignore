@@ -6,6 +6,11 @@ test-results/
 .DS_Store
 *.log
 
+# Scratch space for sources that must not be committed — a scanned paper being
+# transcribed, say. Inside the checkout so it is to hand, ignored so it cannot
+# be published by accident. Nothing the build reads may live here.
+temp/
+
 # An article or book is never published: only crops cut from it belong in
 # programs/. The build refuses a PDF there too; this keeps one from being
 # committed in the first place. See programs/README.md.
