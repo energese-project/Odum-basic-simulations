@@ -10,12 +10,15 @@
 CC      ?= cc
 CFLAGS  ?= -std=c11 -Wall -Wextra -Wpedantic -O2 -ffp-contract=off
 INCLUDE  = -Iinclude -Isrc
+# macOS folds libm into libSystem and links it whether or not it is asked for;
+# GNU/Linux does not, so an -lm-less build passes here and fails in CI.
+LDLIBS   = -lm
 
-SRC      = src/lexer.c src/parser.c src/validate.c
-TESTS    = tests/test_lexer.c tests/test_validate.c
+SRC      = src/lexer.c src/parser.c src/validate.c src/interp.c
+TESTS    = tests/test_lexer.c tests/test_validate.c tests/test_eval.c
 BIN      = build
 
-.PHONY: all test clean
+.PHONY: all test cli clean
 
 all: test
 
@@ -27,11 +30,15 @@ test: $(BIN)
 	@fail=0; \
 	for t in $(TESTS); do \
 		name=$$(basename $$t .c); \
-		$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/$$name $$t $(SRC) || exit 1; \
+		$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/$$name $$t $(SRC) $(LDLIBS) || exit 1; \
 		printf '%-16s ' "$$name"; \
 		./$(BIN)/$$name || fail=1; \
 	done; \
 	exit $$fail
+
+# The command-line tool.
+cli: $(BIN)
+	$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/odum-basic src/main.c $(SRC) $(LDLIBS)
 
 clean:
 	rm -rf $(BIN)
