@@ -456,16 +456,33 @@ static BAS_Stmt *parse_keyword_statement(Parser *p, BAS_Token *kw) {
     }
     case BAS_KW_DIM: case BAS_KW_READ: case BAS_KW_DATA:
     case BAS_KW_RESTORE: case BAS_KW_INPUT: {
-      static const BAS_StmtType map[] = {BAS_ST_DIM, BAS_ST_READ, BAS_ST_DATA,
-                                         BAS_ST_RESTORE, BAS_ST_INPUT};
-      size_t i = (size_t)(kw->keyword - BAS_KW_DIM);
-      BAS_Stmt *s = stmt_new(p, map[i < 5 ? i : 0]);
+      /* Named, not indexed off the keyword enum. INPUT does not sit beside the
+         other four there — it is BAS_KW_INPUT, near PRINT and LET — so
+         `kw->keyword - BAS_KW_DIM` underflowed as a size_t, fell past the
+         bounds check, and selected map[0]: every INPUT in the archive was
+         parsed as a DIM. It validated clean only because `INPUT G` is shaped
+         like a DIM, and `INPUT "YOUR GUESS"; G` did not, which is how it
+         surfaced. A table indexed by enum order is one reordering away from
+         doing this again. */
+      BAS_StmtType type = kw->keyword == BAS_KW_DIM       ? BAS_ST_DIM
+                          : kw->keyword == BAS_KW_READ    ? BAS_ST_READ
+                          : kw->keyword == BAS_KW_DATA    ? BAS_ST_DATA
+                          : kw->keyword == BAS_KW_RESTORE ? BAS_ST_RESTORE
+                                                          : BAS_ST_INPUT;
+      BAS_Stmt *s = stmt_new(p, type);
       next(p);
       do {
         if (check(p, BAS_TOK_EOL) || check(p, BAS_TOK_COLON) ||
             check(p, BAS_TOK_EOF)) break;
         add_expr(s, parse_expr(p));
-      } while (match(p, BAS_TOK_COMMA));
+        /* INPUT separates its prompt from its variables with a semicolon —
+           `INPUT "YOUR GUESS"; G`, which programs/guess.bas uses, and which
+           this loop read as the end of the statement. GW-BASIC accepts a comma
+           there too; the difference between them is only whether it appends
+           "? ". The others in this group take commas alone, so the semicolon
+           is allowed for INPUT and not for DIM, READ, DATA or RESTORE. */
+      } while (match(p, BAS_TOK_COMMA) ||
+               (type == BAS_ST_INPUT && match(p, BAS_TOK_SEMICOLON)));
       return s;
     }
     default:

@@ -194,5 +194,40 @@ int main(void) {
     BAS_FreeString(json);
   }
 
+  {
+    /* INPUT takes its prompt before a semicolon.  This read as the end of the
+       statement, so programs/guess.bas — a published listing — was reported
+       broken by the editor that checks as you type.  A checker that accuses
+       the archive is worse than no checker. */
+    TEST("INPUT's prompt may be separated by a semicolon");
+    BAS_Status s;
+    char *json = validate("10 INPUT \"YOUR GUESS\"; G\n20 END\n", &s);
+    CHECK_INT(s, BAS_OK);
+    CHECK(contains(json, "\"diagnostics\":[]"));
+    BAS_FreeString(json);
+  }
+
+  {
+    /* GW-BASIC takes a comma there too; the two differ only in whether "? "
+       is appended, which is not this layer's concern. */
+    TEST("INPUT takes a comma there, or no prompt at all");
+    BAS_Status s;
+    char *json = validate("10 INPUT \"NAME\", N\n20 INPUT G\n30 END\n", &s);
+    CHECK_INT(s, BAS_OK);
+    CHECK(contains(json, "\"diagnostics\":[]"));
+    BAS_FreeString(json);
+  }
+
+  {
+    /* The semicolon is INPUT's, not the whole group's: DIM, READ, DATA and
+       RESTORE separate with commas, and a semicolon there is still an error. */
+    TEST("a semicolon is not a separator for DIM");
+    BAS_Status s;
+    char *json = validate("10 DIM A(3); B(4)\n20 END\n", &s);
+    CHECK_INT(s, BAS_OK);
+    CHECK(!contains(json, "\"diagnostics\":[]"));
+    BAS_FreeString(json);
+  }
+
   TEST_REPORT();
 }
