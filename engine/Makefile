@@ -62,10 +62,17 @@ cli: $(BIN)
 # include/basic_config.h is not native-only: a wasm build that contracts, or that
 # evaluates wider than float, disagrees with the CLI in the last bits, and a
 # disagreement between the two builds of one engine is the worst version of it.
+#
+# The chmod is not tidiness. emcc writes the output executable, git records the
+# executable bit, and `wasm-check` compares with `git diff`, which reports a mode
+# change as a difference — so without this the check fails on a rebuild that
+# produced identical bytes. A module that is only ever fetched has no use for +x
+# either way.
 wasm:
 	$(EMCC) $(CFLAGS) $(INCLUDE) $(WASM_SRC) -o $(WASM_OUT) \
 		--no-entry -sSTANDALONE_WASM -sALLOW_MEMORY_GROWTH \
 		-sEXPORTED_FUNCTIONS=$(WASM_EXPORTS)
+	chmod 644 $(WASM_OUT)
 
 clean:
 	rm -rf $(BIN)

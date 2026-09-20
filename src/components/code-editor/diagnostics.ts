@@ -17,32 +17,14 @@
  */
 
 import type * as monaco from 'monaco-editor/editor/editor.api.js';
-import { instantiateEngine, type Diagnostic, type Engine } from '../../basic/engine.ts';
-import engineWasmUrl from '../../basic/engine.wasm?url';
+import type { Diagnostic } from '../../basic/engine.ts';
+import { engine } from '../../basic/engine-loader.ts';
 
 /** Whose markers these are. Monaco keys by owner, so ours replace only ours. */
 const OWNER = 'basic';
 
 /** Long enough that a burst of typing validates once, short enough to feel live. */
 const DEBOUNCE_MS = 150;
-
-let enginePromise: Promise<Engine | null> | null = null;
-
-/** Fetched once per page and shared: the module is ~50 KB and stateless here. */
-function engine(): Promise<Engine | null> {
-  enginePromise ??= (async () => {
-    try {
-      const response = await fetch(engineWasmUrl);
-      if (!response.ok) throw new Error(`${response.status} fetching the engine`);
-      return await instantiateEngine(await response.arrayBuffer());
-    } catch (cause) {
-      // Once, not per keystroke. The editor carries on unchecked.
-      console.warn('BASIC diagnostics are unavailable:', cause);
-      return null;
-    }
-  })();
-  return enginePromise;
-}
 
 function severityOf(
   api: typeof monaco,
