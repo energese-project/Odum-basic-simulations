@@ -51,6 +51,13 @@ struct BAS_Instance {
   double *rows;         /**< BAS_ROW_STRIDE doubles each. */
   size_t row_count, row_cap;
 
+  /* What PRINT has written and the caller has not yet taken, and the column
+     the cursor sits in.  The column has to persist across statements because a
+     trailing separator holds the line open. */
+  char *text;
+  size_t text_len, text_cap;
+  size_t column;
+
   size_t pc;            /**< Index into prog.stmts. */
 
   /* INPUT, suspended.  `input_stmt` is the statement waiting, and `input_next`
@@ -265,6 +272,81 @@ static int jump_to(BAS_Instance *in, int line, int target) {
 }
 
 /** Execute one statement.  Returns 0 when the program should stop. */
+/* ------------------------------------------------------------------ PRINT */
+
+/**
+ * GW-BASIC's print zones are 14 columns wide, which `PRINT "A", "B", "C"` in
+ * validation/oracle/print.bas shows landing at columns 0, 14 and 28.
+ */
+#define PRINT_ZONE 14
+
+static void out_text(BAS_Instance *in, const char *text, size_t n) {
+  if (in->text_len + n + 1 > in->text_cap) {
+    size_t cap = in->text_cap ? in->text_cap : 256;
+    while (cap < in->text_len + n + 1) cap *= 2;
+    char *grown = realloc(in->text, cap);
+    if (!grown) { in->failed = 1; return; }
+    in->text = grown;
+    in->text_cap = cap;
+  }
+  memcpy(in->text + in->text_len, text, n);
+  in->text_len += n;
+  in->text[in->text_len] = '\0';
+  for (size_t i = 0; i < n; i++) in->column = (text[i] == '\n') ? 0 : in->column + 1;
+}
+
+static void out_str(BAS_Instance *in, const char *text) { out_text(in, text, strlen(text)); }
+
+/**
+ * A number as GW-BASIC prints it, into `buf`.
+ *
+ * The shape is from the oracle rather than from memory
+ * (validation/oracle/runs/print.txt): a space where the sign would be when the
+ * number is positive, the digits with no leading zero before the point, and a
+ * trailing space always.  So `PRINT 1; 2` gives " 1  2 " — two spaces between,
+ * being one number's trailing space and the next one's sign.
+ *
+ * Seven significant digits, which is what single precision carries.  %g gives
+ * that, drops trailing zeros, and switches to an exponent at the same kind of
+ * magnitude the oracle does; the exponent is then rewritten from C's "e-06"
+ * to BASIC's "E-06".
+ */
+static void format_number(BAS_Real value, char *buf, size_t cap) {
+  char digits[64];
+  double dv = (double)value;
+  snprintf(digits, sizeof digits, "%.7G", dv);
+
+  /* %G leaves fixed notation below 1e-4; GW-BASIC does not until 1e-5. The
+     oracle prints .00001 where %G gives 1E-05, and switches only at
+     3.333333E-06, so exactly one decade differs.
+     The test is on the exponent %G chose, not on the value: the float nearest
+     0.00001 is 9.9999997e-06, so comparing the magnitude against 1e-5 puts it
+     on the wrong side of the boundary. Seven significant digits of a value in
+     that decade is eleven decimal places. */
+  char *exp_mark = strchr(digits, 'E');
+  if (exp_mark && atoi(exp_mark + 1) == -5) {
+    snprintf(digits, sizeof digits, "%.11f", dv);
+    char *dot = strchr(digits, '.');
+    if (dot) {
+      char *last = digits + strlen(digits) - 1;
+      while (last > dot && *last == '0') *last-- = '\0';
+      if (last == dot) *last = '\0';
+    }
+  }
+
+  /* "0.5" -> ".5", and "-0.5" -> "-.5": GW-BASIC prints no leading zero. */
+  char *d = digits;
+  if (d[0] == '0' && d[1] == '.') {
+    memmove(d, d + 1, strlen(d));
+  } else if (d[0] == '-' && d[1] == '0' && d[2] == '.') {
+    memmove(d + 1, d + 2, strlen(d + 1));
+  }
+
+  /* C writes E+06 with at least two exponent digits, as BASIC does, so only
+     the sign of an unsigned exponent needs normalising. */
+  snprintf(buf, cap, "%s%s ", (value < 0) ? "" : " ", digits);
+}
+
 /**
  * The next expression of an INPUT that names a variable to read into, starting
  * at `from`; s->e_count when there is none left.
@@ -324,15 +406,34 @@ static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
     }
 
     case BAS_ST_PRINT: {
-      /* Printed numbers are data too: one row per numeric column, so a
-         listing that prints its table is readable the same way as one that
-         plots it.  Strings are transcript, not data, and are not emitted. */
+      /* Two outputs from one statement, and they answer different questions.
+         The text is what the machine showed, which is what a reader reads and
+         what the table heuristic recovers a plot from. The rows are the
+         numbers as computed, which is what a comparison is made on. Producing
+         only the rows, as this did, left the console with nothing to show. */
       for (size_t i = 0; i < s->e_count; i++) {
-        if (s->e[i] && s->e[i]->type == BAS_EXPR_STRING) continue;
-        BAS_Real v = eval(in, s->e[i]);
-        emit(in, BAS_ROW_PRINT, s->line_number, (BAS_Real)i, 0.0f,
-             (BAS_Real)i, v, 0.0f, 0);
+        BAS_Expr *e = s->e[i];
+        if (e && e->type == BAS_EXPR_STRING) {
+          out_str(in, e->name);
+        } else {
+          BAS_Real v = eval(in, e);
+          if (in->failed) return 0;
+          char buf[80];
+          format_number(v, buf, sizeof buf);
+          out_str(in, buf);
+          emit(in, BAS_ROW_PRINT, s->line_number, (BAS_Real)i, 0.0f,
+               (BAS_Real)i, v, 0.0f, 0);
+        }
+        if (s->sep[i] == ',') {
+          /* To the start of the next zone. A field that has already run past
+             one goes to the one after it. */
+          size_t next = (in->column / PRINT_ZONE + 1) * PRINT_ZONE;
+          while (in->column < next) out_str(in, " ");
+        }
       }
+      /* A separator at the end holds the line open, which is how a listing
+         prints a row in several statements. */
+      if (!s->trailing_sep) out_str(in, "\n");
       in->pc++;
       return 1;
     }
@@ -509,6 +610,7 @@ void BAS_Free(BAS_Instance *in) {
   bas_program_free(&in->prog);
   free(in->vars);
   free(in->rows);
+  free(in->text);
   free(in);
 }
 
@@ -521,6 +623,9 @@ void BAS_Reset(BAS_Instance *in) {
   in->awaiting_input = 0;
   in->input_stmt = NULL;
   in->input_next = 0;
+  in->text_len = 0;
+  in->column = 0;
+  if (in->text) in->text[0] = '\0';
   in->call_depth = in->for_depth = 0;
   in->error[0] = '\0';
   in->error_line = 0;
@@ -557,6 +662,18 @@ BAS_Status BAS_Continue(BAS_Instance *in) {
   if (!BAS_CanContinue(in)) return BAS_ERR_HALTED;
   in->halted = 0;
   in->can_continue = 0;
+  return BAS_OK;
+}
+
+BAS_Status BAS_TakeText(BAS_Instance *in, char **out_text) {
+  if (!in || !out_text) return BAS_ERR_ARGUMENT;
+  char *text = malloc(in->text_len + 1);
+  if (!text) return BAS_ERR_ALLOC;
+  memcpy(text, in->text ? in->text : "", in->text_len);
+  text[in->text_len] = '\0';
+  in->text_len = 0;          /* the column stays: the line may be half-written */
+  if (in->text) in->text[0] = '\0';
+  *out_text = text;
   return BAS_OK;
 }
 

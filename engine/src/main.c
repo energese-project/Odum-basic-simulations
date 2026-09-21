@@ -68,6 +68,15 @@ static int cmd_check(const char *path) {
   return clean ? 0 : EXIT_INVALID;
 }
 
+/** Write out whatever PRINT has produced since the last call. */
+static void drain(BAS_Instance *inst) {
+  char *text = NULL;
+  if (BAS_TakeText(inst, &text) == BAS_OK && text) {
+    fputs(text, stdout);
+    BAS_FreeString(text);
+  }
+}
+
 static int cmd_run(const char *path, const char *csv_path, long max_steps) {
   char *src = read_file(path);
   if (!src) { fprintf(stderr, "cannot read %s\n", path); return EXIT_USAGE; }
@@ -93,6 +102,7 @@ static int cmd_run(const char *path, const char *csv_path, long max_steps) {
          whoever drives it — here, this terminal. The "? " is added here for
          the same reason: GW-BASIC's prompt punctuation is the console's
          business, not the program's. */
+      drain(inst);   /* a question after whatever the program said first */
       const char *prompt = BAS_GetInputPrompt(inst);
       if (prompt) fputs(prompt, stdout);
       fputs("? ", stdout);
@@ -109,6 +119,7 @@ static int cmd_run(const char *path, const char *csv_path, long max_steps) {
       BAS_ProvideInput(inst, line);
       continue;
     }
+    drain(inst);
     if (s != BAS_OK) break;
     if (max_steps > 0 && ++steps * 4096 > max_steps) {
       fprintf(stderr, "%s: stopped after %ld statements\n", path, max_steps);

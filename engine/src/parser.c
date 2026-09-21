@@ -356,8 +356,18 @@ static BAS_Stmt *parse_keyword_statement(Parser *p, BAS_Token *kw) {
       next(p);
       while (!check(p, BAS_TOK_EOL) && !check(p, BAS_TOK_COLON) &&
              !check(p, BAS_TOK_EOF)) {
-        if (match(p, BAS_TOK_SEMICOLON) || match(p, BAS_TOK_COMMA)) continue;
+        if (check(p, BAS_TOK_SEMICOLON) || check(p, BAS_TOK_COMMA)) {
+          /* Kept, not skipped: a comma moves to the next print zone and a
+             semicolon does not, and a separator at the end of the statement
+             holds the line open for the next PRINT. */
+          char c = check(p, BAS_TOK_COMMA) ? ',' : ';';
+          next(p);
+          if (s->e_count > 0) s->sep[s->e_count - 1] = c;
+          s->trailing_sep = 1;
+          continue;
+        }
         add_expr(s, parse_expr(p));
+        s->trailing_sep = 0;
         if (p->panicked) break;
       }
       return s;

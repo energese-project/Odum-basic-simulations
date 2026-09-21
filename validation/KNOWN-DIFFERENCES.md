@@ -44,3 +44,36 @@ opposite rule.
 
 Negative halves only matter off the screen, or where a clipped `LINE` enters it. We
 rounded them towards zero until this entry was written.
+
+## `PRINT` of a number: two divergences, neither of them the layout
+
+The engine's `PRINT` is written against [`oracle/print.bas`](oracle/print.bas) and the
+output PC-BASIC gives for it, recorded by `make attest` as
+[`oracle/runs/print.txt`](oracle/runs/print.txt). Of its 22 lines, 20 match byte for byte:
+the leading space where a positive number's sign would be, the trailing space after every
+number, the absent leading zero (`.5`, not `0.5`), the 14-column print zones a comma moves
+to, a trailing separator holding the line open, and a bare `PRINT` as a blank line.
+
+Two lines differ, and neither is the layout.
+
+### PC-BASIC rounds the last printed digit up, and we do not
+
+- **What.** `PRINT 1/3` gives `.3333334` in PC-BASIC and `.3333333` here.
+- **Which is right.** Ours. The single nearest a third is 0.33333334326…, whose seventh
+  significant digit is correctly rounded down. PC-BASIC's conversion of a single to text is
+  not correctly rounded, and the attestation already measures how often: one unit high in
+  `\oraclePrintRoundedUp` of `\oraclePrintValues` values across Table 3's run
+  (`compare.ts`, the `printRounding` block).
+- **What it moves.** The last printed digit, and nothing else. It is why the oracle
+  comparison reads PC-BASIC's printed rows with a tolerance rather than digit for digit,
+  as [`oracle/RESULTS.md`](oracle/RESULTS.md) sets out.
+
+### A literal of more than seven digits is a double on the PC, and a single here
+
+- **What.** `PRINT 123456789` gives `123456789` in PC-BASIC and `1.234568E+08` here.
+- **Why.** GW-BASIC promotes a numeric literal that will not fit in single precision to
+  double, so that line never involved a single at all. This engine has one numeric type,
+  `float`, so the literal is rounded on the way in and printed as what it became.
+- **What it moves.** Nothing in the archive: Odum's listings hold coefficients and state
+  variables, not nine-digit constants. It would matter for a listing that used `DEFDBL` or
+  a `#` suffix, which is the same gap as the type-declaration work in TODO 0.2.

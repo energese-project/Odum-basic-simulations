@@ -200,6 +200,20 @@ typedef enum {
 } BAS_RowField;
 
 /**
+ * What PRINT has written since the last call, and never NULL.
+ *
+ * Text, not rows: this is what the machine showed, newlines and the spacing
+ * of GW-BASIC's print zones included, which is what a console displays and
+ * what a table heuristic reads a plot back from. The rows above are the same
+ * statement's numbers as computed, for comparison rather than for reading.
+ *
+ * The instance keeps the text until it is taken, so a caller that steps and
+ * drains in a loop sees a stream. The returned string belongs to the caller,
+ * which frees it with BAS_FreeString.
+ */
+BAS_Status BAS_TakeText(BAS_Instance *inst, char **out_text);
+
+/**
  * The rows as CSV, header included, in the long format the archive publishes.
  * The caller frees it with BAS_FreeString.
  */
