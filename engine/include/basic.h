@@ -170,7 +170,21 @@ typedef enum {
   BAS_ROW_PSET = 0,
   BAS_ROW_PRESET,
   BAS_ROW_LINE,     /**< x,y is the end point; x0,y0 the start. */
-  BAS_ROW_PRINT     /**< A printed numeric column; `column` says which. */
+  BAS_ROW_PRINT,    /**< A printed numeric column; `column` says which. */
+  /**
+   * The display statements, which set up the screen the points are drawn on
+   * rather than drawing one.  They are here because the row stream is an
+   * ordered record of what a listing put out, and a consumer that rasterises
+   * it needs the mode before it can size a buffer: a reader given only the
+   * points would have to guess the screen, and guessing SCREEN 1 is only
+   * right until a listing uses SCREEN 2.
+   *
+   * SCREEN puts its mode in `x`.  COLOR puts background in `x` and palette in
+   * `y`.  CLS carries nothing.
+   */
+  BAS_ROW_SCREEN,
+  BAS_ROW_COLOR,
+  BAS_ROW_CLS
 } BAS_RowKind;
 
 /** Number of rows emitted so far. */

@@ -384,16 +384,42 @@ static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
   in->current_line = s->line_number;
   switch (s->type) {
     case BAS_ST_REM:
+      in->pc++;
+      return 1;
+
     case BAS_ST_CLS:
-    case BAS_ST_SCREEN:
+      emit(in, BAS_ROW_CLS, s->line_number, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0);
+      in->pc++;
+      return 1;
+
+    case BAS_ST_SCREEN: {
+      /* Recorded rather than acted on: this engine emits data and never
+         pixels, so the mode is something the rasteriser is told, not
+         something applied here. */
+      BAS_Real mode = s->e_count > 0 ? eval(in, s->e[0]) : 0.0f;
+      if (in->failed) return 0;
+      emit(in, BAS_ROW_SCREEN, s->line_number, mode, 0.0f, mode, 0.0f, 0.0f, 0);
+      in->pc++;
+      return 1;
+    }
+
     case BAS_ST_RANDOMIZE:
     case BAS_ST_UNSUPPORTED:
       in->pc++;
       return 1;
 
     case BAS_ST_COLOR:
-      /* COLOR sets the default a later PSET uses when it names none. */
+      /* COLOR sets the default a later PSET uses when it names none, and is
+         also recorded, because the background and palette it selects decide
+         what the screen looks like. */
       if (s->e_count > 0) in->colour = eval(in, s->e[0]);
+      {
+        BAS_Real background = s->e_count > 0 ? eval(in, s->e[0]) : 0.0f;
+        BAS_Real palette = s->e_count > 1 ? eval(in, s->e[1]) : 0.0f;
+        if (in->failed) return 0;
+        emit(in, BAS_ROW_COLOR, s->line_number, background, palette,
+             background, palette, 0.0f, 0);
+      }
       in->pc++;
       return 1;
 
@@ -743,7 +769,9 @@ int BAS_GetRuntimeErrorLine(BAS_Instance *in) {
 size_t BAS_GetRowCount(BAS_Instance *in) { return in ? in->row_count : 0; }
 const double *BAS_GetRows(BAS_Instance *in) { return in ? in->rows : NULL; }
 
-static const char *const ROW_KIND_NAME[] = {"pset", "preset", "line", "print"};
+static const char *const ROW_KIND_NAME[] = {"pset",   "preset", "line",
+                                            "print",  "screen", "color",
+                                            "cls"};
 
 BAS_Status BAS_WriteCSV(BAS_Instance *in, char **out_csv) {
   if (!in || !out_csv) return BAS_ERR_ARGUMENT;
@@ -758,7 +786,8 @@ BAS_Status BAS_WriteCSV(BAS_Instance *in, char **out_csv) {
   for (size_t i = 0; i < in->row_count; i++) {
     const double *r = in->rows + i * BAS_ROW_STRIDE;
     int kind = (int)r[BAS_FIELD_KIND];
-    const char *name = (kind >= 0 && kind <= 3) ? ROW_KIND_NAME[kind] : "?";
+    const size_t kinds = sizeof ROW_KIND_NAME / sizeof *ROW_KIND_NAME;
+    const char *name = (kind >= 0 && (size_t)kind < kinds) ? ROW_KIND_NAME[kind] : "?";
     static const char *const BOX_NAME[] = {"", "B", "BF"};
     int box = (int)r[BAS_FIELD_BOX];
     len += (size_t)snprintf(buf + len, cap - len,

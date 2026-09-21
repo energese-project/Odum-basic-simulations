@@ -109,9 +109,12 @@ test('graphics become rows in the program\'s own coordinates', async () => {
   let guard = 0;
   while (program.step(256) === 'more' && guard++ < 1000);
   const drawn = program.rows().filter((r) => r.kind !== 'print');
+  // SCREEN is in the stream too: a rasteriser needs the mode before it can
+  // size a buffer, and guessing it is only right until a listing uses SCREEN 2.
   assert.deepEqual(
     drawn.map((r) => [r.kind, r.x, r.y, r.color, r.box]),
     [
+      ['screen', 1, 0, 0, null],
       ['pset', 10, 20, 3, null],
       ['line', 9, 9, 2, 'B'],
     ],

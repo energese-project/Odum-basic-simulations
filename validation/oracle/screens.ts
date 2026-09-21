@@ -74,24 +74,31 @@ async function ours(run: string, halfEven: boolean): Promise<Uint8Array> {
 }
 
 /**
- * The C engine's rows, replayed as DrawOps.  `SCREEN 1` is synthesised because
- * the CSV records only what was drawn, not the mode that was set; every listing
- * the archive compares this way is SCREEN 1, and a mode mismatch would show up
- * as a wholesale difference rather than a subtle one.
+ * The C engine's rows, replayed as DrawOps.
+ *
+ * The mode used to be synthesised here, because the CSV recorded only what was
+ * drawn and not the screen it was drawn on. The engine records SCREEN, COLOR
+ * and CLS now, so the replay follows the listing rather than assuming it — an
+ * assumption that would have held until the first listing using SCREEN 2.
  */
 function fromCsv(file: string): Uint8Array {
   const [header, ...lines] = readFileSync(file, 'utf8').trim().split(/\r?\n/);
   const cols = header.split(',');
   const at = (row: string[], name: string): string => row[cols.indexOf(name)] ?? '';
   const screen = new Screen();
-  screen.apply({ op: 'screen', mode: 1 });
   for (const text of lines) {
     const row = text.split(',');
     const num = (name: string): number => Number(at(row, name));
     const kind = at(row, 'kind');
     const line = num('line');
     const color = num('color');
-    if (kind === 'pset' || kind === 'preset') {
+    if (kind === 'screen') {
+      screen.apply({ op: 'screen', mode: num('x') });
+    } else if (kind === 'cls') {
+      screen.apply({ op: 'cls' });
+    } else if (kind === 'color') {
+      screen.apply({ op: 'color', background: num('x'), palette: num('y') });
+    } else if (kind === 'pset' || kind === 'preset') {
       screen.apply({ op: 'pset', x: num('x'), y: num('y'), color, line });
     } else if (kind === 'line') {
       const box = at(row, 'box');

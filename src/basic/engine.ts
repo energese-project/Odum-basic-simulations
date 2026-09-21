@@ -30,9 +30,17 @@ export interface Diagnostic {
 /** How a step ended. `awaiting-input` is a suspension, not a failure. */
 export type StepResult = 'more' | 'halted' | 'awaiting-input' | 'failed';
 
-/** One row the engine emitted, in the program's own coordinates. */
+/**
+ * One row the engine emitted, in the program's own coordinates.
+ *
+ * `screen`, `color` and `cls` set up the display rather than drawing on it —
+ * a rasteriser needs the mode before it can size a buffer — so the stream is
+ * an ordered record of everything the listing put out, not only its points.
+ * `screen` carries its mode in `x`; `color` its background in `x` and palette
+ * in `y`.
+ */
 export interface Row {
-  kind: 'pset' | 'preset' | 'line' | 'print';
+  kind: 'pset' | 'preset' | 'line' | 'print' | 'screen' | 'color' | 'cls';
   line: number;
   x0: number;
   y0: number;
@@ -110,7 +118,7 @@ const STATUS = {
 /** BAS_RowField, and BAS_ROW_STRIDE doubles to a row. */
 const FIELD = { KIND: 0, LINE: 1, X0: 2, Y0: 3, X: 4, Y: 5, COLOR: 6, BOX: 7 } as const;
 const ROW_STRIDE = 8;
-const ROW_KINDS = ['pset', 'preset', 'line', 'print'] as const;
+const ROW_KINDS = ['pset', 'preset', 'line', 'print', 'screen', 'color', 'cls'] as const;
 const BOXES = [null, 'B', 'BF'] as const;
 
 /** BAS_Status. 0 is success; the rest are failures to perform validation at all. */
