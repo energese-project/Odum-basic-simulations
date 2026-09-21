@@ -51,11 +51,21 @@ example yourself, it is `original`, and it has no `source`.
 
 ## Changing the language
 
-A new statement or function is three edits, and the middle one is not optional:
+**The full recipe is [AGENTS.md §9](AGENTS.md#9-the-language-core). Read it — this is
+the rule that has been got wrong most, and getting it wrong is silent.**
 
-1. the dispatch in `exec()` or the `FUNCS` table, in
-   [`src/basic/interpreter.ts`](src/basic/interpreter.ts);
-2. a test in [`interpreter.test.ts`](src/basic/interpreter.test.ts) that runs a
-   listing and asserts on what it printed;
-3. the keyword list in [`basic-language.ts`](src/basic/basic-language.ts) — move the
-   word from `PLANNED` to `KEYWORDS` — and the support table in the README.
+The one thing to carry in your head: there are **two** implementations, and the one
+named `interpreter.ts` is not the one that runs. The site executes
+[`engine/`](engine/), compiled to WebAssembly. A statement added to
+`src/basic/interpreter.ts` alone is invisible in the browser, and its test in
+`interpreter.test.ts` passes anyway, so nothing tells you.
+
+The order is: engine (lexer, parser, interp, validate) → a test in `engine/tests/` →
+**`make wasm` and commit the artefact**, because the site loads the committed
+`src/basic/engine.wasm` and not your working tree → the same statement in
+`interpreter.ts` with its test, or `scripts/compare-engines.ts` stops comparing equals
+→ `basic-language.ts`, moving the word from `PLANNED` to `KEYWORDS`, and the README's
+support table.
+
+Then `make attest`: the oracle comparison runs our side through both implementations,
+so a language change moves it.
