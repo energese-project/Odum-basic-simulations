@@ -680,7 +680,12 @@ BAS_Status BAS_Step(BAS_Instance *in, size_t max_statements) {
 }
 
 int BAS_CanContinue(BAS_Instance *in) {
-  return in && in->halted && in->can_continue && !in->failed;
+  /* END sets can_continue without knowing whether anything follows it, and a
+     listing whose last statement is END — which is most of them — has nothing
+     for CONT to resume. Reporting otherwise offers the reader a button that
+     does nothing. */
+  return in && in->halted && in->can_continue && !in->failed &&
+         in->pc < in->prog.count;
 }
 
 BAS_Status BAS_Continue(BAS_Instance *in) {

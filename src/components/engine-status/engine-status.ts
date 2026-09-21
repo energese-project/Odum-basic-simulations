@@ -11,10 +11,10 @@ import style from './engine-status.css?raw';
  * the editor silently stops checking, and silence is the wrong answer to "why
  * has it stopped underlining my mistakes". This says so instead.
  *
- * On the wording: the engine checks listings, and *only* checks them. Running a
- * program goes through the TypeScript interpreter and works whether or not this
- * is green, so the label says "engine" and the title says what that covers. It
- * will mean more when execution moves across; it must not claim to now.
+ * The engine now both checks a listing and runs it, so this light reports
+ * something the reader depends on rather than a convenience. When it is red,
+ * pressing Run will fail, and the title says so — previously it said the
+ * opposite, because execution was still the TypeScript interpreter's.
  */
 
 const LABELS: Record<EngineStatus, string> = {
@@ -26,9 +26,9 @@ const LABELS: Record<EngineStatus, string> = {
 const TITLES: Record<EngineStatus, string> = {
   loading: 'The BASIC engine (C, compiled to WebAssembly) is starting.',
   ready:
-    'The BASIC engine (C, compiled to WebAssembly) is running, and checks your listing as you type. Running a program does not depend on it.',
+    'The BASIC engine (C, compiled to WebAssembly) is running. It checks your listing as you type, and runs it when you press Run.',
   unavailable:
-    'The BASIC engine could not be loaded, so listings are not being checked as you type. Running a program is unaffected.',
+    'The BASIC engine could not be loaded, so listings cannot be checked as you type or run.',
 };
 
 export class EngineStatusComponent extends BaseComponent {

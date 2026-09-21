@@ -124,7 +124,10 @@ test('the output copies exactly as it was printed', async ({ page }) => {
     selection.selectAllChildren(out);
     return { copied: selection.toString(), printed: out.textContent ?? '' };
   });
-  const rows = printed.split('\n').filter((l) => /^ ?-?\d/.test(l)).length;
+  // A number may open with its point: GW-BASIC prints .01, not 0.01, and the
+  // engine follows it (validation/oracle/runs/print.txt). Counting only lines
+  // that start with a digit would miss every row where T is below 1.
+  const rows = printed.split('\n').filter((l) => /^ ?-?[\d.]/.test(l)).length;
   expect(rows, 'long enough to arrive in many pieces').toBeGreaterThanOrEqual(6_000);
   expect(copied.replace(/\n+$/, '')).toBe(printed.replace(/\n+$/, ''));
 });
