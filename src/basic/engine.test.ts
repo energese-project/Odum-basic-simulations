@@ -76,6 +76,123 @@ test('the engine reports its version', async () => {
   assert.match(bas.version, /^\d+\.\d+\.\d+$/);
 });
 
+test('a program runs to completion and prints what the machine would show', async () => {
+  const bas = await engine();
+  const program = bas.load('10 PRINT "T", "Q"\n20 PRINT 1, 2\n30 END\n');
+  let guard = 0;
+  while (program.step(256) === 'more' && guard++ < 1000);
+  // The text is the console's; the rows are the same numbers for comparison.
+  // The trailing space after the 2 is the number's own; "Q" is a string and
+  // carries none. That asymmetry is GW-BASIC's, recorded in runs/print.txt.
+  assert.equal(program.takeText(), 'T             Q\n 1             2 \n');
+  assert.equal(program.rows().length, 2);
+  program.free();
+});
+
+test('takeText drains, so a stepping loop sees a stream rather than a repeat', async () => {
+  const bas = await engine();
+  const program = bas.load('10 PRINT 1\n20 PRINT 2\n30 END\n');
+  const seen: string[] = [];
+  let guard = 0;
+  for (;;) {
+    const result = program.step(1);
+    seen.push(program.takeText());
+    if (result !== 'more' || guard++ > 100) break;
+  }
+  assert.equal(seen.join(''), ' 1 \n 2 \n');
+  program.free();
+});
+
+test('graphics become rows in the program\'s own coordinates', async () => {
+  const bas = await engine();
+  const program = bas.load('10 SCREEN 1\n20 PSET (10, 20), 3\n30 LINE (0,0)-(9,9),2,B\n40 END\n');
+  let guard = 0;
+  while (program.step(256) === 'more' && guard++ < 1000);
+  const drawn = program.rows().filter((r) => r.kind !== 'print');
+  assert.deepEqual(
+    drawn.map((r) => [r.kind, r.x, r.y, r.color, r.box]),
+    [
+      ['pset', 10, 20, 3, null],
+      ['line', 9, 9, 2, 'B'],
+    ],
+  );
+  program.free();
+});
+
+test('INPUT suspends and resumes across the wasm boundary', async () => {
+  const bas = await engine();
+  const program = bas.load('10 INPUT "YOUR GUESS"; G\n20 PRINT G\n30 END\n');
+  assert.equal(program.step(256), 'awaiting-input');
+  assert.equal(program.inputPrompt(), 'YOUR GUESS');
+  assert.equal(program.provideInput('21'), true);
+  let guard = 0;
+  while (program.step(256) === 'more' && guard++ < 1000);
+  assert.equal(program.takeText(), ' 21 \n');
+  program.free();
+});
+
+test('a line short of values leaves the program waiting', async () => {
+  const bas = await engine();
+  const program = bas.load('10 INPUT A, B\n20 END\n');
+  assert.equal(program.step(256), 'awaiting-input');
+  assert.equal(program.provideInput('3'), false, 'one value cannot satisfy two variables');
+  assert.equal(program.provideInput('4'), true);
+  assert.equal(program.step(256), 'halted');
+  program.free();
+});
+
+test('END stops the program and CONT carries it on', async () => {
+  const bas = await engine();
+  const program = bas.load('10 PRINT 1\n20 END\n30 PRINT 2\n40 END\n');
+  let guard = 0;
+  while (program.step(256) === 'more' && guard++ < 1000);
+  assert.equal(program.takeText(), ' 1 \n');
+  assert.equal(program.canContinue(), true);
+  program.cont();
+  guard = 0;
+  while (program.step(256) === 'more' && guard++ < 1000);
+  assert.equal(program.takeText(), ' 2 \n');
+  program.free();
+});
+
+test('a runtime failure is reported with its line', async () => {
+  const bas = await engine();
+  const program = bas.load('10 DIM A(3)\n20 END\n');
+  assert.equal(program.step(256), 'failed');
+  const failure = program.error();
+  assert.ok(failure, 'a failed program must say why');
+  assert.equal(failure.line, 10);
+  program.free();
+});
+
+test('using a freed program is refused rather than reading freed memory', async () => {
+  const bas = await engine();
+  const program = bas.load('10 END\n');
+  program.free();
+  program.free();   // idempotent
+  assert.throws(() => program.step(1), /freed/);
+});
+
+test('the charge-and-discharge listing runs and prints its table', async () => {
+  const bas = await engine();
+  const dir = new URL('../../programs/', import.meta.url);
+  const program = bas.load(readFileSync(new URL('charge-discharge.bas', dir), 'utf8'));
+  let text = '';
+  let guard = 0;
+  for (;;) {
+    const result = program.step(4096);
+    text += program.takeText();
+    if (result !== 'more') break;
+    if (guard++ > 1000) throw new Error('did not terminate');
+  }
+  // The header the listing prints, and the steady state it reports at the end.
+  assert.match(text, /^T {13}Q {13}OUTFLOW/);
+  assert.match(text, /STEADY STATE J\/K1 = 1000/);
+  // 121 rows of three columns, as the article's validation table says.
+  assert.equal(program.rows().filter((r) => r.kind === 'print').length, 121 * 3 + 1);
+  program.free();
+});
+
 test('every published listing validates clean', async () => {
   const bas = await engine();
   const dir = new URL('../../programs/', import.meta.url);
