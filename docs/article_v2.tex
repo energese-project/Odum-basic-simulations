@@ -46,17 +46,13 @@
 \maketitle
 
 \begin{abstract}
-Ecological simulation models published during the 1980s and 1990s frequently accompanied theoretical expositions as complete BASIC source code listings printed alongside Energy Systems Language diagrams. Although these publications provided full methodological disclosure, the obsolescence of underlying microcomputer architectures and proprietary BASIC dialects has rendered many of these historical models computationally inaccessible. In computational ecology, source code preservation alone does not guarantee long-term re-executability when the requisite execution environments decay. This paper presents Odum BASIC Simulations, an open-source execution runtime and archival framework designed to restore computational reproducibility to historical ecological models without modifying legacy source listings. The framework couples an in-browser interpreter supporting vintage Minimal BASIC and IBM PC graphics dialects with structured provenance validation conforming to research software preservation standards. Each model package integrates verified mathematical formulations, dialect fidelity classifications, and formal diagram attribution metadata. In numerical evaluations across representative benchmark models, the reconstructed runtime reproduced forward-Euler integration sequences to within floating-point display tolerances ($5\times10^{-7}$). Cross-platform comparative validation against an emulated historical execution environment demonstrated identical spatial rasterization across 2,560 trajectory coordinates, while resolving semantic discrepancies in midpoint pixel rounding via primary dialect source analysis. The framework establishes a reproducible computational repository for systems ecology, providing a verified operational substrate for model inspection, validation, and historical reuse.
+Ecological simulation models published during the 1980s and 1990s frequently accompanied theoretical expositions as complete BASIC source code listings printed alongside Energy Systems Language diagrams. Although these publications provided full methodological disclosure, the obsolescence of underlying microcomputer architectures and proprietary BASIC dialects has rendered many of these historical models computationally inaccessible. In computational ecology, source code preservation alone does not guarantee long-term re-executability when the requisite execution environments decay. This paper presents Odum BASIC Simulations, an open-source execution runtime and archival framework designed to restore computational reproducibility to historical ecological models without modifying legacy source listings. The framework couples an in-browser execution engine supporting vintage Minimal BASIC and IBM PC graphics dialects with structured provenance validation conforming to research software preservation standards. The language core is implemented twice: an engine written in C, compiled to WebAssembly, which executes listings and checks them as they are edited, and an independent TypeScript interpreter retained as a reference implementation against which the engine is verified. Each model package integrates verified mathematical formulations, dialect fidelity classifications, and formal diagram attribution metadata. In numerical evaluations across representative benchmark models, the reconstructed runtime reproduced forward-Euler integration sequences to within floating-point display tolerances ($5\times10^{-7}$). Cross-platform comparative validation against an emulated historical execution environment demonstrated identical spatial rasterization across 2,560 trajectory coordinates, while resolving semantic discrepancies in midpoint pixel rounding via primary dialect source analysis. Agreement with an emulator constrains systematic error only insofar as the two implementations share no ancestry; the two independent implementations reported here, written in different languages and computing at different arithmetic precisions, reconstruct the published figure identically (\oracleEnginesDiffering{} differing pixels of \oracleScreenPixels{}), which tests that independence directly. The framework establishes a reproducible computational repository for systems ecology, providing a verified operational substrate for model inspection, validation, and historical reuse.
 
-% REVIEW(abstract): describes one runtime -- "an in-browser interpreter". There
-% are now two independent implementations of the language core: the TypeScript
-% interpreter that executes programs, and a C engine (engine/) compiled to
-% WebAssembly that checks listings in the editor. The abstract's validation
-% sentence stops at the emulator comparison, which understates the result: the
-% two implementations, in different languages and at different precisions, draw
-% the published figure identically (\oracleEnginesDiffering{} pixels of
-% \oracleScreenPixels{}). That is the strongest reproducibility claim the work
-% supports and it is not mentioned here.
+% RESOLVED(abstract): both implementations are now named, and the validation
+% sentence carries the independent-reimplementation result. Note the roles have
+% since inverted relative to when this marker was written: the C engine is the
+% runtime and the TypeScript interpreter is the reference, not the other way
+% round.
 \end{abstract}
 
 \paragraph{Highlights} (five, each at most 85 characters including spaces):
@@ -65,12 +61,10 @@ Ecological simulation models published during the 1980s and 1990s frequently acc
 \item Reconstructs legacy BASIC dialects directly within standard browser runtimes
 \item Provides structured provenance schemas conforming to FAIR4RS principles
 \item Employs automated test harnesses to evaluate forward-Euler trajectory outputs
-\item Validates historical numerical fidelity against emulated reference engines
-% REVIEW(highlights): none of the five mentions the second implementation or
-% the in-editor checker. The emulator bullet and an independent-reimplementation
-% bullet are different claims -- agreement with an emulator constrains shared
-% error only insofar as the two share no ancestry, which is precisely what a
-% second implementation tests. Consider replacing the fourth or fifth bullet.
+\item Verifies the runtime against a second, independently written implementation
+% RESOLVED(highlights): the fifth bullet now carries the independent
+% reimplementation rather than restating the emulator comparison, which the
+% fourth bullet's harnesses already imply. Both are 78 characters or fewer.
 \end{itemize}
 
 \paragraph{Keywords:} systems ecology; H.T. Odum; Energy Systems Language; computational reproducibility; BASIC; software preservation; research software
@@ -91,14 +85,13 @@ To address these limitations, this paper introduces Odum BASIC Simulations, an o
 
 This study presents four primary contributions:
 \begin{enumerate}
-% REVIEW(contributions): contribution 1 is singular -- "a client-side
-% interpreter". The repository now has two implementations, and contribution 4
-% ("rigorous verification methodology") should name independent reimplementation
-% as one of the methods, since that is what R5 is for. See sec:validation.
-\item \textbf{A reconstructed execution runtime:} A client-side interpreter designed to execute legacy ecological BASIC listings without source code alteration, providing tabular data extraction from sequential console outputs and coordinate rasterization for graphical trajectory statements.
+% RESOLVED(contributions): contribution 1 names both implementations and says
+% what the second one buys; contribution 4 names independent reimplementation
+% as a verification method alongside the emulator comparison.
+\item \textbf{A reconstructed execution runtime, implemented twice:} A client-side engine designed to execute legacy ecological BASIC listings without source code alteration, providing tabular data extraction from sequential console outputs and coordinate rasterization for graphical trajectory statements. The language core exists in two independent realizations --- an engine in C, compiled both to WebAssembly and to a native command-line executable, and an interpreter in TypeScript --- which is what makes the verification in contribution~4 possible.
 \item \textbf{An evidential ranking protocol:} A structured framework for arbitrating semantic conflicts among historical specifications, primary interpreter source code, original manuals, and contemporary emulators.
 \item \textbf{A machine-validated provenance ontology:} An archival metadata specification enforcing explicit provenance, rights statements, and dialect fidelity classifications compliant with FAIR4RS guidelines \citep{barker2022}.
-\item \textbf{A rigorous verification methodology:} A systematic evaluation framework incorporating exact analytical benchmarks, automated regression harnesses, and cross-runtime pixel-level comparisons against emulated historical interpreters.
+\item \textbf{A rigorous verification methodology:} A systematic evaluation framework incorporating exact analytical benchmarks, automated regression harnesses, cross-runtime pixel-level comparisons against emulated historical interpreters, and agreement between two independently written implementations of the language core computing at different arithmetic precisions.
 \end{enumerate}
 
 %% ----------------------------------------------------------------------------
@@ -167,15 +160,10 @@ The metadata schema defines four discrete tiers of transcription fidelity (Table
 \end{enumerate}
 Where modern emulators deviate from primary interpreter source code, the framework conforms to the primary source implementation, documenting the discrepancy as a known divergence within the validation record.
 
-% REVIEW(design/longevity): the claim that every component is "vendored
-% directly within the static repository" is now literally true in a way worth
-% stating: src/basic/engine.wasm is a committed binary, because GitHub Pages
-% deploys with `npm ci && npm run build` on a runner with neither emscripten nor
-% containers. A committed binary can stop following from its source, so CI
-% rebuilds it in a digest-pinned emscripten image and fails if a byte moved
-% (engine/build-wasm.sh --check, the `wasm` job). That is the longevity
-% principle applied to a build product, and it belongs in this paragraph.
-\paragraph{Architectural longevity and independence.} To prevent the recurrence of software collapse, the runtime is constructed entirely on open, standardized web platform primitives without reliance on transient server-side infrastructure, remote databases, or dynamic content-delivery network dependencies. All runtime libraries and architectural components are vendored directly within the static repository structure, ensuring that the archive remains fully functional as a self-contained computational distribution.
+% RESOLVED(design/longevity): the paragraph now states the committed-artefact
+% case and the rebuild check that keeps it honest (engine/build-wasm.sh
+% --check, the `wasm` job).
+\paragraph{Architectural longevity and independence.} To prevent the recurrence of software collapse, the runtime is constructed entirely on open, standardized web platform primitives without reliance on transient server-side infrastructure, remote databases, or dynamic content-delivery network dependencies. All runtime libraries and architectural components are vendored directly within the static repository structure, ensuring that the archive remains fully functional as a self-contained computational distribution. This extends to compiled artifacts: the WebAssembly build of the execution engine is committed to the repository, because the deployment runner provides neither a C toolchain nor a container runtime, and an archive that can only be built on a machine with the right compiler installed has merely relocated the dependency it was trying to remove. A committed binary can silently cease to correspond to its source, so continuous integration rebuilds it within a digest-pinned toolchain image on every proposed change and fails if a single byte differs. The longevity principle is thereby applied to build products as well as to source: what is archived is executable without reconstruction, and what is executable is provably derived from what is archived.
 
 \paragraph{Behavioral, specification-first test harnesses.} System modifications are validated through external behavioral assertions rather than unit-level internal state tests. Interpreter test suites execute concrete BASIC listings and evaluate rendered output tables, while archival validation harnesses ensure metadata completeness, bibliographic integrity, and asset compliance.
 
@@ -183,35 +171,29 @@ Where modern emulators deviate from primary interpreter source code, the framewo
 \section{Runtime architecture and execution engine}
 \label{sec:implementation}
 
-% REVIEW(implementation): this section describes a single TypeScript
-% interpreter and needs the second implementation added. As of engine/:
-%
-%   - The language core is implemented a second time in C. It is built two ways
-%     from one source: a native command-line tool (`odum run|check`) and a
-%     WebAssembly module shipped with the site.
-%   - The C engine separates checking from running on purpose. BAS_Validate
-%     parses without executing, so it is safe on every keystroke; BAS_Init and
-%     BAS_Step execute a bounded number of statements at a time, so a Web Worker
-%     keeps the ability to stop a program that does not terminate and CONT can
-%     resume where END left the program counter.
-%   - It emits rows in the program's own coordinates and never pixels, which is
-%     why the oracle comparison can replay its output through the same
-%     rasteriser the TypeScript interpreter uses (see sec:validation, R5).
-%   - What it does NOT do yet: INPUT is unimplemented, and PRINT emits numeric
-%     rows while dropping string literals, so the engine cannot yet produce the
-%     console's text. Execution therefore still runs on the TypeScript
-%     interpreter. Say this plainly here -- it is the reason the two
-%     implementations coexist rather than one having replaced the other.
-The core execution engine comprises an independent interpreter implemented in TypeScript, operating without dependency on external machine emulators or proprietary binary firmware. The interpreter implements the language core required by historical systems ecology models: standard numeric and string variables, multi-dimensional arrays declared via \texttt{DIM}, conditional statements (\texttt{IF/THEN}), branching and subroutine mechanics (\texttt{GOTO}, \texttt{GOSUB/RETURN}), sequential input/output primitives (\texttt{PRINT}, \texttt{INPUT}, \texttt{DATA/READ/RESTORE}), loop constructs (\texttt{FOR/TO/STEP/NEXT}), and fundamental mathematical functions including \texttt{EXP}, \texttt{LOG}, \texttt{SQR}, \texttt{INT}, and \texttt{RND}.
+% RESOLVED(implementation): the section now describes both implementations and
+% which one executes. NOTE for anyone reading the marker this replaced: it was
+% written at 56a43e8 and its last bullet had gone stale. INPUT is implemented
+% (BAS_AWAITING_INPUT, a status that is neither success nor failure), PRINT
+% produces the console's text (BAS_TakeText), and SCREEN/COLOR/CLS are recorded,
+% so execution moved to the C engine and the site no longer runs the TypeScript
+% interpreter at all. The roles are the reverse of what the marker assumed.
+The language core is implemented twice, independently, and neither implementation depends on an external machine emulator or on proprietary binary firmware. The implementation that executes listings is written in C and compiled from a single source to two targets: a WebAssembly module shipped with the site, and a native command-line executable providing \texttt{run} and \texttt{check} subcommands. The second implementation is an interpreter in TypeScript, which executed listings in earlier releases and is now retained as a reference implementation: it is the independent second opinion the verification in Section~\ref{sec:validation} rests on, and is exercised by its own test suite rather than by the site.
 
-For later PC-DOS listings, the engine implements standard graphics operations, including \texttt{SCREEN} modes 1 and 2, \texttt{COLOR}, \texttt{CLS}, and rasterization operations (\texttt{PSET}, \texttt{PRESET}, and \texttt{LINE} with coordinate offsets and box-fill parameters), alongside control execution resumption via \texttt{CONT}. Graphical routines maintain dual internal representations: coordinates are simultaneously rasterized to an emulated display buffer and retained as continuous numerical vectors, enabling analytical trajectory recovery. Structured control operations and complex formatting statements that are absent from early ecological listings are parsed and styled within the interface as pending language features.
+Separating checking from running is deliberate and is reflected in the engine's interface. Validation parses and analyzes a listing without executing any part of it, which makes it safe to invoke on every keystroke in the editor; execution is driven in bounded slices, running at most a specified number of statements per call, so that a supervising Web Worker retains the ability to halt a program that does not terminate, and so that \texttt{CONT} can resume from the program counter at which \texttt{END} or \texttt{STOP} left it. Suspension is a first-class outcome rather than an error: an \texttt{INPUT} statement returns a distinct status meaning that a line of input is awaited, which is neither success nor failure, and the same mechanism carries the resumption.
+
+A further consequence of this design is that the engine emits graphical output as rows in the program's own coordinate space and never as pixels. Rasterization is performed by a separate routine shared with the TypeScript interpreter, which is precisely what permits the comparison in Section~\ref{sec:validation}: because both implementations are rasterized by the same code, any difference between their screens must originate in the arithmetic rather than in the drawing.
+
+Both implementations cover the language core required by historical systems ecology models: standard numeric and string variables, multi-dimensional arrays declared via \texttt{DIM}, conditional statements (\texttt{IF/THEN}), branching and subroutine mechanics (\texttt{GOTO}, \texttt{GOSUB/RETURN}), sequential input/output primitives (\texttt{PRINT}, \texttt{INPUT}, \texttt{DATA/READ/RESTORE}), loop constructs (\texttt{FOR/TO/STEP/NEXT}), and fundamental mathematical functions including \texttt{EXP}, \texttt{LOG}, \texttt{SQR}, \texttt{INT}, and \texttt{RND}.
+
+For later PC-DOS listings, both implementations provide the standard graphics operations, including \texttt{SCREEN} modes 1 and 2, \texttt{COLOR}, \texttt{CLS}, and the drawing statements (\texttt{PSET}, \texttt{PRESET}, and \texttt{LINE} with coordinate offsets and box-fill parameters), alongside resumption of execution via \texttt{CONT}. The display-configuration statements are recorded in the output stream rather than discarded, because a rasterizer cannot size a buffer until it knows the mode that was selected; the stream is therefore an ordered record of everything a listing emitted, not only of the points it plotted. Downstream of that stream, two representations are maintained: coordinates are rasterized to an emulated display buffer, reproducing the screen as the original hardware showed it, and are simultaneously retained as continuous numerical vectors in the program's own units, enabling analytical trajectory recovery. Keeping these apart matters for the comparisons in Section~\ref{sec:validation}: the pixels are how a run appeared, which is what published figures record, whereas the vectors are what it computed. Structured control operations and complex formatting statements that are absent from early ecological listings are parsed and styled within the interface as pending language features.
 
 % RESOLVED(implementation/precision): the paragraph now names which
 % implementation each claim describes, and states the engine's compile-time
 % arithmetic contract. See engine/include/basic_config.h, which argues both
 % hazards out. What is still missing from this section is the rest of the
 % architecture -- REVIEW(implementation) above -- not the precision.
-Numerical computation in the TypeScript interpreter is conducted in IEEE-754 double-precision floating-point arithmetic, with tabular console output formatted to six decimal places. The C engine, which is the implementation the site now executes, computes in IEEE-754 single precision: \texttt{BAS\_Real} is C's \texttt{float}, so every operation rounds to single because that is what the type does, and its console output gives a single seven significant digits as GW-BASIC did. That contract is enforced at compile time rather than assumed --- the build requires \texttt{FLT\_EVAL\_METHOD == 0} and refuses to compile without it, since evaluating intermediates more widely would turn \texttt{A = A + DA * DT} into one rounding where GW-BASIC performed three, and \texttt{-ffp-contract=off} is passed because a fused multiply-add rounds once where the original rounded twice. Historical microcomputer interpreters utilized shorter numerical formats; for example, Commodore BASIC V2 employed a 5-byte format (32-bit significand, 8-bit exponent) yielding approximately nine decimal digits, whereas GW-BASIC implemented 4-byte single-precision Microsoft Binary Format (MBF) yielding approximately seven significant digits. Consequently, runtime fidelity is calibrated to reproduce the underlying compartmental model equations and dynamic trajectories, while recognizing that the least significant printed digits may reflect architectural precision differences. The interpreter operates within an isolated Web Worker execution thread, maintaining thread safety and preventing computational freezing during iterative numerical integration loops.
+Numerical computation in the TypeScript interpreter is conducted in IEEE-754 double-precision floating-point arithmetic, with tabular console output formatted to six decimal places. The C engine, which is the implementation the site now executes, computes in IEEE-754 single precision: \texttt{BAS\_Real} is C's \texttt{float}, so every operation rounds to single because that is what the type does, and its console output gives a single seven significant digits as GW-BASIC did. That contract is enforced at compile time rather than assumed --- the build requires \texttt{FLT\_EVAL\_METHOD == 0} and refuses to compile without it, since evaluating intermediates more widely would turn \texttt{A = A + DA * DT} into one rounding where GW-BASIC performed three, and \texttt{-ffp-contract=off} is passed because a fused multiply-add rounds once where the original rounded twice. Historical microcomputer interpreters utilized shorter numerical formats; for example, Commodore BASIC V2 employed a 5-byte format (32-bit significand, 8-bit exponent) yielding approximately nine decimal digits, whereas GW-BASIC implemented 4-byte single-precision Microsoft Binary Format (MBF) yielding approximately seven significant digits. Consequently, runtime fidelity is calibrated to reproduce the underlying compartmental model equations and dynamic trajectories, while recognizing that the least significant printed digits may reflect architectural precision differences. Execution proceeds within an isolated Web Worker thread, maintaining responsiveness and preventing the interface from freezing during iterative numerical integration loops; because the engine executes in bounded slices, a non-terminating listing can be interrupted rather than merely waited out.
 
 \begin{figure}[t]
 \centering
@@ -220,26 +202,11 @@ Numerical computation in the TypeScript interpreter is conducted in IEEE-754 dou
 \label{fig:workbench}
 \end{figure}
 
-% REVIEW(implementation/website): nothing in this section says how any of this
-% reaches the site, which is a gap given the paper is about a browser runtime.
-% What happens now, and is worth a short paragraph here:
-%
-%   - engine.wasm is fetched once per page and instantiated in the browser.
-%     BAS_Validate returns diagnostics already in the editor's marker shape, so
-%     they are passed through untranslated rather than converted.
-%   - The editor checks the listing as it is typed (debounced), so a reader
-%     editing a historical listing is told where it stops being valid BASIC.
-%   - The same engine backs the command-line tool's `check`, so the editor and
-%     the tool agree by construction rather than by two implementations being
-%     kept in step. That is an architectural claim the paper should make.
-%   - It fails open: if the module cannot be fetched the editor keeps working
-%     without marks, because an editor that refuses to open because a checker is
-%     missing is worse than an unchecked one. The topbar indicator in Figure 1
-%     reports which state it is in.
-%   - The build emits no JavaScript glue (-sSTANDALONE_WASM, --no-entry); the
-%     only import is a memory-growth notice, because the validation path touches
-%     no stdio and so pulls in no WASI. Worth one clause: it is what keeps the
-%     committed artefact reviewable.
+% RESOLVED(implementation/website): a paragraph on delivery now follows,
+% covering instantiation, the in-editor checker, the shared-engine argument,
+% the fail-open behaviour and the glue-free build.
+
+\paragraph{Delivery to the browser.} The WebAssembly module is fetched once per session and instantiated directly, both on the main thread, where the editor uses it, and inside the Web Worker that executes listings. Its diagnostics are emitted in the structure the editor's annotation interface already expects, and are therefore passed through without translation; the listing in the editor is re-checked as it is typed, so a reader modifying a historical program is shown immediately where it ceases to be valid BASIC for the selected dialect. The same compiled core backs the command-line tool's \texttt{check} subcommand, so the editor and the tool agree by construction rather than by two separately maintained implementations being kept in step --- an architectural property, not a testing outcome. The checker fails open: if the module cannot be retrieved, the editor continues to operate without annotations, on the reasoning that an editor which refuses to open because its checker is missing is worse than one which opens unchecked, and the interface indicator visible in Figure~\ref{fig:workbench} reports which of the two states obtains. The module is built without JavaScript glue code, as a standalone WebAssembly binary with no entry point; its only import is a memory-growth notification, because the validation path performs no input or output and therefore introduces no system-interface dependency. This is what keeps the committed artifact small enough to be reviewed and stable enough to be compared byte for byte against a rebuild.
 Automated extraction of quantitative trajectories from legacy console output requires a systematic heuristic. Because historical simulation listings predate structured data-interchange formats, simulation results were sequentially emitted via formatted \texttt{PRINT} statements. The extraction engine scans the output stream for contiguous blocks of multi-column numeric data delimited by standard whitespace or tab tokens. The longest contiguous block sharing a constant field width is classified as the primary simulation table, with the initial column designated as the independent temporal variable. Column headers are automatically parsed from preceding non-numeric string labels. If the parsing heuristic fails to detect a consistent tabular structure, raw text streams remain fully accessible to the user, and resolved tables may be exported as standardized comma-separated values (CSV).
 
 \begin{figure}[t]
@@ -330,48 +297,29 @@ In accordance with institutional guidelines governing the disclosure of artifici
 
 The runtime architecture, parsing modules, and metadata validation suites were implemented utilizing Claude Code \citep{claudeCode}, an agentic development tool operating with the Claude Opus~5 language model, under continuous human direction. The methodological division of responsibility maintained human ownership over system architecture, mathematical formulations, dialect precedence rules, and intellectual property governance, while leveraging the language model for rapid code drafting, test construction, and documentation synthesis. Direct automated modifications to production branches were prohibited: all generated code was committed to isolated task branches and required successful passage through automated regression harnesses and human code review prior to integration.
 
-To mitigate known failure modes associated with automated code generation—including hallucinated language features, silent numerical edge-case failures, and architectural regression—the development lifecycle enforced five procedural controls:
+To mitigate known failure modes associated with automated code generation—including hallucinated language features, silent numerical edge-case failures, and architectural regression—the development lifecycle enforced six procedural controls:
 \begin{enumerate}
 \item \textbf{Specification-first test-driven implementation:} Explicit unit assertions and behavioral expectations were defined prior to the synthesis of functional runtime modules.
 \item \textbf{Dual-layer integration testing:} Automated test pipelines executed test suites across both raw development sources and compiled, bundled deployment packages to detect toolchain-induced discrepancies.
 \item \textbf{Isolated development worktrees:} Concurrent programming tasks were executed within segregated git worktrees, preventing cross-task state contamination.
 \item \textbf{Machine-checkable visual regression testing:} Automated browser automation harnesses captured rendered interface states against pinned golden reference images, verifying that visual outputs, plotting canvases, and layout structures remained invariant across modifications.
-% REVIEW(llm/controls): a sixth control now exists and is the strongest of
-% them: the attestation. `make attest` regenerates every result in
-% validation/oracle/ from scratch inside digest-pinned containers and compares
-% each against a recorded SHA-256, and a `wasm` job rebuilds the committed
-% WebAssembly artefact and fails if a byte moved. Both run on every pull
-% request. The distinction worth drawing is that controls 1-5 check that the
-% code does what a test says, whereas this checks that published numbers can
-% still be regenerated -- which is the property the paper is about.
+% RESOLVED(llm/controls): the attestation is now control 6, with the
+% distinction drawn between checking that code satisfies a test and checking
+% that published results can still be regenerated.
 \item \textbf{Granular commit auditing:} Machine-assisted commits incorporated standardized co-author trailers, providing an immutable audit trail of automated contributions within the repository history.
+\item \textbf{Regeneration attestation:} Every result underlying the comparisons reported in Section~\ref{sec:validation} is regenerated from source within digest-pinned container images and compared against a recorded SHA-256 digest, and the committed WebAssembly artifact is rebuilt and rejected if a single byte differs from the version in the repository. Both checks execute on every proposed change. This control differs in kind from the preceding five: those establish that the code satisfies an assertion an author wrote, whereas this establishes that the numerical and graphical results published in this paper can still be produced from the archived source --- which is the property the paper is itself about, and the one most vulnerable to silent decay.
 \end{enumerate}
 
-% REVIEW(llm/efficacy): this paragraph reports only failures the controls
-% caught, which overstates them. A defect reached the deployed site and is worth
-% reporting honestly, because it is a failure mode specific to this methodology:
-%
-%   The C engine selected a statement type by arithmetic on the keyword
-%   enumeration -- `map[kw - BAS_KW_DIM]`. INPUT does not sit beside DIM in that
-%   enumeration, so the subtraction underflowed as an unsigned index, passed the
-%   bounds check, and selected entry zero: every INPUT was parsed as a DIM. It
-%   validated clean wherever the statement resembled a DIM, which `INPUT G`
-%   does, so nothing failed until `INPUT "YOUR GUESS"; G` -- the form used by an
-%   archived listing -- was checked, and the editor then reported a published
-%   listing as broken. Two releases shipped in that state.
-%
-%   The test that should have caught it asserted that "every published listing
-%   must pass the checker", and then checked one listing. The control was
-%   present and the assertion was wrong: a sample of one, written as a
-%   guarantee about a corpus. The fix was to check the whole corpus, and the
-%   regression guard was confirmed to fail against the previously committed
-%   artefact before it was allowed to pass.
-%
-% This is a more useful methodological finding than the two successes already
-% reported, and it qualifies the claim in the closing sentence of this section:
-% test harnesses bound what a model can silently get wrong only to the extent
-% that the assertions say what the author believes they say.
-The efficacy of these validation controls was evaluated empirically against subtle implementation errors encountered during runtime construction. For example, integration testing identified an unhandled temporal index offset in a synthetic two-tank benchmark listing, wherein an inflow termination condition was evaluated subsequent to state integration, shifting effective cutoff timing by two integration intervals. Similarly, during the implementation of graphics coordinate transformations, regression testing revealed discrepancies in midpoint coordinate rounding between modern floating-point conversions and legacy PC rasterization routines. In each instance, automated test failures or explicit source discrepancies halted integration, necessitating human architectural intervention. These observations reinforce established findings in empirical software engineering: while automated language models demonstrate high proficiency in generating localized algorithms to formal specifications \citep{chen2021}, their deployment in complex systems requires formal testing harnesses and human domain expertise to ensure scientific integrity \citep{jimenez2024}.
+% RESOLVED(llm/efficacy): the INPUT-as-DIM defect is now reported in the text
+% below, with the sample-of-one assertion named as the cause and the closing
+% claim qualified accordingly. "Two releases" was verified against the history:
+% the defect was live from the merge that shipped the WebAssembly checker until
+% the merge that implemented INPUT, spanning two deployments.
+The efficacy of these validation controls was evaluated empirically against subtle implementation errors encountered during runtime construction. For example, integration testing identified an unhandled temporal index offset in a synthetic two-tank benchmark listing, wherein an inflow termination condition was evaluated subsequent to state integration, shifting effective cutoff timing by two integration intervals. Similarly, during the implementation of graphics coordinate transformations, regression testing revealed discrepancies in midpoint coordinate rounding between modern floating-point conversions and legacy PC rasterization routines. In each instance, automated test failures or explicit source discrepancies halted integration, necessitating human architectural intervention.
+
+Reporting only the defects the controls intercepted would overstate them, and one failure reached the deployed application. The C engine selected its handler for a statement by performing arithmetic on the keyword enumeration. The \texttt{INPUT} keyword does not adjoin \texttt{DIM} in that enumeration, so the subtraction underflowed as an unsigned index, passed the subsequent bounds test, and selected entry zero: every \texttt{INPUT} statement was consequently parsed as a \texttt{DIM}. The misparse validated cleanly wherever the statement resembled a declaration, which the bare form \texttt{INPUT G} does, and nothing failed until the prompted form used by an archived listing was checked, at which point the editor reported a published listing as syntactically broken. Two deployments shipped in that state. The control that should have caught this was present: a test asserting that every published listing must pass the checker. The assertion was wrong rather than absent --- it checked a single listing while being written as a guarantee about a corpus. The remedy was to check the entire corpus, and the regression guard was confirmed to fail against the previously committed artifact before it was permitted to pass.
+
+This failure is methodologically more informative than the successes above, and it qualifies the conclusion. These observations reinforce established findings in empirical software engineering: while automated language models demonstrate high proficiency in generating localized algorithms to formal specifications \citep{chen2021}, their deployment in complex systems requires formal testing harnesses and human domain expertise to ensure scientific integrity \citep{jimenez2024}. The qualification is that a harness bounds what a model can silently get wrong only to the extent that its assertions state what their author believes they state. A generated test that names the right property and then verifies a sample of one reads, in review, exactly like a test that verifies the property.
 
 \begin{table}[h]
 \centering\small
@@ -379,55 +327,46 @@ The efficacy of these validation controls was evaluated empirically against subt
 \toprule
 Architectural component & Metric count \\
 \midrule
-Pull requests integrated & 17 \\
-Non-merge development commits & 24 \\
-TypeScript source lines (interpreter core and utilities) & 5{,}899 \\
-\quad of which dedicated to the BASIC interpreter engine & 1{,}024 \\
-Styling and interface markup lines & 1{,}920 \\
-Automated test suite volume (lines of test code) & 3{,}476 \\
-Unit test assertions & 218 \\
-End-to-end integration test assertions (development and release builds) & 96 \\
-Visual regression golden assertions & 3 \\
+Pull requests integrated & 36 \\
+Non-merge development commits & 49 \\
+C engine source and header lines (executing implementation) & 2{,}664 \\
+\quad committed WebAssembly artifact & 68\,KB \\
+TypeScript source lines (application, archive and utilities) & 6{,}898 \\
+\quad of which the reference BASIC interpreter & 1{,}024 \\
+Styling and interface markup lines & 1{,}953 \\
+Automated test suite volume (lines of test code) & 4{,}807 \\
+\quad of which C engine test suites & 872 \\
+Unit test assertions & 236 \\
+End-to-end integration test assertions (development and release builds) & 113 \\
+Visual regression golden assertions & 4 \\
+Attested regeneration results & 33 \\
 \bottomrule
 \end{tabularx}
-% REVIEW(llm/table): every count is stale, and the C engine is missing
-% entirely. Measured at 56a43e8 -- regenerate before submission rather than
-% copying these:
-%
-%   Pull requests integrated          17 -> 28
-%   Non-merge development commits     24 -> 41
-%   TypeScript source lines        5,899 -> 6,578
-%     of which the BASIC interpreter 1,024 (unchanged)
-%   Unit test assertions             218 -> 226
-%   End-to-end assertions             96 -> 113 (56 tests over two projects)
-%   Visual regression goldens          3 -> 4
-%
-% Rows the table does not have and needs, since the C engine is a headline
-% contribution: C engine source and headers, 2,273 lines; C engine tests, 645
-% lines (51 assertions across three suites); the committed WebAssembly artefact,
-% 52 KB. Also consider a row for the attestation, which is 32 recorded results.
+% RESOLVED(llm/table): regenerated at 76fa9a9, not copied from the marker --
+% which was itself measured at 56a43e8 and had gone stale again. The C engine
+% now has its own rows. TypeScript source is src/ excluding *.test.ts; test
+% volume is src/**/*.test.ts plus e2e/ plus engine/tests/. Regenerate again
+% before submission; the commands are in the pull request that added this.
 \caption{Quantitative structural metrics of the reconstructed execution framework and validation test harness, derived from the version-controlled release repository.}
 \label{tab:llm}
 \end{table}
 
-% REVIEW(llm/ratio): "over 37%" is computed from the stale figures above and
-% excludes the C engine's tests entirely. Recompute from the corrected table.
-The resulting codebase (Table~\ref{tab:llm}) maintains a substantial ratio of verification logic to runtime logic, with automated test harnesses comprising over 37\% of the total codebase volume. This extensive testing infrastructure provides the empirical basis for trusting a computational engine constructed through AI-assisted development methodologies.
+% RESOLVED(llm/ratio): recomputed from the regenerated table, with the
+% denominator stated rather than left implicit (the original 37% excluded
+% styling and markup, which was not said).
+The resulting codebase (Table~\ref{tab:llm}) maintains a substantial ratio of verification logic to runtime logic: automated test harnesses comprise 4{,}807 lines against 9{,}562 lines of executable source across both implementations, or approximately 33\% of the combined total, excluding styling and interface markup. This ratio understates the verification effort, because it counts only test code and not the attestation records, the pinned golden images, or the second implementation itself, whose purpose is verification rather than delivery. This infrastructure provides the empirical basis for trusting a computational engine constructed through AI-assisted development methodologies --- subject to the qualification established above, that an assertion binds only what it actually states.
 
 %% ----------------------------------------------------------------------------
 \section{Validation and numerical analysis}
 \label{sec:validation}
 
-% REVIEW(validation/tiers): "three complementary lines" no longer enumerates
-% what the section contains. Independent reimplementation (R5) is now argued in
-% sec 7.2, but it is a different kind of evidence from emulator agreement: an
-% emulator constrains shared error only insofar as it shares no ancestry with
-% the interpreter, whereas a second implementation written from the same
-% specification tests that directly. Either promote it to a fourth tier with its
-% own subsection and say so here, or state explicitly that tier two now has two
-% components. Leaving the count at three while the text carries four arguments
-% is the one option to avoid.
-Evaluating the reliability of the reconstructed runtime requires three complementary lines of empirical evidence: comparative verification against analytical solutions of canonical ecological systems, cross-platform validation against emulated historical interpreters, and concordance testing against historical printed outputs.
+% RESOLVED(validation/tiers): promoted to four tiers, with independent
+% reimplementation given its own subsection rather than folded into the
+% emulator comparison. They answer different questions: the emulator asks
+% whether we agree with a period-faithful reference, the second implementation
+% asks whether agreement is a property of the language core or an artefact of
+% one program that happens to compute it.
+Evaluating the reliability of the reconstructed runtime requires four complementary lines of empirical evidence: comparative verification against analytical solutions of canonical ecological systems, cross-platform validation against emulated historical interpreters, agreement between two independently written implementations of the language core, and concordance testing against historical printed outputs. The third of these is not a variant of the second. An emulator constrains systematic error only to the degree that it shares no ancestry with the runtime under test, which is an assumption about provenance; a second implementation, written separately from the same specification and computing at a different precision, tests that assumption directly.
 
 \subsection{Analytical verification on canonical compartmental models}
 
@@ -514,11 +453,15 @@ Cross-platform raster comparison revealed an informative implementation divergen
 
 Applying the hierarchical evidentiary criteria defined in Section~\ref{sec:design}, this conflict was arbitrated through examination of primary source artifacts. Within the released assembly source code of GW-BASIC \citep{gwbasic}, graphics coordinate conversion calls the internal routine shared by the integer conversion function \texttt{CINT}, which implements symmetric round-half-away-from-zero rounding. Consequently, the reconstructed runtime's coordinate mapping conformed to the historical hardware implementation, whereas the emulator exhibited an undocumented internal deviation. Resolving this discrepancy demonstrates the value of multi-engine comparative validation in computational software archaeology.
 
-A reconstructed runtime that recovers a historical trajectory establishes that the trajectory is recoverable; it does not establish that the recovery is independent of the particular program performing it. A systematic error in the interpreter would be reproduced faithfully by every run of that interpreter, and agreement with an emulator constrains this only insofar as the two share no common ancestry. To separate these, the language core was implemented a second time, in C, and compiled both to a native command-line executable and to WebAssembly for in-browser use. The second implementation computes in single precision by type rather than in double precision, and enforces its arithmetic contract at compile time: intermediate results may not be evaluated at wider precision (\texttt{FLT\_EVAL\_METHOD} equal to zero), and floating-point contraction is disabled, so that a fused multiply-add cannot round once where the original rounded twice.
+\subsection{Independent reimplementation of the language core}
+
+A reconstructed runtime that recovers a historical trajectory establishes that the trajectory is recoverable; it does not establish that the recovery is independent of the particular program performing it. A systematic error in the interpreter would be reproduced faithfully by every run of that interpreter, and agreement with an emulator constrains this only insofar as the two share no common ancestry. To separate these, the language core was implemented a second time, in C, and compiled both to a native command-line executable and to WebAssembly for in-browser use. The comparison reported here was performed when the TypeScript interpreter was still the executing implementation and the C engine the newcomer; the roles have since exchanged, and the engine is now the runtime described in Section~\ref{sec:implementation}, with the interpreter retained as the reference. The comparison is unaffected by which of the two the site invokes, and is repeated on every proposed change. The C implementation computes in single precision by type rather than in double precision, and enforces its arithmetic contract at compile time: intermediate results may not be evaluated at wider precision (\texttt{FLT\_EVAL\_METHOD} equal to zero), and floating-point contraction is disabled, so that a fused multiply-add cannot round once where the original rounded twice.
 
 Executing the same listing through this implementation (Run R5) and rasterizing its output through the display routine shared with the primary interpreter yields a screen differing from that interpreter's in \oracleEnginesDiffering{} of \oracleScreenPixels{} pixels, and differing from the PC-BASIC reference in \oracleEngineScreenDiffering{}---the identical disparity exhibited by the primary interpreter, and attributable to the same midpoint rounding convention analyzed above. Rounding to single precision after every operation within the TypeScript interpreter likewise alters \oraclePrecisionsDiffering{} pixels. Two independently written implementations, in different languages and at different arithmetic precisions, therefore reconstruct the published figure identically, which localizes the residual disparity in the rasterization convention rather than in either interpreter or in the choice of numeric format. This comparison is regenerated and verified on every proposed change to the repository, so the agreement is a maintained property rather than a single historical measurement.
 
-The third tier of validation—direct automated verification against original printed output tables and published figure scans—represents an ongoing empirical objective that requires progressive expansion of the verified listing corpus.
+\subsection{Concordance with historical printed output}
+
+The fourth tier of validation---direct automated verification against original printed output tables and published figure scans---represents an ongoing empirical objective that requires progressive expansion of the verified listing corpus.
 
 %% ----------------------------------------------------------------------------
 \section{Discussion}
@@ -544,20 +487,13 @@ Similarly, establishing explicit rights metadata for accompanying visual diagram
 Several technical boundaries bound the current implementation:
 \begin{enumerate}
 \item \textbf{Language dialect coverage:} The current interpreter core supports the standard procedural and graphical statements characteristic of Odum's minimodels, but omits advanced structured control constructs (\texttt{WHILE/WEND}, \texttt{SELECT CASE}) and specialized string-formatting commands (\texttt{PRINT USING}, \texttt{LOCATE}). Expanding dialect coverage is required to accommodate larger simulation listings.
-% REVIEW(limitations): the dialect-coverage item above lists what the
-% TypeScript interpreter omits, but the C engine's gaps are larger and more
-% consequential, because they are what currently prevents a single
-% implementation from serving the whole system. Add them:
-%   - INPUT is not implemented, and implementing it is not just a missing case:
-%     it must suspend and resume across BAS_Step, and BAS_Status has no value
-%     meaning "waiting for input", so it is an API change.
-%   - PRINT emits numeric rows and drops string literals by design, so the
-%     engine produces no console text and the table heuristic has nothing to
-%     read.
-% Until both exist, the site runs programs on the TypeScript interpreter and
-% checks them with the C engine. A reader should be told that, and told that
-% moving execution across would also move the arithmetic to single precision --
-% see the note at the validation section.
+% RESOLVED(limitations): the marker this replaces listed the C engine's
+% missing INPUT and PRINT text as the limitation. Both were implemented
+% (#34, #35), execution moved across (#37, #38), and the arithmetic moved to
+% single precision with it, which is now reported in sec:validation rather than
+% projected as a consequence. The genuine remaining divergence between the two
+% implementations is narrower and is stated below.
+\item \textbf{Divergence between the two implementations:} The reference interpreter and the executing engine are not interchangeable in every detail. A \texttt{PSET} statement that omits its color argument resolves to the highest color of the current mode in the reference implementation and to the most recently selected color in the engine; no listing in the archive depends on the difference, because each names its color explicitly, but the divergence is recorded rather than resolved by fiat. More generally, the two implementations are verified to agree on the archive's listings and on the compared published listing, which is evidence about that corpus and not a proof of equivalence.
 \item \textbf{Empirical corpus expansion:} The present study validates the runtime architecture primarily against canonical benchmark models and selected historical listings. Transcribing, validating, and cataloging the extensive corpus of models distributed across Odum's foundational texts \citep{odum1983,odumMinimodels,odumOdum2000} constitutes an ongoing archival effort.
 \item \textbf{Automated raster validation:} While graphical outputs can be rendered and compared at the pixel level, automated validation against historical scanned diagrams requires the development of robust visual comparison metrics that account for paper aging, print distortions, and scanner artifacts.
 \end{enumerate}
@@ -568,11 +504,9 @@ Several technical boundaries bound the current implementation:
 
 The computational preservation of historical scientific literature requires restoring the execution environments upon which computational claims depend. H.T. Odum and his collaborators documented systems ecology through fully disclosed, executable BASIC programs, yet the obsolescence of vintage computing environments rendered these models historically inaccessible.
 
-% REVIEW(conclusions): the summary stops at emulator agreement and omits the
-% independent-reimplementation result, which is the conclusion best supported by
-% the evidence: two implementations, two languages, two arithmetic precisions,
-% one identical screen. If the abstract is revised, revise this in step.
-Odum BASIC Simulations addresses this challenge by providing an open-source, web-standard execution runtime and archival repository that executes historical simulation listings without textual modernization. By enforcing machine-checked provenance schemas, formal fidelity taxonomies, and hierarchical evidence arbitration, the framework restores computational repeatability to historical systems ecology models. Numerical evaluations demonstrate that the reconstructed runtime achieves exact arithmetic concordance with legacy forward-Euler recurrences and resolves subtle historical rasterization semantics through primary interpreter source analysis. This computational framework bridges the gap between historical scientific literature and modern reproducibility standards, ensuring that foundational ecological models remain accessible for inspection, validation, and scientific inquiry.
+% RESOLVED(conclusions): revised in step with the abstract; the
+% independent-reimplementation result is now the closing claim.
+Odum BASIC Simulations addresses this challenge by providing an open-source, web-standard execution runtime and archival repository that executes historical simulation listings without textual modernization. By enforcing machine-checked provenance schemas, formal fidelity taxonomies, and hierarchical evidence arbitration, the framework restores computational repeatability to historical systems ecology models. Numerical evaluations demonstrate that the reconstructed runtime achieves exact arithmetic concordance with legacy forward-Euler recurrences, differing from them by no more than the rounding of its own printed output, and resolves subtle historical rasterization semantics through primary interpreter source analysis. The strongest evidence the work provides, however, is not agreement with a reference but agreement between independents: two implementations of the language core, written separately in two languages and computing at two arithmetic precisions, reconstruct the published figure as the same screen. That localizes the sole remaining discrepancy in a documented rasterization convention rather than in either implementation, and because the comparison is regenerated and verified on every change to the repository, it is a maintained property of the archive rather than a measurement taken once. This computational framework bridges the gap between historical scientific literature and modern reproducibility standards, ensuring that foundational ecological models remain accessible for inspection, validation, and scientific inquiry.
 
 %% ----------------------------------------------------------------------------
 \section*{Software and data availability}
@@ -584,21 +518,12 @@ Odum BASIC Simulations addresses this challenge by providing an open-source, web
 \item[Operational Web Application] \url{https://energese-project.github.io/Odum-basic-simulations/}
 \item[Software License] MIT License
 \item[Archival Identifier] Zenodo DOI: [DOI to mint]
-% REVIEW(availability): three corrections. (1) Node "version 20 or higher" is
-% stale -- .node-version pins 26, and the unit suite runs TypeScript directly
-% under node --test, which needs a current release. (2) Building the WebAssembly
-% module needs emscripten, supplied through a digest-pinned container
-% (engine/Containerfile.wasm); it is not required to run or build the site,
-% because the artefact is committed, and that distinction is worth stating.
-% (3) The oracle comparison needs a container runtime for PC-BASIC. None of
-% these are needed by a reader who only wants to use the site.
-\item[Execution Requirements] Platform-independent web runtime supporting ECMAScript 2022 standards. Development and build toolchains require Node.js (version 20 or higher) or standard OCI-compliant container environments.
-% REVIEW(availability/data): mentions `make attest` but not the two things a
-% reader would need in order to repeat the newer claims: `make wasm` rebuilds
-% the committed WebAssembly module in the pinned toolchain, and
-% `engine/build-wasm.sh --check` verifies that the committed bytes still follow
-% from the source. Both run in CI on every pull request.
-\item[Data and Test Corpora] All simulation models, metadata sidecar specifications, visual regression baselines, and cross-runtime verification scripts are maintained within the open-access project repository. Reference comparison datasets generated via \texttt{make attest} are archived within the \texttt{validation/oracle/} directory.
+% RESOLVED(availability): all three corrected. The Node version is read from
+% .node-version (26 at the time of writing); check it again before submission.
+\item[Execution Requirements] Using the archive requires only a web browser supporting ECMAScript 2022; nothing below applies to a reader who wishes to run the published listings. Building and testing the site requires Node.js at the version pinned in the repository (26 at the time of writing), the unit suite executing TypeScript sources directly, or an equivalent OCI-compliant container environment. Rebuilding the WebAssembly module additionally requires an Emscripten toolchain, supplied as a digest-pinned container image; it is not needed to build or deploy the site, because the compiled artifact is committed to the repository. Reproducing the emulator comparison requires a container runtime in order to execute PC-BASIC.
+% RESOLVED(availability/data): the two artefact-provenance commands are now
+% named alongside the attestation.
+\item[Data and Test Corpora] All simulation models, metadata sidecar specifications, visual regression baselines, and cross-runtime verification scripts are maintained within the open-access project repository. Reference comparison datasets generated via \texttt{make attest} are archived within the \texttt{validation/oracle/} directory, each recorded against a SHA-256 digest that the same command reverifies. Two further commands establish the provenance of the committed binary artifact: \texttt{make wasm} rebuilds the WebAssembly module within the pinned toolchain image, and \texttt{engine/build-wasm.sh -{}-check} rebuilds it and fails if the committed bytes no longer follow from the source. Both execute in continuous integration on every proposed change.
 \end{description}
 
 \section*{CRediT authorship contribution statement}
