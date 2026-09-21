@@ -61,8 +61,14 @@ export interface Program {
   step(maxStatements: number): StepResult;
   /** What PRINT has produced since the last call. Empty string, never null. */
   takeText(): string;
-  /** Every row emitted so far, decoded. */
-  rows(): Row[];
+  /**
+   * Rows emitted so far, decoded, starting at `from`.
+   *
+   * The offset is not a convenience. A caller draining as it steps wants only
+   * what is new, and decoding the whole array each time would make a long run
+   * quadratic in its own output.
+   */
+  rows(from?: number): Row[];
   /** True when the program stopped at END or STOP and CONT would resume. */
   canContinue(): boolean;
   /** Resume after END or STOP, as CONT does. */
@@ -236,15 +242,15 @@ function engineFrom(exports: Exports): Engine {
         }
       },
 
-      rows(): Row[] {
+      rows(from = 0): Row[] {
         const count = exports.BAS_GetRowCount(alive());
         const base = exports.BAS_GetRows(alive());
-        if (count === 0 || base === 0) return [];
+        if (count === 0 || base === 0 || from >= count) return [];
         // A fresh view: a step may have grown the memory and detached the old
         // buffer, and BAS_GetRows says the array may move.
         const heap = new Float64Array(exports.memory.buffer, base, count * ROW_STRIDE);
         const out: Row[] = [];
-        for (let i = 0; i < count; i++) {
+        for (let i = from; i < count; i++) {
           const r = i * ROW_STRIDE;
           out.push({
             kind: ROW_KINDS[heap[r + FIELD.KIND]] ?? 'print',

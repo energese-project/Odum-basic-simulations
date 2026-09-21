@@ -195,26 +195,50 @@ satisfy is `emscripten_notify_memory_growth`, which the loader stubs in a line, 
 validation path touches no stdio and so pulls in no WASI. Only `lexer.c`, `parser.c` and
 `validate.c` are linked: the export list is the contract, and it grows when execution does.
 
-**Still open: the site runs listings on the TypeScript interpreter, not the engine**, and
-that is a larger job than wiring, because the engine cannot yet do what running one needs:
+**The site now runs on the engine as well as checking with it.** `runner.worker.ts` drives a
+wasm `Program`: it steps, drains the text with `BAS_TakeText`, turns the rows into the DrawOps
+`screen.ts` already understood, and awaits a promise on `BAS_AWAITING_INPUT`. The protocol
+between the worker and the page did not change, because the engine's suspend-and-resume shape
+is the one an async `print` loop already had.
 
-- **`INPUT` is unimplemented** — it fails with "this statement is not supported yet", and
-  `programs/guess.bas` uses it. It is not just a missing case. `INPUT` has to suspend and
-  resume across `BAS_Step`, and `BAS_Status` has no way to say *waiting for input*, so this
-  is a change to the API, not only to the interpreter.
-- **The engine emits no text.** `PRINT` emits one numeric row per numeric column and drops
-  string literals deliberately — "strings are transcript, not data". The workbench console
-  shows formatted text, and `output.ts` recovers its table from that text, so there is
-  nothing for it to read. This is where 0.2's `PRINT` formatting rules would have to be
-  implemented in C.
-- **It would change the arithmetic.** The engine is single precision by type; the TypeScript
-  interpreter computes in doubles. Moving execution across is the decision 0.2 records, and
-  its consequences reach the figure goldens, which are the images `docs/article.tex`
-  includes.
+Three things had to exist first, and each turned up a defect while being built:
 
-Validation was taken first because it is the one thing the engine can already do completely,
-and doing it in the engine means the editor and the command-line tool's `check` agree by
-construction rather than by two implementations being kept in step.
+- **`INPUT`.** It parsed as a `DIM` — `map[kw - BAS_KW_DIM]` underflowed as an unsigned index —
+  so the checker had been reporting `guess.bas`, a published listing, as broken. Implementing
+  it added `BAS_AWAITING_INPUT`, which is neither success nor failure.
+- **Text output.** `PRINT` emitted numeric rows and dropped string literals, so the console had
+  nothing to show and `output.ts` nothing to read. Writing
+  [`print.bas`](validation/oracle/print.bas) and comparing with PC-BASIC found that the parser
+  was discarding `,` against `;`, which made the column layout unknowable rather than wrong.
+- **The display statements.** `SCREEN`, `COLOR` and `CLS` left no trace, and `screen.ts` starts
+  at mode 0 with a zero-sized buffer, so a graphics listing would have drawn nothing — which is
+  most of Odum's later ones.
+
+**What the move changed, measured before it was made** (`scripts/compare-engines.ts`): the
+arithmetic is single precision now, differing from the double-precision interpreter by one to
+two and a half float32 ulps of peak across the three models, with series and row counts
+identical — a plot's shape is unchanged and only its last digits move. `workbench.png` was
+regenerated for that reason and no other: the diff is confined to the printed table's digits,
+and the plot, diagram and chrome are untouched.
+
+It also **fixed** two things. Printed numbers carry the trailing space GW-BASIC gives them,
+which 0.2 records the TypeScript interpreter as omitting, and they open with the point rather
+than a zero — `.01`, not `0.01`. And `BAS_CanContinue` reported that a listing ending in `END`
+could be continued when there was nothing after it to continue, which offered the reader a
+Continue button that did nothing.
+
+Still open:
+
+- **The TypeScript interpreter is still there**, and is what `validation.test.ts` — the source
+  of the article's Section 7 table — measures. The site no longer runs it. Decide whether that
+  table should describe the engine the site now uses, and whether the interpreter is kept as a
+  second implementation for the comparison in 0.2 or retired.
+- **A bare `PSET` would differ.** The interpreter defaults it to the mode's highest colour, the
+  engine to whatever `COLOR` last set. Every `PSET` in the archive names its colour, so nothing
+  currently depends on it.
+- **The status line reads "finished" after a failed run**, because it describes whether a plot
+  was recovered rather than whether the program succeeded. More visible now that a listing
+  cannot run at all if the engine fails to load.
 
 ### 0.2 Conformance tests and dialect profiles
 
