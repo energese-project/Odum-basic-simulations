@@ -27,9 +27,52 @@ export interface Diagnostic {
   endColumn: number;
 }
 
+/** How a step ended. `awaiting-input` is a suspension, not a failure. */
+export type StepResult = 'more' | 'halted' | 'awaiting-input' | 'failed';
+
+/** One row the engine emitted, in the program's own coordinates. */
+export interface Row {
+  kind: 'pset' | 'preset' | 'line' | 'print';
+  line: number;
+  x0: number;
+  y0: number;
+  x: number;
+  y: number;
+  color: number;
+  /** LINE's clause: 'B', 'BF', or null for everything else. */
+  box: 'B' | 'BF' | null;
+}
+
+/**
+ * A loaded program. Owns memory inside the module, so `free()` is not
+ * optional — the instance outlives any one step, and a worker that loads a
+ * new program without freeing the last one leaks the whole of its state.
+ */
+export interface Program {
+  /** Run at most `maxStatements`, then return how it ended. */
+  step(maxStatements: number): StepResult;
+  /** What PRINT has produced since the last call. Empty string, never null. */
+  takeText(): string;
+  /** Every row emitted so far, decoded. */
+  rows(): Row[];
+  /** True when the program stopped at END or STOP and CONT would resume. */
+  canContinue(): boolean;
+  /** Resume after END or STOP, as CONT does. */
+  cont(): void;
+  /** The waiting INPUT's prompt, or null when none is waiting. */
+  inputPrompt(): string | null;
+  /** Supply one line. False when the statement wants more than it gave. */
+  provideInput(line: string): boolean;
+  /** The failure that stopped the program, or null. */
+  error(): { message: string; line: number } | null;
+  free(): void;
+}
+
 export interface Engine {
   /** Parse and check, without running. An empty array is a valid program. */
   validate(source: string): Diagnostic[];
+  /** Parse and prepare to run. Throws if the source does not parse. */
+  load(source: string): Program;
   /** The engine's own version, as BAS_GetVersionString reports it. */
   readonly version: string;
 }
@@ -41,8 +84,34 @@ interface Exports {
   BAS_Validate(source: number, outJson: number): number;
   BAS_FreeString(ptr: number): void;
   BAS_GetVersionString(): number;
+  BAS_Init(source: number, outInst: number): number;
+  BAS_Free(inst: number): void;
+  BAS_Step(inst: number, maxStatements: number): number;
+  BAS_CanContinue(inst: number): number;
+  BAS_Continue(inst: number): number;
+  BAS_TakeText(inst: number, outText: number): number;
+  BAS_GetInputPrompt(inst: number): number;
+  BAS_ProvideInput(inst: number, line: number): number;
+  BAS_GetRuntimeError(inst: number): number;
+  BAS_GetRuntimeErrorLine(inst: number): number;
+  BAS_GetRowCount(inst: number): number;
+  BAS_GetRows(inst: number): number;
   _initialize?: () => void;
 }
+
+/** BAS_Status, as basic.h numbers them. */
+const STATUS = {
+  OK: 0,
+  ERR_RUNTIME: 4,
+  ERR_HALTED: 5,
+  AWAITING_INPUT: 7,
+} as const;
+
+/** BAS_RowField, and BAS_ROW_STRIDE doubles to a row. */
+const FIELD = { KIND: 0, LINE: 1, X0: 2, Y0: 3, X: 4, Y: 5, COLOR: 6, BOX: 7 } as const;
+const ROW_STRIDE = 8;
+const ROW_KINDS = ['pset', 'preset', 'line', 'print'] as const;
+const BOXES = [null, 'B', 'BF'] as const;
 
 /** BAS_Status. 0 is success; the rest are failures to perform validation at all. */
 const BAS_OK = 0;
@@ -100,8 +169,127 @@ function engineFrom(exports: Exports): Engine {
     return ptr;
   }
 
+  /** Read a pointer the module wrote into `ptr`. wasm32: pointers are 32-bit. */
+  const readPtr = (ptr: number): number => u32()[ptr >>> 2] ?? 0;
+
+  function load(source: string): Program {
+    const sourcePtr = writeCString(source);
+    const outPtr = exports.malloc(4);
+    if (outPtr === 0) {
+      exports.free(sourcePtr);
+      throw new Error('the engine could not allocate for the instance');
+    }
+    let inst = 0;
+    try {
+      const status = exports.BAS_Init(sourcePtr, outPtr);
+      if (status !== STATUS.OK) {
+        // validate() says where; this only says that.
+        throw new Error(`the listing did not load (status ${status})`);
+      }
+      inst = readPtr(outPtr);
+      if (inst === 0) throw new Error('the engine returned no instance');
+    } finally {
+      exports.free(outPtr);
+      exports.free(sourcePtr);
+    }
+
+    let freed = false;
+    const alive = (): number => {
+      if (freed) throw new Error('this program has been freed');
+      return inst;
+    };
+
+    return {
+      step(maxStatements: number): StepResult {
+        switch (exports.BAS_Step(alive(), maxStatements)) {
+          case STATUS.OK:
+            return 'more';
+          case STATUS.ERR_HALTED:
+            return 'halted';
+          case STATUS.AWAITING_INPUT:
+            return 'awaiting-input';
+          default:
+            return 'failed';
+        }
+      },
+
+      takeText(): string {
+        const outText = exports.malloc(4);
+        if (outText === 0) throw new Error('the engine could not allocate for the text');
+        try {
+          if (exports.BAS_TakeText(alive(), outText) !== STATUS.OK) return '';
+          const textPtr = readPtr(outText);
+          if (textPtr === 0) return '';
+          const text = readCString(textPtr);
+          exports.BAS_FreeString(textPtr);
+          return text;
+        } finally {
+          exports.free(outText);
+        }
+      },
+
+      rows(): Row[] {
+        const count = exports.BAS_GetRowCount(alive());
+        const base = exports.BAS_GetRows(alive());
+        if (count === 0 || base === 0) return [];
+        // A fresh view: a step may have grown the memory and detached the old
+        // buffer, and BAS_GetRows says the array may move.
+        const heap = new Float64Array(exports.memory.buffer, base, count * ROW_STRIDE);
+        const out: Row[] = [];
+        for (let i = 0; i < count; i++) {
+          const r = i * ROW_STRIDE;
+          out.push({
+            kind: ROW_KINDS[heap[r + FIELD.KIND]] ?? 'print',
+            line: heap[r + FIELD.LINE],
+            x0: heap[r + FIELD.X0],
+            y0: heap[r + FIELD.Y0],
+            x: heap[r + FIELD.X],
+            y: heap[r + FIELD.Y],
+            color: heap[r + FIELD.COLOR],
+            box: BOXES[heap[r + FIELD.BOX]] ?? null,
+          });
+        }
+        return out;
+      },
+
+      canContinue: (): boolean => exports.BAS_CanContinue(alive()) !== 0,
+
+      cont(): void {
+        exports.BAS_Continue(alive());
+      },
+
+      inputPrompt(): string | null {
+        const ptr = exports.BAS_GetInputPrompt(alive());
+        return ptr === 0 ? null : readCString(ptr);
+      },
+
+      provideInput(line: string): boolean {
+        const linePtr = writeCString(line);
+        try {
+          return exports.BAS_ProvideInput(alive(), linePtr) === STATUS.OK;
+        } finally {
+          exports.free(linePtr);
+        }
+      },
+
+      error(): { message: string; line: number } | null {
+        const ptr = exports.BAS_GetRuntimeError(alive());
+        if (ptr === 0) return null;
+        return { message: readCString(ptr), line: exports.BAS_GetRuntimeErrorLine(alive()) };
+      },
+
+      free(): void {
+        if (freed) return;
+        freed = true;
+        exports.BAS_Free(inst);
+        inst = 0;
+      },
+    };
+  }
+
   return {
     version: readCString(exports.BAS_GetVersionString()),
+    load,
 
     validate(source: string): Diagnostic[] {
       const sourcePtr = writeCString(source);

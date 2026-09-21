@@ -19,13 +19,15 @@ SRC      = src/lexer.c src/parser.c src/validate.c src/interp.c
 TESTS    = tests/test_lexer.c tests/test_validate.c tests/test_eval.c
 BIN     ?= build
 
-# The browser build. Only what BAS_Validate needs is linked: the site uses the
-# engine to check a listing as it is typed, not yet to run one, and leaving
-# interp.c out keeps the committed artefact to what is actually reachable. Add
-# it here when execution moves to wasm, and the export list grows with it.
-WASM_SRC = src/lexer.c src/parser.c src/validate.c
+# The browser build: the whole engine, because the site both checks a listing
+# as it is typed and runs it. The export list is the contract — anything not
+# named here is dead-stripped, which is why adding interp.c without adding its
+# entry points would have changed nothing.
+WASM_SRC = src/lexer.c src/parser.c src/validate.c src/interp.c
 WASM_OUT ?= ../src/basic/engine.wasm
-WASM_EXPORTS = _BAS_Validate,_BAS_FreeString,_BAS_GetVersionString,_malloc,_free
+# One line: make joins a continuation with a space, and a space inside this
+# list is an empty entry as far as emcc is concerned.
+WASM_EXPORTS = _BAS_Validate,_BAS_FreeString,_BAS_GetVersionString,_BAS_Init,_BAS_Free,_BAS_Reset,_BAS_Step,_BAS_CanContinue,_BAS_Continue,_BAS_GetRuntimeError,_BAS_GetRuntimeErrorLine,_BAS_GetInputPrompt,_BAS_ProvideInput,_BAS_TakeText,_BAS_GetRowCount,_BAS_GetRows,_malloc,_free
 
 .PHONY: all test cli wasm clean
 
