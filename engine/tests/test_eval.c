@@ -264,5 +264,92 @@ int main(void) {
     CHECK(1);
   }
 
+
+  /* ------------------------------------------------------------- INPUT */
+
+  {
+    /* The statement suspends rather than reading: the engine does not own the
+       console, so it stops and says what it wants. */
+    TEST("INPUT suspends, names its prompt, and resumes when given a value");
+    BAS_Instance *i = NULL;
+    CHECK_INT(BAS_Init("10 INPUT \"YOUR GUESS\"; G\n20 LET H = G * 2\n30 END\n", &i), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK(BAS_GetInputPrompt(i) && !strcmp(BAS_GetInputPrompt(i), "YOUR GUESS"));
+    CHECK_INT(BAS_ProvideInput(i, "21"), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_ERR_HALTED);
+    CHECK(BAS_GetInputPrompt(i) == NULL);   /* nothing is waiting now */
+    BAS_Free(i);
+  }
+
+  {
+    /* Stepping without supplying the value must not run the INPUT twice, and
+       must not advance past it. */
+    TEST("stepping again while a value is outstanding changes nothing");
+    BAS_Instance *i = NULL;
+    CHECK_INT(BAS_Init("10 INPUT G\n20 END\n", &i), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_ProvideInput(i, "7"), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_ERR_HALTED);
+    BAS_Free(i);
+  }
+
+  {
+    /* `INPUT A, B` reads one line holding both, as GW-BASIC does. */
+    TEST("one line fills several variables");
+    BAS_Instance *i = NULL;
+    CHECK_INT(BAS_Init("10 INPUT A, B\n20 LET C = A + B\n30 END\n", &i), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_ProvideInput(i, "3, 4"), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_ERR_HALTED);
+    BAS_Free(i);
+  }
+
+  {
+    /* A line short of values asks again rather than filling the rest with
+       zeroes, which would be a wrong answer rather than a missing one. */
+    TEST("a line short of values asks for the rest");
+    BAS_Instance *i = NULL;
+    CHECK_INT(BAS_Init("10 INPUT A, B\n20 END\n", &i), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_ProvideInput(i, "3"), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_ProvideInput(i, "4"), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_ERR_HALTED);
+    BAS_Free(i);
+  }
+
+  {
+    /* GW-BASIC's "?Redo from start": the whole line is discarded, not the
+       part that failed to parse. */
+    TEST("a line that is not a number is refused whole");
+    BAS_Instance *i = NULL;
+    CHECK_INT(BAS_Init("10 INPUT A, B\n20 END\n", &i), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_ProvideInput(i, "3, banana"), BAS_AWAITING_INPUT);
+    CHECK_INT(BAS_ProvideInput(i, "3, 4"), BAS_OK);
+    CHECK_INT(BAS_Step(i, 256), BAS_ERR_HALTED);
+    BAS_Free(i);
+  }
+
+  {
+    /* No string variables in this engine, so reading into one is refused
+       rather than silently reading into a numeric of the same name. */
+    TEST("INPUT into a string variable is refused, not guessed at");
+    BAS_Status s;
+    BAS_Instance *i = run("10 INPUT N$\n20 END\n", &s);
+    CHECK_INT(s, BAS_ERR_RUNTIME);
+    CHECK(BAS_GetRuntimeError(i) != NULL);
+    BAS_Free(i);
+  }
+
+  {
+    TEST("providing input when nothing is waiting is an error");
+    BAS_Instance *i = NULL;
+    CHECK_INT(BAS_Init("10 LET A = 1\n20 END\n", &i), BAS_OK);
+    CHECK_INT(BAS_ProvideInput(i, "5"), BAS_ERR_ARGUMENT);
+    BAS_Free(i);
+  }
+
   TEST_REPORT();
 }

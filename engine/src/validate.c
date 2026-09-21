@@ -255,6 +255,7 @@ const char *BAS_GetErrorDescription(BAS_Status status) {
     case BAS_ERR_RUNTIME:     return "the program failed while running";
     case BAS_ERR_HALTED:      return "stopped";
     case BAS_ERR_UNSUPPORTED: return "not supported yet";
+    case BAS_AWAITING_INPUT:  return "waiting for input";
     default:                  return "unknown status";
   }
 }

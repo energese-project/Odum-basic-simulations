@@ -52,6 +52,15 @@ struct BAS_Instance {
   size_t row_count, row_cap;
 
   size_t pc;            /**< Index into prog.stmts. */
+
+  /* INPUT, suspended.  `input_stmt` is the statement waiting, and `input_next`
+     the index into its expressions of the variable still to be filled; the
+     program counter stays on the INPUT until the last one is.  See
+     BAS_ProvideInput. */
+  int awaiting_input;
+  BAS_Stmt *input_stmt;
+  size_t input_next;
+
   int halted;
   int can_continue;
   int failed;
@@ -256,6 +265,39 @@ static int jump_to(BAS_Instance *in, int line, int target) {
 }
 
 /** Execute one statement.  Returns 0 when the program should stop. */
+/**
+ * The next expression of an INPUT that names a variable to read into, starting
+ * at `from`; s->e_count when there is none left.
+ *
+ * A leading string is the prompt and is skipped.  Anything else that is not a
+ * plain variable is refused rather than guessed at: `INPUT N$` would need
+ * string variables, which this engine does not have, and `INPUT A(1)` would
+ * need the subscript machinery DIM is still waiting on. Reading into the wrong
+ * place silently is the one outcome worth ruling out.
+ */
+static size_t input_target(BAS_Instance *in, BAS_Stmt *s, size_t from) {
+  for (size_t i = from; i < s->e_count; i++) {
+    BAS_Expr *e = s->e[i];
+    if (!e) continue;
+    if (e->type == BAS_EXPR_STRING) continue;      /* the prompt */
+    if (e->type != BAS_EXPR_VAR || e->arg_count != 0) {
+      fail(in, s->line_number, "INPUT can only read into a plain numeric variable");
+      return s->e_count;
+    }
+    /* The lexer keeps a type suffix in the name, so a string variable is one
+       ending in '$'.  The other suffixes — %, ! and # — are numeric widths and
+       read a number perfectly well.  Refusing beats reading a number into a
+       name the listing uses as text. */
+    size_t n = strlen(e->name);
+    if (n > 0 && e->name[n - 1] == '$') {
+      fail(in, s->line_number, "INPUT into a string variable is not supported yet");
+      return s->e_count;
+    }
+    return i;
+  }
+  return s->e_count;
+}
+
 static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
   in->current_line = s->line_number;
   switch (s->type) {
@@ -414,11 +456,26 @@ static int exec_stmt(BAS_Instance *in, BAS_Stmt *s) {
       in->can_continue = 1;
       return 0;
 
+    case BAS_ST_INPUT: {
+      /* A prompt is a leading string; everything else is a variable to fill.
+         Nothing is read here — the caller owns the console, so the statement
+         suspends and BAS_ProvideInput resumes it. */
+      size_t first = input_target(in, s, 0);
+      if (in->failed) return 0;
+      if (first == s->e_count) {
+        fail(in, s->line_number, "INPUT names no variable to read into");
+        return 0;
+      }
+      in->awaiting_input = 1;
+      in->input_stmt = s;
+      in->input_next = first;
+      return 0;   /* pc stays on the INPUT until every variable is filled */
+    }
+
     case BAS_ST_DIM:
     case BAS_ST_READ:
     case BAS_ST_DATA:
     case BAS_ST_RESTORE:
-    case BAS_ST_INPUT:
       fail(in, s->line_number, "this statement is not supported yet");
       return 0;
   }
@@ -461,6 +518,9 @@ void BAS_Reset(BAS_Instance *in) {
   in->row_count = 0;
   in->pc = 0;
   in->halted = in->can_continue = in->failed = 0;
+  in->awaiting_input = 0;
+  in->input_stmt = NULL;
+  in->input_next = 0;
   in->call_depth = in->for_depth = 0;
   in->error[0] = '\0';
   in->error_line = 0;
@@ -470,6 +530,8 @@ BAS_Status BAS_Step(BAS_Instance *in, size_t max_statements) {
   if (!in) return BAS_ERR_ARGUMENT;
   if (in->failed) return BAS_ERR_RUNTIME;
   if (in->halted) return BAS_ERR_HALTED;
+  /* Stepping while a value is outstanding would run the INPUT again. */
+  if (in->awaiting_input) return BAS_AWAITING_INPUT;
 
   for (size_t n = 0; n < max_statements; n++) {
     if (in->pc >= in->prog.count) {
@@ -479,6 +541,7 @@ BAS_Status BAS_Step(BAS_Instance *in, size_t max_statements) {
     }
     if (!exec_stmt(in, in->prog.stmts[in->pc])) {
       if (in->failed) return BAS_ERR_RUNTIME;
+      if (in->awaiting_input) return BAS_AWAITING_INPUT;
       return BAS_ERR_HALTED;
     }
   }
@@ -494,6 +557,61 @@ BAS_Status BAS_Continue(BAS_Instance *in) {
   if (!BAS_CanContinue(in)) return BAS_ERR_HALTED;
   in->halted = 0;
   in->can_continue = 0;
+  return BAS_OK;
+}
+
+const char *BAS_GetInputPrompt(BAS_Instance *in) {
+  if (!in || !in->awaiting_input || !in->input_stmt) return NULL;
+  BAS_Stmt *s = in->input_stmt;
+  if (s->e_count == 0 || !s->e[0] || s->e[0]->type != BAS_EXPR_STRING) return NULL;
+  return s->e[0]->name;
+}
+
+BAS_Status BAS_ProvideInput(BAS_Instance *in, const char *line) {
+  if (!in || !line || !in->awaiting_input || !in->input_stmt) return BAS_ERR_ARGUMENT;
+  BAS_Stmt *s = in->input_stmt;
+
+  /* Parse every field before assigning any of them.  GW-BASIC's "?Redo from
+     start" discards the whole line rather than keeping the fields that did
+     parse, and a half-applied line is the harder thing to reason about. */
+  BAS_Real parsed[BAS_MAX_STMT_EXPR];
+  size_t targets[BAS_MAX_STMT_EXPR];
+  size_t n = 0;
+  size_t target = in->input_next;
+  const char *p = line;
+
+  while (target < s->e_count && n < BAS_MAX_STMT_EXPR) {
+    while (*p == ' ' || *p == '\t') p++;
+    if (*p == '\0') break;              /* the line ran out; ask for more */
+    char *end = NULL;
+    double v = strtod(p, &end);
+    if (end == p) return BAS_AWAITING_INPUT;          /* not a number: redo */
+    const char *after = end;
+    while (*after == ' ' || *after == '\t') after++;
+    if (*after != '\0' && *after != ',') return BAS_AWAITING_INPUT;
+    parsed[n] = (BAS_Real)v;
+    targets[n] = target;
+    n++;
+    p = (*after == ',') ? after + 1 : after;
+    target = input_target(in, s, target + 1);
+    if (in->failed) return BAS_ERR_RUNTIME;
+  }
+
+  if (n == 0) return BAS_AWAITING_INPUT;
+
+  for (size_t i = 0; i < n; i++) {
+    Variable *v = var_get(in, s->e[targets[i]]->name);
+    if (!v) return BAS_ERR_ALLOC;
+    v->value = parsed[i];
+  }
+
+  in->input_next = target;
+  if (target < s->e_count) return BAS_AWAITING_INPUT;   /* more to come */
+
+  in->awaiting_input = 0;
+  in->input_stmt = NULL;
+  in->input_next = 0;
+  in->pc++;                       /* only now is the statement complete */
   return BAS_OK;
 }
 
