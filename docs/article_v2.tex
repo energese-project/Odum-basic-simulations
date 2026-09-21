@@ -34,7 +34,7 @@
 
 \begin{document}
 % =============================================================================
-% REVIEW MARKERS  --  grep '% REVIEW' to list, and delete them before submission.
+% REVIEW MARKERS  --  grep '% REVIEW' to list what is outstanding, '% RESOLVED'\n% for what has been settled and why. Delete both before submission.
 %
 % Added after the C engine, its WebAssembly build and the in-editor checker
 % landed. Each marker says what the surrounding text now asserts, what the
@@ -206,17 +206,12 @@ The core execution engine comprises an independent interpreter implemented in Ty
 
 For later PC-DOS listings, the engine implements standard graphics operations, including \texttt{SCREEN} modes 1 and 2, \texttt{COLOR}, \texttt{CLS}, and rasterization operations (\texttt{PSET}, \texttt{PRESET}, and \texttt{LINE} with coordinate offsets and box-fill parameters), alongside control execution resumption via \texttt{CONT}. Graphical routines maintain dual internal representations: coordinates are simultaneously rasterized to an emulated display buffer and retained as continuous numerical vectors, enabling analytical trajectory recovery. Structured control operations and complex formatting statements that are absent from early ecological listings are parsed and styled within the interface as pending language features.
 
-% REVIEW(implementation/precision): "computation is conducted in IEEE-754
-% double-precision" is now true of only one of the two implementations. The C
-% engine's BAS_Real is `float`, and its arithmetic contract is enforced at
-% compile time rather than assumed: the build requires FLT_EVAL_METHOD == 0 and
-% refuses to compile without it, because evaluating intermediates wider turns
-% `A = A + DA * DT` into one rounding where GW-BASIC did three; and
-% -ffp-contract=off is passed, because a fused multiply-add rounds once where
-% the original rounded twice. See engine/include/basic_config.h, which argues
-% both out. The paragraph's conclusion still holds, but the premise has to name
-% which implementation it is describing.
-Numerical computation is conducted in IEEE-754 double-precision floating-point arithmetic, with tabular console output formatted to six significant decimal figures. Historical microcomputer interpreters utilized shorter numerical formats; for example, Commodore BASIC V2 employed a 5-byte format (32-bit significand, 8-bit exponent) yielding approximately nine decimal digits, whereas GW-BASIC implemented 4-byte single-precision Microsoft Binary Format (MBF) yielding approximately seven significant digits. Consequently, runtime fidelity is calibrated to reproduce the underlying compartmental model equations and dynamic trajectories, while recognizing that the least significant printed digits may reflect architectural precision differences. The interpreter operates within an isolated Web Worker execution thread, maintaining thread safety and preventing computational freezing during iterative numerical integration loops.
+% RESOLVED(implementation/precision): the paragraph now names which
+% implementation each claim describes, and states the engine's compile-time
+% arithmetic contract. See engine/include/basic_config.h, which argues both
+% hazards out. What is still missing from this section is the rest of the
+% architecture -- REVIEW(implementation) above -- not the precision.
+Numerical computation in the TypeScript interpreter is conducted in IEEE-754 double-precision floating-point arithmetic, with tabular console output formatted to six decimal places. The C engine, which is the implementation the site now executes, computes in IEEE-754 single precision: \texttt{BAS\_Real} is C's \texttt{float}, so every operation rounds to single because that is what the type does, and its console output gives a single seven significant digits as GW-BASIC did. That contract is enforced at compile time rather than assumed --- the build requires \texttt{FLT\_EVAL\_METHOD == 0} and refuses to compile without it, since evaluating intermediates more widely would turn \texttt{A = A + DA * DT} into one rounding where GW-BASIC performed three, and \texttt{-ffp-contract=off} is passed because a fused multiply-add rounds once where the original rounded twice. Historical microcomputer interpreters utilized shorter numerical formats; for example, Commodore BASIC V2 employed a 5-byte format (32-bit significand, 8-bit exponent) yielding approximately nine decimal digits, whereas GW-BASIC implemented 4-byte single-precision Microsoft Binary Format (MBF) yielding approximately seven significant digits. Consequently, runtime fidelity is calibrated to reproduce the underlying compartmental model equations and dynamic trajectories, while recognizing that the least significant printed digits may reflect architectural precision differences. The interpreter operates within an isolated Web Worker execution thread, maintaining thread safety and preventing computational freezing during iterative numerical integration loops.
 
 \begin{figure}[t]
 \centering
@@ -450,7 +445,7 @@ where intrinsic growth rate $r = K_1S_T - K_2$ and carrying capacity $C = S_T - 
 \item \textbf{Two-stage linear cascade with step forcing:} A coupled linear system ($\mathrm{d}Q_1/\mathrm{d}t = J - K_1Q_1$, $\mathrm{d}Q_2/\mathrm{d}t = K_1Q_1 - K_2Q_2$) subject to a piecewise step-down in forcing $J$ at time $t_c$, yielding exponential decay phases across both state variables.
 \end{enumerate}
 
-Each model listing executes an explicit forward-Euler integration recurrence over discrete time increments $\Delta t$. In automated validation tests, the interpreter output was compared across every time step against an independent recurrence evaluation executed in identical operational sequence, as well as against the analytical solution (Table~\ref{tab:validation}).
+Each model listing executes an explicit forward-Euler integration recurrence over discrete time increments $\Delta t$. In automated validation tests, the output of the C engine --- the implementation the site executes --- was compared across every time step against an independent recurrence evaluation performed in identical operational sequence and at identical precision, as well as against the analytical solution (Table~\ref{tab:validation}).
 
 \begin{table}[h]
 \centering\small
@@ -458,7 +453,7 @@ Each model listing executes an explicit forward-Euler integration recurrence ove
 \toprule
 & & & \multicolumn{2}{c@{}}{Maximum relative error} \\
 \cmidrule(l){4-5}
-Benchmark model & $\Delta t$ & Output rows & Interpreter vs.\ recurrence & Recurrence vs.\ analytical \\
+Benchmark model & $\Delta t$ & Output rows & Engine vs.\ recurrence & Recurrence vs.\ analytical \\
 \midrule
 Linear charge-and-discharge & 0.50 & 121 & $\le 5\times10^{-7}$ & 0.94\% \\
 Logistic growth & 0.50 & 401 & $\le 5\times10^{-7}$ & 7.41\% \\
@@ -466,28 +461,27 @@ Coupled linear cascade ($t_c = 40.5$) & 0.25 & 321 & $\le 5\times10^{-7}$ & 0.70
 Coupled linear cascade ($t_c = 40.0$, nominal) & 0.25 & 321 & $\le 5\times10^{-7}$ & 7.27\% \\
 \bottomrule
 \end{tabular}
-\caption{Numerical validation of the reconstructed interpreter across canonical compartmental models. Discrepancies between interpreter output and independent forward-Euler recurrences fall strictly within the six-digit formatting rounding threshold ($5\times10^{-7}$). Discrepancies between recurrence sequences and exact analytical solutions reflect standard discretization truncation errors inherent to first-order Euler integration.}
+\caption{Numerical validation of the C engine across canonical compartmental models. Discrepancies between engine output and independent single-precision forward-Euler recurrences fall strictly within the rounding of the console display routine, which gives a single seven significant digits; expressed as a fraction of the value, its worst case is $5\times10^{-7}$. On every row of every listing the difference is within half a unit in that row's own last printed digit, so the two computations agree exactly and only the display separates them. Discrepancies between recurrence sequences and exact analytical solutions reflect standard discretization truncation errors inherent to first-order Euler integration, and are unchanged by the move to single precision.}
 \label{tab:validation}
 \end{table}
 
-% REVIEW(validation/precision): this tier's tolerance depends on an assumption
-% the paper does not state -- that the interpreter and the reference recurrence
-% use the same arithmetic. Both are double precision today, so the $5\times
-% 10^{-7}$ threshold is the display rounding alone. If execution moves to the C
-% engine, that stops being true, and the number is worth recording now because
-% it decides whether such a move is viable:
+% RESOLVED(validation/precision): execution moved to the C engine, and the
+% reference recurrence moved to single precision with it (Math.fround on every
+% literal and after every operation, in the listing's own order). The threshold
+% stayed where it was, as predicted. Measured by validation.test.ts:
 %
-%   C engine vs. a single-precision reference recurrence   4.9e-7  (inside)
-%   C engine vs. the present double-precision reference    1.16e-4 (232x over)
+%   charge-discharge    0.996 half-quanta   2.4e-7 of the value
+%   logistic-growth     1.000 half-quanta   3.9e-7 of the value
+%   two-tank (40.5)     0.999 half-quanta   4.5e-7 of the value
+%   two-tank (40.0)     0.999 half-quanta   4.5e-7 of the value
 %
-% The gap is about one float32 unit in the last place of the peak value
-% (1.16e-7 of peak, against 2^-23 = 1.19e-7), so it is precision itself and not
-% instability. The consequence is that moving execution to single precision does
-% NOT require loosening this tolerance; it requires computing the reference
-% recurrence in single precision too, which is what the original machine did.
-% The claim then strengthens -- fidelity to the machine rather than to a
-% double-precision idealisation -- and the threshold stays where it is.
-Across all evaluated rows, the interpreter output coincided with the independent numerical recurrence to within the six-digit rounding threshold of the console display routine ($\le 5\times10^{-7}$). The remaining deviations between the numerical trajectories and the analytical benchmarks represent standard numerical truncation error characteristic of first-order forward-Euler integration: below 1\% for the linear models, and 7.41\% for the logistic model, whose effective parameter product ($r\Delta t = 0.19$) introduces greater discretization error. In the coupled cascade model, evaluating the nominal listing exposed an execution timing offset: because the conditional termination statement (\texttt{IF T > 40 THEN LET J = 0}) was sequenced following state updates, the effective inflow cut occurred at $t = 40.5$ rather than $t = 40.0$, elevating analytical error from 0.70\% to 7.27\%. Preserving such anomalies within the archive illustrates the necessity of executing listings directly rather than relying on textual descriptions.
+% "Half-quanta" is the difference as a multiple of half a unit in the last digit
+% PRINT showed for that value; at most 1 means the printed value IS the
+% recurrence rounded to what PRINT shows. The test fails by 3x to 24x if the
+% Math.fround is removed, so the tolerance is load-bearing rather than
+% decorative. The "Recurrence vs. analytical" column did not move: single
+% precision does not touch first-order truncation error at these step sizes.
+Across all evaluated rows, the engine output coincided with the independent single-precision recurrence to within the rounding of the console display routine, which gives a single seven significant digits ($\le 5\times10^{-7}$ of the value, and within half a unit of each row's own last printed digit). The remaining deviations between the numerical trajectories and the analytical benchmarks represent standard numerical truncation error characteristic of first-order forward-Euler integration: below 1\% for the linear models, and 7.41\% for the logistic model, whose effective parameter product ($r\Delta t = 0.19$) introduces greater discretization error. In the coupled cascade model, evaluating the nominal listing exposed an execution timing offset: because the conditional termination statement (\texttt{IF T > 40 THEN LET J = 0}) was sequenced following state updates, the effective inflow cut occurred at $t = 40.5$ rather than $t = 40.0$, elevating analytical error from 0.70\% to 7.27\%. Preserving such anomalies within the archive illustrates the necessity of executing listings directly rather than relying on textual descriptions.
 
 \subsection{Cross-platform validation against emulated historical runtimes}
 

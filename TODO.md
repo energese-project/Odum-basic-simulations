@@ -227,12 +227,25 @@ than a zero — `.01`, not `0.01`. And `BAS_CanContinue` reported that a listing
 could be continued when there was nothing after it to continue, which offered the reader a
 Continue button that did nothing.
 
+**Done: Section 7's table measures the engine, and the interpreter is kept.** Both halves of
+that decision are settled. `validation.test.ts` now runs the wasm engine, because a table in
+the paper describing a runtime no reader can exercise is a table about the wrong program. The
+TypeScript interpreter stays as the second implementation `scripts/compare-engines.ts` and the
+oracle comparison need — two implementations in different languages at different precisions
+drawing the same figure is the strongest reproducibility claim the work supports, and retiring
+one deletes it.
+
+The move forced the reference recurrence into single precision, which is the part worth
+remembering: against a double-precision reference the engine is out by 232x the tolerance, and
+that measures the gap between the machine and an idealisation of it rather than any fidelity.
+Computed in single, as the machine computed, every printed value on every row of every listing
+is the recurrence rounded to the seven significant digits `PRINT` shows — so the threshold did
+not have to move, only its reading, from an absolute 5e-7 to 5e-7 of the value. Removing the
+`Math.fround` fails the suite by 3x to 24x, so the tolerance is load-bearing. The
+recurrence-vs-analytical column did not move at all.
+
 Still open:
 
-- **The TypeScript interpreter is still there**, and is what `validation.test.ts` — the source
-  of the article's Section 7 table — measures. The site no longer runs it. Decide whether that
-  table should describe the engine the site now uses, and whether the interpreter is kept as a
-  second implementation for the comparison in 0.2 or retired.
 - **A bare `PSET` would differ.** The interpreter defaults it to the mode's highest colour, the
   engine to whatever `COLOR` last set. Every `PSET` in the archive names its colour, so nothing
   currently depends on it.
