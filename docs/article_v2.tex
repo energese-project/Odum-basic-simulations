@@ -187,7 +187,7 @@ Where modern emulators deviate from primary interpreter source code, the framewo
 % interpreter and needs the second implementation added. As of engine/:
 %
 %   - The language core is implemented a second time in C. It is built two ways
-%     from one source: a native command-line tool (`odum-basic run|check`) and a
+%     from one source: a native command-line tool (`odum run|check`) and a
 %     WebAssembly module shipped with the site.
 %   - The C engine separates checking from running on purpose. BAS_Validate
 %     parses without executing, so it is safe on every keystroke; BAS_Init and

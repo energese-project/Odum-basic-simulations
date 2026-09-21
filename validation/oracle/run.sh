@@ -61,7 +61,7 @@ $C run --rm -v "$repo":/repo $ENGINE \
   'set -eu
    gcc --version | head -1 > /repo/validation/oracle/runs/r5-toolchain.txt
    make -C /repo/engine BIN=/tmp/build cli >/dev/null
-   /tmp/build/odum-basic run /repo/validation/oracle/table3.bas \
+   /tmp/build/odum run /repo/validation/oracle/table3.bas \
      --csv /repo/validation/oracle/runs/r5.csv >/dev/null'
 test -s runs/r5.csv || { echo "the C engine wrote no rows" >&2; exit 1; }
 

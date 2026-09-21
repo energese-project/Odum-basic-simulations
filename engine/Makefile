@@ -47,7 +47,7 @@ test: $(BIN)
 
 # The command-line tool.
 cli: $(BIN)
-	$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/odum-basic src/main.c $(SRC) $(LDLIBS)
+	$(CC) $(CFLAGS) $(INCLUDE) -o $(BIN)/odum src/main.c $(SRC) $(LDLIBS)
 
 # The browser build. Run it through `make wasm` at the repository root, which
 # supplies emcc from a pinned container; emcc on the host would be a different

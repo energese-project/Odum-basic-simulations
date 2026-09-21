@@ -325,14 +325,14 @@ for each point here.
   evidence that the two agree. Whether the site later moves onto the same core through wasm —
   which is what the engine's stepping design is for — is open, and until it does, "the same
   core" has to be *proved* by the attestation rather than assumed from the source tree.
-  - `odum-basic run <file.bas> [--csv <out>] [--max-steps N]` — **built.**
-  - `odum-basic check <file.bas>` — **built**, but it validates a listing without executing
+  - `odum run <file.bas> [--csv <out>] [--max-steps N]` — **built.**
+  - `odum check <file.bas>` — **built**, but it validates a listing without executing
     it, which is not what this line meant. The archive's validation, as the build does it, is
     still to do and may not belong to the same subcommand.
   - `--run <run.json>`, `--png <out>` and `--trace` — not built. `--png` needs a rasteriser,
     which the engine deliberately does not have, so it is either a port of `screen.ts` or a
     decision that the CLI emits rows and something else draws them.
-  - `odum-basic snapshot [--update]`: every run in the archive, against its committed
+  - `odum snapshot [--update]`: every run in the archive, against its committed
     snapshot. Not built.
   - Exit codes that CI and agents can rely on.
 - **Run snapshots.** Each run gets `runs/<run>.csv`: long format, one row per point,
@@ -381,7 +381,7 @@ So the tool ships as Node single executable applications, which carry their own 
 - **Two channels, because npm itself needs Node:**
   - **GitHub Releases**, for machines without Node: one binary per target, with SHA-256
     checksums.
-  - **npm**, for everyone else, whatever Node they have: an `odum-basic` package whose
+  - **npm**, for everyone else, whatever Node they have: an `odum` package (name availability to be checked; `odum-basic` is the fallback) whose
     `optionalDependencies` are one package per target (`os` and `cpu` set), each
     holding that target's binary — the pattern esbuild uses. The main package's `bin`
     is a small plain-JavaScript launcher, written for old Node versions, that runs the
