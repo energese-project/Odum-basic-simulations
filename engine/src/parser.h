@@ -64,6 +64,15 @@ struct BAS_Stmt {
   int target;                      /**< GOTO, GOSUB, and IF..THEN <line>. */
   int has_target;
   BAS_Stmt *then_branch;           /**< IF .. THEN <statement>. */
+  /**
+   * PRINT's separators: sep[i] is the one that FOLLOWED e[i], ',' or ';', and
+   * 0 for none.  They decide the layout — a comma moves to the next print
+   * zone, a semicolon does not — so dropping them, as this parser used to,
+   * makes `PRINT "T", "Q"` and `PRINT "T"; "Q"` indistinguishable.
+   */
+  char sep[BAS_MAX_STMT_EXPR];
+  /** PRINT ended with a separator, so the line stays open for the next one. */
+  int trailing_sep;
   int box;                         /**< LINE's B and BF clauses. */
   int filled;
   int line_number;                 /**< The listing's number, for jumps. */

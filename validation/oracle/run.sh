@@ -43,6 +43,11 @@ oracle table3-trace-double.bas runs/r3d.txt
 oracle table3-trace-bits.bas runs/r2-bits.txt
 screen runs/r2-screen.bin
 oracle rounding.bas runs/rounding.txt
+# How GW-BASIC lays out PRINT: the sign and trailing space of a number, the
+# absence of a leading zero, where a comma moves to, and when an exponent
+# appears. The engine's own PRINT is written against this rather than against
+# a recollection of it, and print.bas runs unaltered in both.
+oracle print.bas runs/print.txt
 
 # The oracle has to give the same bytes twice.
 oracle table3-trace.bas .work/r2-again.txt

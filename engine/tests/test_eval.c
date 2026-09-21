@@ -22,6 +22,18 @@
 #include <math.h>
 #include <stdlib.h>
 
+/** Run `src` and check the whole of what PRINT produced. */
+#define CHECK_TEXT(src, expect)                                               \
+  do {                                                                        \
+    BAS_Status st_;                                                           \
+    BAS_Instance *in_ = run((src), &st_);                                     \
+    char *got_ = NULL;                                                        \
+    BAS_TakeText(in_, &got_);                                                 \
+    CHECK_STR(got_ ? got_ : "", (expect));                                    \
+    BAS_FreeString(got_);                                                     \
+    BAS_Free(in_);                                                            \
+  } while (0)
+
 /** Run a source to completion and hand back the instance, or NULL. */
 static BAS_Instance *run(const char *src, BAS_Status *out) {
   BAS_Instance *inst = NULL;
@@ -348,6 +360,74 @@ int main(void) {
     BAS_Instance *i = NULL;
     CHECK_INT(BAS_Init("10 LET A = 1\n20 END\n", &i), BAS_OK);
     CHECK_INT(BAS_ProvideInput(i, "5"), BAS_ERR_ARGUMENT);
+    BAS_Free(i);
+  }
+
+
+  /* --------------------------------------------------------- PRINT as text */
+
+  /* Every expectation below is a line of validation/oracle/runs/print.txt,
+     which is PC-BASIC's own output for validation/oracle/print.bas. They are
+     transcribed from the machine, not from what this implementation happens
+     to do. */
+  {
+    TEST("a positive number carries a leading space and a trailing one");
+    CHECK_TEXT("10 PRINT 1; 2; 3; \"|\"\n20 END\n", " 1  2  3 |\n");
+  }
+  {
+    TEST("a negative number puts the sign where the space would be");
+    CHECK_TEXT("10 PRINT -1; -2; -3; \"|\"\n20 END\n", "-1 -2 -3 |\n");
+  }
+  {
+    TEST("there is no leading zero before the point");
+    CHECK_TEXT("10 PRINT 0.5; -0.5; \"|\"\n20 END\n", " .5 -.5 |\n");
+  }
+  {
+    /* PC-BASIC prints .00001 here where %G would give 1E-05, and only reaches
+       for an exponent a decade further down. */
+    TEST("the exponent appears a decade later than C's %G reaches for it");
+    CHECK_TEXT("10 PRINT 0.00001; \"|\"\n20 END\n", " .00001 |\n");
+    CHECK_TEXT("10 PRINT 0.0001; \"|\"\n20 END\n", " .0001 |\n");
+    CHECK_TEXT("10 PRINT 1/300000; \"|\"\n20 END\n", " 3.333333E-06 |\n");
+  }
+  {
+    TEST("a comma moves to the next 14-column print zone");
+    CHECK_TEXT("10 PRINT \"A\", \"B\", \"C\", \"|\"\n20 END\n",
+               "A             B             C             |\n");
+    CHECK_TEXT("10 PRINT \"T\", \"Q\", \"OUTFLOW\", \"|\"\n20 END\n",
+               "T             Q             OUTFLOW       |\n");
+  }
+  {
+    /* The number's sign occupies the first column of the zone, so its digits
+       start one in. */
+    TEST("a number in a zone starts after the sign column");
+    CHECK_TEXT("10 PRINT 1, 2, 3, \"|\"\n20 END\n",
+               " 1             2             3            |\n");
+    CHECK_TEXT("10 PRINT \"LABEL\", 42, \"|\"\n20 END\n",
+               "LABEL          42           |\n");
+  }
+  {
+    TEST("a label and a value, as a listing reports a steady state");
+    CHECK_TEXT("10 PRINT \"STEADY STATE J/K1 =\"; 1000; \"|\"\n20 END\n",
+               "STEADY STATE J/K1 = 1000 |\n");
+  }
+  {
+    TEST("a trailing separator holds the line open for the next PRINT");
+    CHECK_TEXT("10 PRINT 7;\n20 PRINT 8; \"|\"\n30 END\n", " 7  8 |\n");
+    CHECK_TEXT("10 PRINT 9,\n20 PRINT 10; \"|\"\n30 END\n", " 9             10 |\n");
+  }
+  {
+    TEST("a bare PRINT is a blank line");
+    CHECK_TEXT("10 PRINT \"BEFORE\"; \"|\"\n20 PRINT\n30 PRINT \"AFTER\"; \"|\"\n40 END\n",
+               "BEFORE|\n\nAFTER|\n");
+  }
+  {
+    /* The text is what a console shows; the rows are the same numbers for
+       comparison. A listing that prints its table still yields both. */
+    TEST("PRINT still emits rows as well as text");
+    BAS_Status st;
+    BAS_Instance *i = run("10 PRINT 1, 2\n20 END\n", &st);
+    CHECK_INT(BAS_GetRowCount(i), 2);
     BAS_Free(i);
   }
 
