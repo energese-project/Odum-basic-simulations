@@ -1,8 +1,8 @@
 /**
- * odum-basic: the command-line tool.
+ * odum: the command-line tool.
  *
- *   odum-basic run <file.bas> [--csv <out>] [--max-steps N]
- *   odum-basic check <file.bas>
+ *   odum run <file.bas> [--csv <out>] [--max-steps N]
+ *   odum check <file.bas>
  *
  * `run` executes a listing and writes its rows as CSV — stdout by default, so
  * it composes with everything else.  `check` validates without executing and
@@ -29,8 +29,8 @@
 static void usage(void) {
   fprintf(stderr,
           "Usage:\n"
-          "  odum-basic run <file.bas> [--csv <out>] [--max-steps N]\n"
-          "  odum-basic check <file.bas>\n");
+          "  odum run <file.bas> [--csv <out>] [--max-steps N]\n"
+          "  odum check <file.bas>\n");
 }
 
 /** Read a whole file.  The caller frees. */
@@ -76,7 +76,7 @@ static int cmd_run(const char *path, const char *csv_path, long max_steps) {
   BAS_Status s = BAS_Init(src, &inst);
   free(src);
   if (s != BAS_OK) {
-    fprintf(stderr, "%s: %s — run `odum-basic check` for the details\n", path,
+    fprintf(stderr, "%s: %s — run `odum check` for the details\n", path,
             BAS_GetErrorDescription(s));
     BAS_Free(inst);
     return EXIT_INVALID;
