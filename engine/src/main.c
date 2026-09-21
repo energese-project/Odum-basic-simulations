@@ -86,7 +86,30 @@ static int cmd_run(const char *path, const char *csv_path, long max_steps) {
      terminate; the engine itself is happy to run forever, as the original
      machine was. */
   long steps = 0;
-  while ((s = BAS_Step(inst, 4096)) == BAS_OK) {
+  for (;;) {
+    s = BAS_Step(inst, 4096);
+    if (s == BAS_AWAITING_INPUT) {
+      /* The engine suspends rather than reading, so the console belongs to
+         whoever drives it — here, this terminal. The "? " is added here for
+         the same reason: GW-BASIC's prompt punctuation is the console's
+         business, not the program's. */
+      const char *prompt = BAS_GetInputPrompt(inst);
+      if (prompt) fputs(prompt, stdout);
+      fputs("? ", stdout);
+      fflush(stdout);
+      char line[256];
+      if (!fgets(line, sizeof line, stdin)) {
+        fprintf(stderr, "%s: end of input while a value was wanted\n", path);
+        BAS_Free(inst);
+        return EXIT_RUNTIME;
+      }
+      line[strcspn(line, "\r\n")] = '\0';
+      /* BAS_AWAITING_INPUT again means the line was short or unreadable, and
+         the loop asks once more — GW-BASIC's "??" and "?Redo from start". */
+      BAS_ProvideInput(inst, line);
+      continue;
+    }
+    if (s != BAS_OK) break;
     if (max_steps > 0 && ++steps * 4096 > max_steps) {
       fprintf(stderr, "%s: stopped after %ld statements\n", path, max_steps);
       break;

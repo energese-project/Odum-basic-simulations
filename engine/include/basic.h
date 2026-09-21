@@ -36,7 +36,10 @@
 extern "C" {
 #endif
 
-/** Every entry point returns one of these.  0 is success; nothing else is. */
+/**
+ * Every entry point returns one of these.  0 is success; nothing else is —
+ * except BAS_AWAITING_INPUT, which is neither, and is described below.
+ */
 typedef enum {
   BAS_OK = 0,
   BAS_ERR_ALLOC,        /**< Out of memory. */
@@ -45,6 +48,15 @@ typedef enum {
   BAS_ERR_RUNTIME,      /**< The program failed while running. */
   BAS_ERR_HALTED,       /**< Stopped at the caller's request. */
   BAS_ERR_UNSUPPORTED,  /**< A statement this engine does not implement yet. */
+  /**
+   * INPUT is waiting for a line.  Not success, and not a failure: the program
+   * is suspended part-way through a statement and resumes when
+   * BAS_ProvideInput supplies a value.  The program counter still points at
+   * the INPUT, so abandoning the run here loses nothing.
+   *
+   * It is last so that the values above keep the numbers they had.
+   */
+  BAS_AWAITING_INPUT,
   BAS_STATUS_COUNT
 } BAS_Status;
 
@@ -98,10 +110,38 @@ void BAS_Reset(BAS_Instance *inst);
  * Run at most `max_statements`, then return.  BAS_OK means the budget ran out
  * and there is more to do; call again.  BAS_ERR_HALTED means the program
  * finished, or reached END or STOP — BAS_CanContinue distinguishes those, and
- * BAS_Continue resumes.  Anything else is a failure, described by
- * BAS_GetRuntimeError.
+ * BAS_Continue resumes.  BAS_AWAITING_INPUT means an INPUT needs a line: read
+ * BAS_GetInputPrompt, then call BAS_ProvideInput and step again.  Anything
+ * else is a failure, described by BAS_GetRuntimeError.
  */
 BAS_Status BAS_Step(BAS_Instance *inst, size_t max_statements);
+
+/* ---------------------------------------------------------------- input */
+
+/**
+ * The prompt of the INPUT now waiting, or NULL when none is waiting or the
+ * statement has no prompt.  The string belongs to the instance.
+ *
+ * Whether to append "? " is the caller's, because it is a property of the
+ * console rather than of the program: GW-BASIC appends it after a semicolon
+ * and not after a comma, and this engine does not own the console.
+ */
+const char *BAS_GetInputPrompt(BAS_Instance *inst);
+
+/**
+ * Supply one line to the waiting INPUT, as a user would type it.
+ *
+ * The line is split on commas, because `INPUT A, B` reads one line holding
+ * both.  Returns BAS_OK when every variable of the statement has a value and
+ * stepping can resume, and BAS_AWAITING_INPUT when the statement wants more
+ * than the line supplied — the caller prompts again, as GW-BASIC does with
+ * "??".  A field that is not a number leaves every variable of the statement
+ * unset and returns BAS_AWAITING_INPUT, which is GW-BASIC's "?Redo from
+ * start": a partially applied line would be worse than asking again.
+ *
+ * BAS_ERR_ARGUMENT when nothing is waiting for input.
+ */
+BAS_Status BAS_ProvideInput(BAS_Instance *inst, const char *line);
 
 /** True when the program stopped at END or STOP and CONT would resume it. */
 int BAS_CanContinue(BAS_Instance *inst);
