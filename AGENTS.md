@@ -21,10 +21,22 @@ root. Two things follow:
   `vite.config.js` and nowhere else, and the dev server is mounted under the same
   prefix as production so the two cannot disagree.
 
-**The interpreter is the product.** The build, the panels and the framework are
+**The language core is the product.** The build, the panels and the framework are
 scaffolding around it; what makes this repository worth anything is that a published
-listing runs unaltered. When a choice is between "the listing has to change" and "the
-interpreter has to change", it is the interpreter that changes.
+listing runs unaltered. When a choice is between "the listing has to change" and "our
+code has to change", it is our code that changes.
+
+That core is implemented **twice**, and which one you are editing decides whether
+anything happens:
+
+- [`engine/`](engine/) is the core in C, compiled to WebAssembly. **It executes
+  listings** and checks them in the editor. This is what the site runs.
+- [`src/basic/interpreter.ts`](src/basic/interpreter.ts) is the core in TypeScript. It
+  ran the site until the worker moved across, and is now the **reference
+  implementation**, kept so that two independently written programs can be compared.
+
+A language change that lands only in the interpreter changes nothing a reader can see,
+and its tests will pass anyway. See §9 before touching either.
 
 ## 2. Built to last
 
@@ -57,8 +69,9 @@ it first.
 
 **Every change begins with a failing test.** Red, then green, then refactor.
 
-- **Behaviour is tested from the outside.** Interpreter tests run a BASIC listing
-  and assert on what it printed, never on an internal method. Archive tests are
+- **Behaviour is tested from the outside.** Language-core tests, in both
+  implementations, run a BASIC listing and assert on what it printed, never on an
+  internal method. Archive tests are
   phrased as the mistakes a contributor could make. A test that would survive a
   rewrite of the implementation is the kind worth having.
 - **A bug fix starts by reproducing the bug in a test.** The `REM`-with-a-colon
@@ -172,25 +185,72 @@ Conventions:
   DOM. Prefix each selector with `:host` (`:host .title`). Nothing fails when this is
   forgotten; the text is just the wrong size somewhere else.
 
-## 9. The interpreter
+## 9. The language core
 
-[`src/basic/interpreter.ts`](src/basic/interpreter.ts) knows nothing about the DOM.
-Its whole contact with the outside world is the callbacks in `BasicIO`, which is what
-lets the same class run in a Worker, on the main thread and under `node --test`. Keep
-it that way: a `document` reference in there breaks the unit tests, which are the only
+**Two implementations. Know which one you are changing.** They are compared against
+each other on every pull request (§14), which is the point of having both — but it also
+means a change to one and not the other is a failing build, not a silent divergence.
+
+| | what it is | what it does |
+| --- | --- | --- |
+| [`engine/`](engine/) | the core in C: `lexer.c`, `parser.c`, `interp.c`, `validate.c` | **executes** every listing on the site, checks the editor's buffer, and backs the `odum` CLI |
+| [`src/basic/interpreter.ts`](src/basic/interpreter.ts) | the core in TypeScript | the reference implementation, run by `scripts/compare-engines.ts` and its own tests |
+
+Neither may reference the DOM. The engine cannot by construction; the interpreter's
+whole contact with the outside world is the callbacks in `BasicIO`, which is what lets
+the same class run in a Worker, on the main thread and under `node --test`. Keep it
+that way: a `document` reference in there breaks the unit tests, which are the only
 cheap way to check a language change.
 
-**Every language change needs a test in
-[`interpreter.test.ts`](src/basic/interpreter.test.ts) written against a listing, not
-against an internal method.** The tests run a program and assert on what it printed,
-because that is the only thing the published listings care about.
+### Adding or changing a statement
 
-**Graphics statements leave through `draw`, never as pixels.** Each is a `DrawOp` in
-the program's own coordinates, unrounded, with the line that drew it; `screen.ts`
-rasterises them for the Plot pane. Keep the two apart: the pixels are how the run
-looked, which is what the published figures show, and the record is what it
-computed, which is what a series is read back from. A series is a `PSET` statement,
-not a colour — Odum (1989) plots two variables in colour 2.
+**The engine first, because the engine is what runs.** A statement added to the
+interpreter alone is invisible on the site and its test still passes — that is the
+trap this section exists to prevent.
+
+1. the keyword in `BAS_Keyword` and its spelling in `KEYWORD_NAMES`
+   ([`engine/src/lexer.h`](engine/src/lexer.h), [`lexer.c`](engine/src/lexer.c)) — the
+   two are positional and must stay in step;
+2. a `BAS_ST_*` statement type in [`parser.h`](engine/src/parser.h) and the parse in
+   [`parser.c`](engine/src/parser.c);
+3. the execution arm in the `switch (s->type)` in [`interp.c`](engine/src/interp.c),
+   and whatever [`validate.c`](engine/src/validate.c) should say about it;
+4. a test in [`engine/tests/`](engine/tests/) that runs a listing and asserts on what
+   it printed;
+5. **`make wasm` and commit the rebuilt artefact.** The site loads
+   `src/basic/engine.wasm`, not your working tree. Skip this and nothing changes in the
+   browser. The `wasm` CI job rebuilds it and fails if a byte differs;
+6. the same statement in [`interpreter.ts`](src/basic/interpreter.ts) with a test in
+   [`interpreter.test.ts`](src/basic/interpreter.test.ts), or
+   `scripts/compare-engines.ts` stops being a comparison of equals;
+7. the keyword list in [`basic-language.ts`](src/basic/basic-language.ts) — move the
+   word from `PLANNED` to `KEYWORDS` — and the support table in the README.
+
+**Never index a table by arithmetic on the keyword enum.** `map[kw - BAS_KW_DIM]`
+underflowed as an unsigned index, passed its bounds check, selected entry zero, and
+parsed every `INPUT` as a `DIM`. It validated clean wherever the statement resembled a
+declaration, so two releases shipped reporting a published listing as broken. The
+comment at [`parser.c`](engine/src/parser.c) records it. Switch on the keyword.
+
+**Tests are written against a listing, not against an internal method**, in both
+implementations. They run a program and assert on what it printed, because that is the
+only thing the published listings care about.
+
+### Rules both implementations obey
+
+**Graphics statements leave as coordinates, never as pixels.** Each is a `DrawOp` (or
+the engine's equivalent row) in the program's own coordinates, unrounded, with the line
+that drew it; `screen.ts` rasterises them for the Plot pane, and rasterises for *both*
+implementations — which is what makes a difference between their screens attributable
+to arithmetic rather than to drawing. Keep the two apart: the pixels are how the run
+looked, which is what the published figures show, and the record is what it computed,
+which is what a series is read back from. A series is a `PSET` statement, not a
+colour — Odum (1989) plots two variables in colour 2.
+
+`SCREEN`, `COLOR` and `CLS` are recorded in that stream rather than discarded. A
+rasteriser cannot size a buffer before it knows the mode, and `screen.ts` starts at
+mode 0 with a zero-sized buffer, so dropping them makes a graphics listing — which is
+most of Odum's later ones — draw nothing at all.
 
 **Nothing a diverging model computes may hang the page.** Coordinates past the PC's
 16 bits are an `OVERFLOW`, as they were on the PC, and `screen.ts` skips non-finite
@@ -215,13 +275,25 @@ with its evidence. Port code only from MIT sources; PC-BASIC is GPL-3.0, so read
 find a cause and copy none of it. The article states this rule as a design principle
 (`docs/article.tex`, §Design principles); change both together.
 
-`CONT` is `cont()`. END and STOP leave the program counter on the next statement and
-set `canContinue`; the worker keeps the interpreter until the next run.
+### Suspending and resuming
 
-`run()` yields every `YIELD_INTERVAL` statements and checks `shouldHalt` there. That
-yield is a `setTimeout`, not a microtask, deliberately — a microtask drains straight
-back into the loop without letting the worker's event loop deliver the stop message.
-Do not "optimise" it into `queueMicrotask`.
+`CONT` resumes after `END` or `STOP`, which leave the program counter on the next
+statement. In the engine this is `BAS_Continue`, gated by `BAS_CanContinue` — which
+must be false when nothing follows, or the reader is offered a Continue button that
+does nothing. In the interpreter it is `cont()` and `canContinue`. The worker keeps
+the program instance until the next run.
+
+`INPUT` suspends rather than blocking: the engine returns `BAS_AWAITING_INPUT`, which
+is neither success nor failure, and the worker awaits a promise before resuming. The
+protocol between worker and page is the same one an async `print` loop already had.
+
+**Stopping a runaway program is structural, not cooperative.** The engine executes at
+most a bounded number of statements per `BAS_Step` call, so the worker regains control
+between slices whatever the listing does. The interpreter's equivalent is that `run()`
+yields every `YIELD_INTERVAL` statements and checks `shouldHalt` there — and that yield
+is a `setTimeout`, not a microtask, deliberately: a microtask drains straight back into
+the loop without letting the worker's event loop deliver the stop message. Do not
+"optimise" it into `queueMicrotask`.
 
 ## 10. The program archive
 
@@ -367,8 +439,8 @@ the true relationship; a second scale makes them look comparable when they are n
 The console beside the chart is the table view: everything the program printed stays
 readable there, so the plot is never the only reading of a run. Do not collapse it.
 
-**Nothing on the main thread may cost more as the run gets longer.** The interpreter
-is in a worker, but its output is laid out, parsed and drawn here, and each of those
+**Nothing on the main thread may cost more as the run gets longer.** The engine runs
+in a worker, but its output is laid out, parsed and drawn here, and each of those
 was once quadratic: 60,000 rows held the page for 5.9 seconds of a 6.7-second run. So:
 
 - the console appends each flushed piece as a block of its own, never to one growing
@@ -422,11 +494,12 @@ make article           # build docs/article.pdf
 ```
 
 **The oracle comparison is the third.** [`validation/oracle/`](validation/oracle/) runs a
-published listing in our interpreter and in PC-BASIC, an emulator of GW-BASIC kept in its
-own image, and records every result in `SHA256SUMS`. The article `\input`s the table and
-numbers it generates, `oracle.tex`, and `latex.ts` there checks each claim the article
-makes about them. Run `make attest` after any change to `interpreter.ts` or `screen.ts`:
-our side of every comparison is that code. CI does not run it yet.
+published listing in both our implementations and in PC-BASIC, an emulator of GW-BASIC kept
+in its own image, and records every result in `SHA256SUMS`. The article `\input`s the table
+and numbers it generates, `oracle.tex`, and `latex.ts` there checks each claim the article
+makes about them. Run `make attest` after any change to `engine/`, `interpreter.ts` or
+`screen.ts`: our side of every comparison is that code, and the engine is R5. The `attest`
+job runs it on every pull request, so a stale record fails CI rather than going unnoticed.
 
 A failing figure is a question, not an obstacle: either the change was meant to alter
 what the workbench looks like, in which case regenerate and review the images, or it

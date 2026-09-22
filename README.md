@@ -6,8 +6,11 @@ numbers it prints become a curve.
 
 **[Open it →](https://energese-project.github.io/Odum-basic-simulations/)**
 
-The interpreter is written from scratch: no CPU emulation, no ROM image, nothing
-copyrighted. That is what lets the whole thing ship as a static page.
+The language core is written from scratch: no CPU emulation, no ROM image, nothing
+copyrighted. That is what lets the whole thing ship as a static page. It exists twice
+over — an engine in C compiled to WebAssembly, which is what runs your listing, and an
+interpreter in TypeScript kept as a reference implementation — so that the two can be
+checked against each other rather than either being taken on trust.
 
 ## Built to last
 
@@ -22,9 +25,9 @@ change, not preferences:
   TypeScript and Playwright are build and test tooling and are exempt — they are
   not in the shipped page. Every dependency is one more thing that has to still
   exist, still build and still be understood in ten years.
-- **Test first.** Every change starts with a failing test. The interpreter's
-  behaviour is pinned by tests that run a BASIC listing and assert on what it
-  printed; the archive's rules are pinned by tests phrased as the mistakes a
+- **Test first.** Every change starts with a failing test. The language core's
+  behaviour is pinned, in both implementations, by tests that run a BASIC listing and
+  assert on what it printed; the archive's rules are pinned by tests phrased as the mistakes a
   contributor could make. A change without a test is a change nobody can safely
   make again.
 
@@ -34,7 +37,8 @@ change, not preferences:
 
 | Piece | Where |
 | --- | --- |
-| BASIC interpreter, DOM-free | [`src/basic/interpreter.ts`](src/basic/interpreter.ts) |
+| **BASIC engine in C** — runs every listing | [`engine/`](engine/) → [`src/basic/engine.wasm`](src/basic/engine.wasm) |
+| BASIC interpreter, DOM-free — the reference implementation | [`src/basic/interpreter.ts`](src/basic/interpreter.ts) |
 | Runs off the main thread | [`src/basic/runner.worker.ts`](src/basic/runner.worker.ts), [`runner.ts`](src/basic/runner.ts) |
 | Output → plottable series | [`src/basic/output.ts`](src/basic/output.ts) |
 | **The program archive** | [`programs/`](programs/) |
