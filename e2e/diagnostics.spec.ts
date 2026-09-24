@@ -44,8 +44,7 @@ test('correcting the listing clears the mark', async ({ page }) => {
 });
 
 test('an archive program loads without being marked', async ({ page }) => {
-  await page.goto(ROOT);
-  await page.getByTestId('program-select').selectOption('charge-discharge');
+  await page.goto('./?prg=charge-discharge');
 
   const mount = page.getByTestId('editor-mount');
   await expect(mount).toContainText('PRINT');

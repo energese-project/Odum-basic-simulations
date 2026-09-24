@@ -62,18 +62,6 @@
   flex: 1 1 auto;
 }
 
-:host .picker select {
-  height: 1.6rem;
-  max-width: 16rem;
-  padding: 0 0.4rem;
-  font: inherit;
-  font-size: 0.78rem;
-  color: var(--e-ink);
-  background-color: var(--e-surface-sunken);
-  border: 1px solid var(--e-rule);
-  border-radius: 0.3rem;
-}
-
 :host .icon-button,
 :host .action {
   display: inline-flex;
@@ -106,6 +94,11 @@
   color: var(--e-ink);
   background: none;
   border: 1px solid var(--e-rule);
+}
+
+:host a.action {
+  box-sizing: border-box;
+  text-decoration: none;
 }
 
 :host .action:hover:not(:disabled) {
@@ -143,7 +136,6 @@
 }
 
 :host .topbar button:focus-visible,
-:host .topbar select:focus-visible,
 :host .topbar a:focus-visible {
   outline: 2px solid var(--e-accent);
   outline-offset: 1px;
@@ -266,10 +258,6 @@
   z-index: 1;
 }
 
-:host .details-title {
-  border-top: 1px solid var(--e-rule);
-}
-
 :host .filename {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.72rem;
@@ -350,21 +338,7 @@
     display: none;
   }
 
-  :host .picker {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  :host .picker select {
-    width: 100%;
-    max-width: none;
-  }
-
-  :host .spacer {
-    display: none;
-  }
-
-  /* Icons only, so the picker keeps enough width to read. The label stays in
+  /* Icons only, so the bar fits a phone. The label stays in
      the accessibility tree: display: none would take the button's name with it. */
   :host .action {
     padding: 0 0.45rem;

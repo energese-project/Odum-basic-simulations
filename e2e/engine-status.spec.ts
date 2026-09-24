@@ -41,7 +41,7 @@ test('a failed engine says so rather than failing silently when Run is pressed',
   // The engine runs listings now, so an engine that did not load is not a
   // missing convenience: nothing can run. The reader has to be told that, and
   // the page has to come back rather than sit on a disabled button.
-  await page.getByTestId('program-select').selectOption('charge-discharge');
+  await page.getByTestId('library-list').getByRole('treeitem', { name: /^Charge And Discharge/ }).click();
   await page.getByTestId('run').click();
   await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
   // The failure is reported in the console, prefixed as BASIC reports its own.

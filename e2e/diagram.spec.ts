@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 /**
  * A listing is half of what Odum published; the energy systems diagram beside
  * it is the other half, and usually the easier one to check a model against.
- * When a program has one it sits above the plot, and the details say on what
- * basis it is reproduced here.
+ * When a program has one it sits above the plot. On what basis it is
+ * reproduced here is in the program's sidecar, one click away in the explorer.
  */
 
 test('a program with a diagram shows it above the plot, loaded and captioned', async ({ page }) => {
@@ -29,14 +29,6 @@ test('a program with a diagram shows it above the plot, loaded and captioned', a
   expect(diagram!.y + diagram!.height).toBeLessThanOrEqual(plot!.y);
 });
 
-test('the details say on what basis the diagram is published', async ({ page }) => {
-  await page.goto('./?prg=charge-discharge');
-  const details = page.getByTestId('meta-diagram');
-  await expect(details).toBeVisible();
-  await expect(details.getByTestId('diagram-basis')).toHaveText('own work');
-  await expect(details).toContainText('Drawn for this repository');
-});
-
 test('a reproduced figure is located in its source', async ({ page }) => {
   // No program in the archive reproduces a published figure yet, so this one is
   // exercised against a catalog with the figure reference added.
@@ -52,16 +44,14 @@ test('a reproduced figure is located in its source', async ({ page }) => {
   });
 
   await page.goto('./?prg=charge-discharge');
-  await expect(page.getByTestId('diagram-figure')).toHaveText('Figure 5-3, p. 112');
-  await expect(page.getByTestId('diagram-basis')).toHaveText('fair use / fair dealing');
+  await expect(page.getByTestId('diagram-pane')).toContainText('Figure 5-3, p. 112');
 });
 
 test('a program with no diagram gives the plot the room instead', async ({ page }) => {
   await page.goto('./?prg=charge-discharge');
   await expect(page.getByTestId('diagram-pane')).toBeVisible();
 
-  await page.getByTestId('program-select').selectOption('two-tank');
+  await page.getByTestId('library-list').getByRole('treeitem', { name: /^Two Tanks/ }).click();
   await expect(page.getByTestId('editor-filename')).toHaveText('two-tank.bas');
   await expect(page.getByTestId('diagram-pane')).toBeHidden();
-  await expect(page.getByTestId('meta-diagram')).toBeHidden();
 });

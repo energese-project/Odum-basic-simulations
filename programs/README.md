@@ -20,19 +20,9 @@ files, checks them, and publishes both at
 
 ## Adding a program
 
-### The easiest way: in the app
-
-Open the workbench, press **+** under **My programs** in the explorer (or
-**Copy to My programs** on an archive program), and write it there. You can run
-it as you go. The details panel is a form, checked against the rules below as
-you type. When it passes, **Submit to the archive…** opens the GitHub form below
-with everything already filled in; all you add there is the diagram image, which
-the app gives you as a download.
-
-My programs is kept in your browser (its Origin Private File System) and nowhere
-else until you submit. **Download files** saves a copy.
-
 ### The form on GitHub
+
+**Contribute**, at the top of the workbench, opens this form.
 
 [**Open an "Add a program" issue**](https://github.com/energese-project/Odum-basic-simulations/issues/new?template=add-program.yml)
 and fill it in. No git, JSON or BibLaTeX needed. Paste the listing, type in the
@@ -168,12 +158,11 @@ from nowhere is worse than no scan.
 
 ### Everything else
 
-- `title` and `description` — required; shown in the program picker and the
-  library sidebar.
+- `title` and `description` — required; the title names the program in the
+  explorer, and the description is shown when you hover over it.
 - `notes` — optional, except for `corrected`. Where the listing came from beyond
   the citation, what was hard to read, what differs from the source.
-- `tags` — optional, free-form. The library filter searches them, and clicking one
-  in the details panel lists every program that shares it.
+- `tags` — optional, free-form. The explorer's filter searches them.
 
 ## Adding an article or book
 

@@ -1,8 +1,8 @@
 /**
  * What an image's bytes say it is, whatever its filename says.
  *
- * Shared by the build (program-archive.ts), the submission bot and the in-app
- * workspace, so a diagram is judged the same way wherever it arrives. A renamed
+ * Shared by the build (program-archive.ts) and the submission bot, so a
+ * diagram is judged the same way wherever it arrives. A renamed
  * HEIC or PDF passes every other check and then renders as a broken image on
  * the site; this is the check that catches it. Pure — no Buffer, no DOM.
  */

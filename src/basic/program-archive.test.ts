@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { ArchiveError, publishedFiles, readCatalog } from './program-archive.ts';
 import { MetadataError } from './program-catalog.ts';
+import { buildTree, programFiles, type TreeNode } from './program-library.ts';
 
 /**
  * These are the checks a contributor's pull request is judged by, so each test
@@ -288,6 +289,92 @@ test('every file the catalog refers to is published, and nothing else', () => {
     'tank.bas',
     'tank.json',
   ]);
+});
+
+test('the explorer shows every published file of a program, and no others', () => {
+  // The explorer is how a reader gets from a listing to its metadata, its
+  // source and its figures. A file published but not listed is unreachable in
+  // the app; one listed but not published is a 404 on click.
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  const catalog = readCatalog(root);
+  const listed = catalog.programs.flatMap((p) => programFiles(p).map((f) => f.path));
+  assert.deepEqual([...new Set(listed)].sort(), publishedFiles(catalog));
+});
+
+test('a model lists its listing first, and names each file from its own folder', () => {
+  addWork();
+  const m = `${WORK}/macroeconomics`;
+  const [entry] = readCatalog(root).programs;
+  assert.deepEqual(
+    programFiles(entry).map((f) => [f.name, f.path, f.kind]),
+    [
+      ['model.bas', `${m}/model.bas`, 'basic'],
+      ['meta-data.json', `${m}/meta-data.json`, 'json'],
+      ['source.json', `${WORK}/source.json`, 'json'],
+      ['diagram.png', `${m}/diagram.png`, 'image'],
+      ['program.png', `${m}/program.png`, 'image'],
+      ['runs/fig3a.json', `${m}/runs/fig3a.json`, 'json'],
+      ['runs/fig3a.png', `${m}/runs/fig3a.png`, 'image'],
+      ['runs/fig3b.json', `${m}/runs/fig3b.json`, 'json'],
+    ]
+  );
+});
+
+/** A tree as the explorer draws it: one line per row, folders marked with a slash. */
+function outline(nodes: TreeNode[], depth = 0): string[] {
+  return nodes.flatMap((n) => [
+    `${'  '.repeat(depth)}${n.name}${n.kind === 'file' ? '' : '/'}`,
+    ...outline(n.children, depth + 1),
+  ]);
+}
+
+test('the explorer tree is the archive laid out as folders, the way an editor shows it', () => {
+  // A work is its folder, holding its source and a folder per model; a model's
+  // runs are a folder of their own. Folders first, then files by name, as in
+  // VS Code. A single program is a folder of its own files, named by its title.
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  assert.deepEqual(outline(buildTree(readCatalog(root).programs, '')), [
+    `${WORK}/`,
+    '  Macroeconomics Minimodel/',
+    '    runs/',
+    '      fig3a.json',
+    '      fig3a.png',
+    '      fig3b.json',
+    '    diagram.png',
+    '    meta-data.json',
+    '    model.bas',
+    '    program.png',
+    '  source.json',
+    'A Program/',
+    '  tank.bas',
+    '  tank.json',
+  ]);
+});
+
+test('every file in the tree is a published file, each exactly once', () => {
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  const catalog = readCatalog(root);
+  const paths = (nodes: TreeNode[]): string[] =>
+    nodes.flatMap((n) => (n.file ? [n.file.path] : paths(n.children)));
+  assert.deepEqual(paths(buildTree(catalog.programs, '')).sort(), publishedFiles(catalog));
+});
+
+test('the filter keeps a program with its work, and drops a work with nothing left in it', () => {
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  const programs = readCatalog(root).programs;
+  assert.deepEqual(
+    buildTree(programs, 'macroeconomics').map((n) => n.name),
+    [WORK]
+  );
+  assert.deepEqual(buildTree(programs, 'a program').map((n) => n.name), ['A Program']);
 });
 
 test('a work folder named differently from its citation is refused', () => {

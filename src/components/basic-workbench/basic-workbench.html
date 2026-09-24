@@ -2,7 +2,7 @@
   <header class="topbar" data-testid="topbar">
     <button type="button" class="icon-button" data-testid="sidebar-toggle"
             aria-controls="workbench-sidebar" aria-expanded="false"
-            aria-label="Explorer and details" title="Explorer and details">
+            aria-label="Explorer" title="Explorer">
       <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
         <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" fill="none" stroke="currentColor" />
         <path d="M6 2.5v11" stroke="currentColor" />
@@ -13,13 +13,8 @@
 
     <span class="divider" aria-hidden="true"></span>
 
-    <label class="picker">
-      <span class="sr-only">Program</span>
-      <select data-testid="program-select"></select>
-    </label>
-
-    <!-- Beside the picker, not at the far edge: Run acts on the program named
-         next to it. Fidelity is on every explorer row and in the details. -->
+    <!-- Run acts on the program open in the explorer, whichever of its files
+         the editor is showing. Fidelity is on every explorer row. -->
     <button type="button" class="action primary" data-testid="run">
       <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
         <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
@@ -46,18 +41,25 @@
     <!-- After the spacer, with About and the theme toggle: it is page-level
          state, not a control that acts on the program named to the left. -->
     <engine-status></engine-status>
+    <!-- The one way a program enters the archive: the issue form, which labels
+         the issue for the submission bot and for Jules. The href is set from
+         contributeUrl() in init(), so the repository is named in one place. -->
+    <a class="action contribute" data-testid="contribute" target="_blank" rel="noopener"
+       title="Add a program to the archive through a GitHub issue">
+      <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+        <path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" />
+      </svg>
+      <span class="label">Contribute</span>
+    </a>
     <a class="about-link" href="/about">About</a>
     <theme-toggle></theme-toggle>
   </header>
 
   <div class="body">
-    <aside id="workbench-sidebar" class="sidebar" data-testid="sidebar"
-           aria-label="Explorer and details">
+    <aside id="workbench-sidebar" class="sidebar" data-testid="sidebar" aria-label="Explorer">
       <h2 class="pane-title">Explorer</h2>
       <program-explorer></program-explorer>
-      <h2 class="pane-title details-title">Details</h2>
-      <program-meta></program-meta>
-      <program-form hidden></program-form>
     </aside>
     <div class="scrim" data-testid="sidebar-scrim" aria-hidden="true"></div>
 

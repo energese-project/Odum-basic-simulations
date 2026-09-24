@@ -66,36 +66,89 @@ test('the sidecars are published too, so the metadata is citable on its own', as
   expect((await response.json()).fidelity).toBeTruthy();
 });
 
-test('the provenance panel states fidelity and links to the listing', async ({ page }) => {
+// The explorer ---------------------------------------------------------------
+//
+// The provenance is the sidecar itself, not a panel that paraphrases it: every
+// published file of the current program is in the explorer, and a text file
+// opens in the editor exactly as it is published.
+
+test('the explorer lists the program\'s published files', async ({ page }) => {
   await page.goto('./?prg=charge-discharge');
+  const files = page.getByTestId('library-list');
+  await expect(files.getByRole('treeitem', { name: 'charge-discharge.bas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  await expect(files.getByRole('treeitem', { name: 'charge-discharge.json', exact: true })).toBeVisible();
 
-  const badge = page.getByTestId('fidelity-badge');
-  await expect(badge).toHaveText('original');
-  await expect(page.getByTestId('citation')).toContainText('Not from a published listing');
-  await expect(page.getByTestId('meta-notes')).toContainText('first mini-model');
-
-  const raw = page.getByTestId('meta-links').getByRole('link', { name: /charge-discharge\.bas/ });
-  await expect(raw).toHaveAttribute('href', /programs\/charge-discharge\.bas$/);
-  await expect(
-    page.getByTestId('meta-links').getByRole('link', { name: 'History on GitHub' })
-  ).toHaveAttribute('href', /github\.com.*commits\/main\/programs\/charge-discharge\.bas/);
+  // An image is not text, so it is not opened in the editor: it is a link to
+  // the published file, full size, which is how a scan is checked.
+  const image = files.getByRole('treeitem', { name: 'charge-discharge.png', exact: true });
+  await expect(image).toHaveAttribute('href', /programs\/charge-discharge\.png$/);
+  await expect(image).toHaveAttribute('target', '_blank');
 });
 
-test('the notes line is hidden when a program has nothing to add', async ({ page }) => {
-  // An empty notes paragraph would still take up a row and read as missing data.
-  await page.goto('./?prg=two-tank');
-  await expect(page.getByTestId('fidelity-badge')).toHaveText('original');
-  await expect(page.getByTestId('meta-notes')).toBeHidden();
+test('the sidecar opens in the editor as published, and cannot be typed over', async ({
+  page,
+}) => {
+  await page.goto('./?prg=charge-discharge');
+  await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+
+  await page.getByTestId('library-list').getByRole('treeitem', { name: 'charge-discharge.json', exact: true }).click();
+  await expect(page).toHaveURL(/\?prg=charge-discharge&file=charge-discharge\.json$/);
+  await expect(page.getByTestId('editor-filename')).toHaveText('charge-discharge.json');
+  const mount = page.getByTestId('editor-mount');
+  await expect(mount).toContainText('"fidelity"');
+
+  // Read-only: there is nowhere to save it, and an edited sidecar on screen
+  // would misstate what the archive says.
+  await mount.click();
+  await page.keyboard.type('XYZZY');
+  await expect(mount).not.toContainText('XYZZY');
+  await expect(mount).toContainText('Charge And Discharge');
 });
 
-test('the provenance panel follows the program picker', async ({ page }) => {
-  await page.goto('./?prg=charge-discharge');
-  await expect(page.getByTestId('meta-links').getByRole('link').first()).toContainText(
-    'charge-discharge.bas'
-  );
+test('a link to a program\'s file opens that file', async ({ page }) => {
+  await page.goto('./?prg=charge-discharge&file=charge-discharge.json');
+  await expect(page.getByTestId('editor-filename')).toHaveText('charge-discharge.json');
+  await expect(page.getByTestId('editor-mount')).toContainText('"fidelity"');
+});
 
-  await page.getByTestId('program-select').selectOption('two-tank');
-  await expect(page.getByTestId('meta-links').getByRole('link').first()).toContainText(
-    'two-tank.bas'
+test('an edited listing survives a look at the sidecar, and is what runs', async ({ page }) => {
+  await page.goto('./?prg=hello');
+  const mount = page.getByTestId('editor-mount');
+  await expect(mount).toContainText('PRINT');
+  await mount.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('10 PRINT "EDITED"\n20 END');
+
+  const files = page.getByTestId('library-list');
+  await files.getByRole('treeitem', { name: 'hello.json', exact: true }).click();
+  await expect(mount).toContainText('"fidelity"');
+
+  // Run acts on the program, not on whichever file happens to be open.
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
+  await expect(page.getByTestId('console-output')).toContainText('EDITED');
+
+  await files.getByRole('treeitem', { name: 'hello.bas', exact: true }).click();
+  await expect(mount).toContainText('EDITED');
+});
+
+test('the explorer follows the program', async ({ page }) => {
+  await page.goto('./?prg=charge-discharge');
+  await page.getByTestId('library-list').getByRole('treeitem', { name: /^Two Tanks/ }).click();
+  const files = page.getByTestId('library-list');
+  // The program picked is revealed with its listing selected; the one before
+  // stays open, as a folder does in an editor, but nothing in it is selected.
+  await expect(files.getByRole('treeitem', { name: 'two-tank.bas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true'
   );
+  await expect(files.getByRole('treeitem', { name: 'two-tank.json', exact: true })).toBeVisible();
+  await expect(files.getByRole('treeitem', { name: 'charge-discharge.bas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'false'
+  );
+  await expect(files.locator('[aria-selected="true"]')).toHaveCount(1);
 });
