@@ -68,17 +68,3 @@ test('the first mini-model: its diagram, and the plot recovered from its listing
   await expect(diagram).toHaveScreenshot('minimodel-diagram.png');
   await expect(page.locator('.chart-block')).toHaveScreenshot('minimodel-plot.png');
 });
-
-test('a copied program in the workspace, checked as it is described', async ({ page }) => {
-  await page.goto('./?prg=charge-discharge');
-  await page.getByTestId('copy-to-workspace').click();
-  await expect(page).toHaveURL(/\?my=charge-discharge-copy$/);
-
-  // Claiming the copy is the published listing is exactly what the form stops:
-  // verbatim needs a source, and the copy has none.
-  await page.getByTestId('form-fidelity').selectOption('verbatim');
-  await expect(page.getByTestId('form-problems')).toContainText('"source" is required');
-  await settle(page);
-
-  await expect(page.getByTestId('sidebar')).toHaveScreenshot('workspace-form.png');
-});

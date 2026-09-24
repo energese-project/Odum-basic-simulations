@@ -4,7 +4,7 @@
 name: Add a program
 description: Submit a BASIC listing, where it came from, and its diagram. A bot checks it and opens a pull request.
 title: "Add program: "
-labels: [program-submission]
+labels: [program-submission, jules]
 body:
   - type: markdown
     attributes:

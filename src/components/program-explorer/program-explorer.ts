@@ -1,35 +1,35 @@
 import { BaseComponent } from '../../core/base-component.ts';
-import { filterPrograms } from '../../basic/program-library.ts';
-import type { WorkspaceEntry } from '../../basic/workspace.ts';
-import type { Program } from '../../basic/programs.ts';
+import { filterPrograms, programFiles, type ProgramFile } from '../../basic/program-library.ts';
+import { fileUrl, type Program } from '../../basic/programs.ts';
 import template from './program-explorer.html?raw';
 import style from './program-explorer.css?raw';
 
-export type ProgramKind = 'archive' | 'workspace';
-
-export interface ProgramRef {
-  kind: ProgramKind;
-  id: string;
-}
+/**
+ * What a fidelity means, on the row that carries it. Whether a listing is the
+ * published one changes what every number on the screen means, so it is never
+ * more than a hover away.
+ */
+export const FIDELITY_EXPLANATION: Record<string, string> = {
+  verbatim: 'Transcribed from the source, character for character.',
+  corrected: 'Transcribed from the source, with errors in the original fixed — see the notes.',
+  adapted: 'The published model, rewritten to run here. Not the published listing.',
+  original: 'Written for this repository as a worked example. Not from a published listing.',
+};
 
 /**
- * The sidebar's file tree: the archive, read-only and fetched fresh on every
- * load, and "My programs", the reader's own files in this browser.
+ * The sidebar's file tree: every program in the archive, and under the one on
+ * screen, every file published with it.
  *
- * It owns no navigation. Picking something dispatches `program-selected`
- * ({kind, id}), `file-selected` ({id, file}) or `workspace-new`, and the
- * workbench decides what that means — the same path the top-bar picker takes,
- * so the two can never disagree about which program is loaded.
- *
- * Only My programs lists files: they are the reader's to edit. An archive
- * program's files are linked from its details instead.
+ * It owns no navigation. Picking a program dispatches `program-selected` ({id})
+ * and picking a file `file-selected` ({path}); the workbench decides what that
+ * means. An image is not text, so it is a plain link to the published file
+ * rather than something the editor opens.
  */
 export class ProgramExplorerComponent extends BaseComponent {
   static tagName = 'program-explorer';
 
   private programs: Program[] = [];
-  private workspace: WorkspaceEntry[] | null = [];
-  private current: ProgramRef | null = null;
+  private current: { id: string; path: string } | null = null;
 
   constructor() {
     super(template, style);
@@ -42,15 +42,10 @@ export class ProgramExplorerComponent extends BaseComponent {
   init(): void {
     this.input?.addEventListener('input', () => this.refresh());
     this.delegate('click', '.item', (_event, item) => {
-      const { id, kind } = item.dataset;
-      if (id && kind) this.emit('program-selected', { kind: kind as ProgramKind, id });
+      if (item.dataset.id) this.emit('program-selected', { id: item.dataset.id });
     });
-    this.delegate('click', '.file', (_event, file) => {
-      const { id, file: name } = file.dataset;
-      if (id && name) this.emit('file-selected', { id, file: name });
-    });
-    this.querySelector('[data-testid="workspace-new"]')?.addEventListener('click', () => {
-      this.emit('workspace-new', null);
+    this.delegate('click', 'button.file', (_event, file) => {
+      if (file.dataset.path) this.emit('file-selected', { path: file.dataset.path });
     });
   }
 
@@ -59,19 +54,9 @@ export class ProgramExplorerComponent extends BaseComponent {
     this.refresh();
   }
 
-  /** null when this browser cannot keep files for the site at all. */
-  setWorkspace(entries: WorkspaceEntry[] | null): void {
-    this.workspace = entries;
-    this.refresh();
-  }
-
-  setCurrent(ref: ProgramRef): void {
-    this.current = ref;
-    this.refresh();
-  }
-
-  setFilter(query: string): void {
-    if (this.input) this.input.value = query;
+  /** The program on screen, and which of its files the editor is showing. */
+  setCurrent(id: string, path: string): void {
+    this.current = { id, path };
     this.refresh();
   }
 
@@ -79,94 +64,80 @@ export class ProgramExplorerComponent extends BaseComponent {
     this.dispatchEvent(new CustomEvent(type, { detail, bubbles: true }));
   }
 
-  // Rebuilds the lists only. BaseComponent.update() would replace the filter
+  // Rebuilds the list only. BaseComponent.update() would replace the filter
   // input too, and take the reader's cursor with it on every keystroke.
   private refresh(): void {
-    const query = this.input?.value ?? '';
-    this.refreshArchive(query);
-    this.refreshWorkspace(query);
-  }
-
-  private refreshArchive(query: string): void {
     const list = this.querySelector('[data-testid="library-list"]');
     const empty = this.querySelector<HTMLElement>('[data-testid="library-empty"]');
     if (!list) return;
 
-    const shown = filterPrograms(this.programs, query);
+    const shown = filterPrograms(this.programs, this.input?.value ?? '');
     list.replaceChildren(
       ...shown.map((program) => {
         const li = document.createElement('li');
-        li.append(this.row('archive', program.id, program.title, program.fidelity, program.description));
+        const current = this.current?.id === program.id;
+        li.append(this.row(program, current));
+        if (current) li.append(this.files(program));
         return li;
       })
     );
     if (empty) empty.hidden = shown.length > 0 || this.programs.length === 0;
   }
 
-  private refreshWorkspace(query: string): void {
-    const list = this.querySelector('[data-testid="workspace-list"]');
-    const empty = this.querySelector<HTMLElement>('[data-testid="workspace-empty"]');
-    const unavailable = this.querySelector<HTMLElement>('[data-testid="workspace-unavailable"]');
-    const add = this.querySelector<HTMLElement>('[data-testid="workspace-new"]');
-    if (!list) return;
-
-    if (unavailable) unavailable.hidden = this.workspace !== null;
-    if (add) add.hidden = this.workspace === null;
-    const entries = this.workspace ?? [];
-    if (empty) empty.hidden = this.workspace === null || entries.length > 0;
-
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-    const shown = entries.filter((e) =>
-      words.every((w) => `${e.id} ${e.title}`.toLowerCase().includes(w))
-    );
-
-    list.replaceChildren(
-      ...shown.map((entry) => {
-        const li = document.createElement('li');
-        li.append(this.row('workspace', entry.id, entry.title, 'draft', entry.id));
-        if (this.isCurrent('workspace', entry.id)) {
-          const files = document.createElement('ul');
-          files.className = 'list';
-          files.setAttribute('aria-label', `Files of ${entry.title}`);
-          for (const name of entry.files) {
-            const item = document.createElement('li');
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'file';
-            button.dataset.id = entry.id;
-            button.dataset.file = name;
-            button.textContent = name;
-            item.append(button);
-            files.append(item);
-          }
-          li.append(files);
-        }
-        return li;
-      })
-    );
-  }
-
-  private isCurrent(kind: ProgramKind, id: string): boolean {
-    return this.current?.kind === kind && this.current.id === id;
-  }
-
-  private row(kind: ProgramKind, id: string, title: string, badge: string, hint: string): HTMLElement {
+  private row(program: Program, current: boolean): HTMLElement {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'item';
-    button.dataset.id = id;
-    button.dataset.kind = kind;
-    button.title = hint;
-    button.setAttribute('aria-current', String(this.isCurrent(kind, id)));
+    button.dataset.id = program.id;
+    button.title = `${program.description}\n\n${program.fidelity}: ${FIDELITY_EXPLANATION[program.fidelity] ?? ''}`;
+    button.setAttribute('aria-current', String(current));
+    button.setAttribute('aria-expanded', String(current));
 
     const label = document.createElement('span');
     label.className = 'title';
-    label.textContent = title;
+    label.textContent = program.title;
     const tag = document.createElement('span');
     tag.className = 'badge';
-    tag.textContent = badge;
+    tag.textContent = program.fidelity;
     button.append(label, tag);
     return button;
+  }
+
+  private files(program: Program): HTMLElement {
+    const list = document.createElement('ul');
+    list.className = 'list files';
+    list.dataset.testid = 'file-list';
+    list.setAttribute('aria-label', `Files of ${program.title}`);
+    list.append(
+      ...programFiles(program).map((file) => {
+        const li = document.createElement('li');
+        li.append(file.kind === 'image' ? this.imageLink(file) : this.fileButton(file));
+        return li;
+      })
+    );
+    return list;
+  }
+
+  private fileButton(file: ProgramFile): HTMLElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'file';
+    button.dataset.path = file.path;
+    button.title = file.path;
+    button.textContent = file.name;
+    button.setAttribute('aria-current', String(this.current?.path === file.path));
+    return button;
+  }
+
+  private imageLink(file: ProgramFile): HTMLElement {
+    const a = document.createElement('a');
+    a.className = 'file';
+    a.href = fileUrl(file.path);
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.title = `${file.path}, full size in a new tab`;
+    a.textContent = `${file.name} ↗`;
+    return a;
   }
 }
 

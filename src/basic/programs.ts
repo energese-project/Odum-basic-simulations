@@ -68,12 +68,12 @@ export function findProgram(programs: Program[], id: string | undefined): Progra
   return programs.find((p) => p.id === id);
 }
 
-/** The published URL of a listing, for the citation to link to. */
-export function programUrl(program: Program): string {
-  return `${import.meta.env.BASE_URL}programs/${program.file}`;
+/** The published URL of any file in programs/, by its path there. */
+export function fileUrl(path: string): string {
+  return `${import.meta.env.BASE_URL}programs/${path}`;
 }
 
 /** The published URL of a program's diagram, if it has one. */
 export function diagramUrl(program: Program): string | null {
-  return program.diagram ? `${import.meta.env.BASE_URL}programs/${program.diagram.file}` : null;
+  return program.diagram ? fileUrl(program.diagram.file) : null;
 }

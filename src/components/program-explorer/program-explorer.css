@@ -39,77 +39,6 @@
   outline-offset: -1px;
 }
 
-:host .root-title {
-  display: flex;
-  align-items: center;
-  padding: 0.25rem 0.5rem 0.25rem 0.6rem;
-  font-size: 0.64rem;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--e-muted);
-  cursor: pointer;
-  list-style: none;
-}
-
-:host .root-title::-webkit-details-marker {
-  display: none;
-}
-
-:host .root-title::before {
-  content: '▸';
-  margin-right: 0.35rem;
-  font-size: 0.6rem;
-}
-
-:host .root[open] > .root-title::before {
-  content: '▾';
-}
-
-:host .root-title:focus-visible {
-  outline: 2px solid var(--e-accent);
-  outline-offset: -2px;
-}
-
-/* The New program button sits on the My programs row but outside its summary —
-   see the template. The summary keeps the height the button used to give it. */
-:host .root-group {
-  position: relative;
-}
-
-:host .root-title.has-action {
-  min-height: 1.8rem;
-  padding-right: 2.3rem;
-}
-
-:host .new {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.5rem;
-  width: 1.3rem;
-  height: 1.3rem;
-  padding: 0;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  color: var(--e-muted);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-
-:host .new:hover {
-  color: var(--e-ink);
-  background-color: var(--e-surface-sunken);
-}
-
-:host .new:focus-visible {
-  outline: 2px solid var(--e-accent);
-}
-
 :host .list {
   margin: 0;
   padding: 0 0 0.25rem;
@@ -139,6 +68,12 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.7rem;
   color: var(--e-muted);
+  text-decoration: none;
+}
+
+:host .file[aria-current='true'] {
+  color: var(--e-ink);
+  border-left-color: var(--e-accent);
 }
 
 :host .item:hover,

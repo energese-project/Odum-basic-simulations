@@ -37,7 +37,7 @@ export default function programsPlugin() {
     },
 
     // Fail early and loudly: a broken sidecar should stop the dev server or the
-    // build with the filename and the field, not render an empty program picker
+    // build with the filename and the field, not render an empty explorer
     // that looks like a bug in the application.
     buildStart() {
       readCatalog(root);

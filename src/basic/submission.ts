@@ -12,9 +12,8 @@
  * uses — so the form cannot accept anything the build would reject, and a rule
  * added there applies here without a second copy of it.
  *
- * Pure — no filesystem, no DOM — so the same code runs in the submission bot
- * (scripts/submit-program.ts) and in the browser, where the workspace uses it
- * to check a program before handing it to the form.
+ * Pure — no filesystem, no DOM — so it is unit-tested directly and runs in the
+ * submission bot (scripts/submit-program.ts) with nothing installed.
  */
 
 import { sniffImage } from './image-format.ts';
@@ -55,39 +54,18 @@ export const FORM_LABELS = {
 } as const;
 
 /**
- * Each field's `id` in the form, which is what GitHub prefills from the
- * new-issue URL. Not the key: `title` is reserved by GitHub for the issue title,
- * so the program's title is `program_title`. submission.test.ts checks these
- * against the YAML, and against GitHub's reserved parameters.
+ * The labels .github/ISSUE_TEMPLATE/add-program.yml puts on every issue it
+ * opens. `program-submission` is what the submission workflow acts on; `jules`
+ * hands the issue to the Jules agent. They are set in the template rather than
+ * on the new-issue URL because a `labels` parameter only applies for people with
+ * triage rights on the repository — which a contributor usually is not.
  */
-export const FORM_IDS: Record<keyof typeof FORM_LABELS, string> = {
-  id: 'id',
-  title: 'program_title',
-  description: 'description',
-  fidelity: 'fidelity',
-  listing: 'listing',
-  sourceType: 'source_type',
-  authors: 'authors',
-  sourceTitle: 'source_title',
-  booktitle: 'booktitle',
-  journal: 'journal',
-  publisher: 'publisher',
-  address: 'address',
-  year: 'year',
-  volume: 'volume',
-  pages: 'pages',
-  edition: 'edition',
-  isbn: 'isbn',
-  doi: 'doi',
-  url: 'url',
-  notes: 'notes',
-  tags: 'tags',
-  diagram: 'diagram',
-  diagramCaption: 'diagram_caption',
-  diagramFigure: 'diagram_figure',
-  rightsBasis: 'rights_basis',
-  rightsStatement: 'rights_statement',
-};
+export const CONTRIBUTE_LABELS = ['program-submission', 'jules'] as const;
+
+/** The workbench's Contribute button: the Add a program form, empty. */
+export function contributeUrl(repositoryUrl: string): string {
+  return `${repositoryUrl}/issues/new?template=add-program.yml`;
+}
 
 /**
  * Sections of the form that are not part of the program. They still have to be
@@ -250,11 +228,10 @@ export function buildSubmission(fields: FormFields, image?: Uint8Array): Submiss
 }
 
 /**
- * The sidecar the fields describe, without judging it. The workspace saves a
- * draft on every keystroke, and refusing to save a half-filled form would lose
- * it; whether the result is valid is buildSubmission's question, not this one's.
+ * The sidecar the fields describe, without judging it: whether the result is
+ * valid is buildSubmission's question, answered by parseProgramMeta, not this one's.
  */
-export function fieldsToSidecar(fields: FormFields, diagramFile?: string): Record<string, unknown> {
+function fieldsToSidecar(fields: FormFields, diagramFile?: string): Record<string, unknown> {
   const sidecar: Record<string, unknown> = prune({
     title: fields.title,
     description: fields.description,
@@ -310,80 +287,6 @@ export function fieldsToSidecar(fields: FormFields, diagramFile?: string): Recor
     });
   }
   return sidecar;
-}
-
-/** The form fields a sidecar fills in — the inverse of fieldsToSidecar. Lenient
- *  for the same reason: it reads back drafts, including broken ones. */
-export function sidecarToFields(id: string, sidecar: unknown): FormFields {
-  const fields = Object.fromEntries(Object.keys(FORM_LABELS).map((k) => [k, ''])) as FormFields;
-  fields.id = id;
-  if (typeof sidecar !== 'object' || sidecar === null) return fields;
-
-  const m = sidecar as Record<string, unknown>;
-  const text = (v: unknown): string => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
-  const record = (v: unknown): Record<string, unknown> =>
-    typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
-
-  fields.title = text(m.title);
-  fields.description = text(m.description);
-  fields.fidelity = text(m.fidelity);
-  fields.notes = text(m.notes);
-  fields.tags = Array.isArray(m.tags) ? m.tags.map(text).join(', ') : '';
-
-  const source = record(m.source);
-  fields.sourceType = text(source.type);
-  fields.authors = Array.isArray(source.author) ? source.author.map(text).join('\n') : '';
-  fields.sourceTitle = text(source.title);
-  fields.booktitle = text(source.booktitle);
-  fields.journal = text(source.journal);
-  fields.publisher = text(source.publisher) || text(source.institution);
-  fields.address = text(source.address);
-  fields.year = text(source.year);
-  fields.volume = text(source.volume);
-  fields.pages = text(source.pages);
-  fields.edition = text(source.edition);
-  fields.isbn = text(source.isbn);
-  fields.doi = text(source.doi);
-  fields.url = text(source.url);
-
-  const diagram = record(m.diagram);
-  const rights = record(diagram.rights);
-  fields.diagramCaption = text(diagram.caption);
-  fields.diagramFigure = text(diagram.figure);
-  fields.rightsBasis = text(rights.basis);
-  fields.rightsStatement = text(rights.statement);
-  return fields;
-}
-
-/** Past about 8 KB GitHub answers 414 URI Too Long. Kept under it with room to spare. */
-export const ISSUE_URL_LIMIT = 7500;
-
-/**
- * The "Add a program" form on GitHub, with every field the program fills in
- * already typed. The listing is the one field that can outgrow a URL; when it
- * does it is left out and `listingIncluded` is false, so the caller can hand it
- * over another way (the clipboard). The diagram never fits: GitHub cannot
- * prefill an attachment, so it is always dragged in by hand.
- */
-export function issueFormUrl(
-  repositoryUrl: string,
-  fields: FormFields,
-  listing: string
-): { url: string; listingIncluded: boolean } {
-  const url = new URL(`${repositoryUrl}/issues/new`);
-  url.searchParams.set('template', 'add-program.yml');
-  url.searchParams.set('title', `Add program: ${fields.title}`);
-  for (const [key, id] of Object.entries(FORM_IDS) as [FormField, string][]) {
-    if (key === 'listing' || key === 'diagram' || !fields[key]) continue;
-    url.searchParams.set(id, fields[key]);
-  }
-
-  const without = url.toString();
-  url.searchParams.set(FORM_IDS.listing, listing);
-  const withListing = url.toString();
-  return withListing.length <= ISSUE_URL_LIMIT
-    ? { url: withListing, listingIncluded: true }
-    : { url: without, listingIncluded: false };
 }
 
 /** Drop empty strings, empty arrays and undefined, so the sidecar holds only what was given. */

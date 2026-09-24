@@ -10,19 +10,19 @@ test('the workbench loads with a program in the editor', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Odum BASIC Simulations' })).toBeVisible();
   await expect(page.getByTestId('editor-mount')).toBeVisible();
 
-  const select = page.getByTestId('program-select');
-  const options = await select.locator('option').allTextContents();
-  expect(options.length).toBeGreaterThan(1);
-  expect(options).toContain('Charge And Discharge');
+  // The explorer is the only way to pick a program; there is no dropdown.
+  await expect(page.getByTestId('program-select')).toHaveCount(0);
+  const library = page.getByTestId('library-list');
+  await expect(library.locator(':scope > li')).not.toHaveCount(0);
+  await expect(library.getByRole('button', { name: /^Charge And Discharge/ })).toBeVisible();
 
-  // The glob-built library is what fills the list; an empty editor would mean
-  // the .bas files did not make it into the bundle.
+  // The catalog is what fills the list; an empty editor would mean the .bas
+  // files did not make it into the published archive.
   await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
 });
 
 test('running a simulation prints a table and draws a chart', async ({ page }) => {
-  await page.goto(ROOT);
-  await page.getByTestId('program-select').selectOption('charge-discharge');
+  await page.goto('./?prg=charge-discharge');
 
   await expect(page.getByTestId('chart-empty')).toBeVisible();
   await page.getByTestId('run').click();
@@ -42,8 +42,7 @@ test('running a simulation prints a table and draws a chart', async ({ page }) =
 test('a program with no numeric table says so instead of drawing an empty chart', async ({
   page,
 }) => {
-  await page.goto(ROOT);
-  await page.getByTestId('program-select').selectOption('hello');
+  await page.goto('./?prg=hello');
   await page.getByTestId('run').click();
 
   await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
@@ -54,8 +53,7 @@ test('a program with no numeric table says so instead of drawing an empty chart'
 });
 
 test('INPUT round-trips through the console', async ({ page }) => {
-  await page.goto(ROOT);
-  await page.getByTestId('program-select').selectOption('guess');
+  await page.goto('./?prg=guess');
   await page.getByTestId('run').click();
 
   const input = page.getByTestId('console-input');
@@ -152,12 +150,16 @@ test('a runaway program can be stopped', async ({ page }) => {
   await expect(page.getByTestId('stop')).toBeDisabled();
 });
 
-test('?prg= selects a program, and the picker keeps the URL in step', async ({ page }) => {
+test('?prg= selects a program, and the explorer keeps the URL in step', async ({ page }) => {
   await page.goto('./?prg=logistic-growth');
-  await expect(page.getByTestId('program-select')).toHaveValue('logistic-growth');
+  const library = page.getByTestId('library-list');
+  await expect(library.getByRole('button', { name: /^Logistic Growth/ })).toHaveAttribute(
+    'aria-current',
+    'true'
+  );
   await expect(page.getByTestId('editor-mount')).toContainText('SOURCE');
 
-  await page.getByTestId('program-select').selectOption('two-tank');
+  await library.getByRole('button', { name: /^Two Tanks/ }).click();
   await expect(page).toHaveURL(/\?prg=two-tank/);
 });
 
@@ -169,7 +171,7 @@ test('the about page is reachable and links back', async ({ page }) => {
   await expect(page).toHaveURL(/\/about$/);
 
   await page.getByRole('link', { name: /Back to the workbench/ }).click();
-  await expect(page.getByTestId('program-select')).toBeVisible();
+  await expect(page.getByTestId('library-list')).toBeVisible();
 });
 
 test('a deep link to /about renders that page directly', async ({ page }) => {

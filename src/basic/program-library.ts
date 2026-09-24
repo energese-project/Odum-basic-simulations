@@ -39,3 +39,51 @@ export function filterPrograms<T extends Searchable>(programs: T[], query: strin
 export function sidebarOpen(stored: string | null, wide: boolean): boolean {
   return wide && stored !== 'closed';
 }
+
+/** How the explorer opens a file: BASIC and JSON in the editor, an image in a new tab. */
+export type FileKind = 'basic' | 'json' | 'image';
+
+export interface ProgramFile {
+  /** Within programs/, as published: the same path publishedFiles() emits. */
+  path: string;
+  /** What the explorer shows: the path from the program's own folder. */
+  name: string;
+  kind: FileKind;
+}
+
+/** What programFiles reads: satisfied by the build's CatalogEntry and the browser's Program. */
+interface Filed {
+  file: string;
+  sidecar: string;
+  work: { file: string } | null;
+  diagram?: { file: string } | null;
+  programImage: { file: string } | null;
+  runs: { file: string; plot: string | null }[];
+}
+
+/**
+ * Every published file of one program, listing first, in the order a reader
+ * checking it would want them: the code, what it claims to be, where it came
+ * from, then the pictures and the runs. Together, over the catalog, these are
+ * exactly publishedFiles() — program-archive.test.ts holds the two together.
+ */
+export function programFiles(program: Filed): ProgramFile[] {
+  const folder = program.file.includes('/')
+    ? program.file.slice(0, program.file.lastIndexOf('/') + 1)
+    : '';
+  const file = (path: string): ProgramFile => ({
+    path,
+    name: folder && path.startsWith(folder) ? path.slice(folder.length) : path.split('/').pop()!,
+    kind: path.endsWith('.bas') ? 'basic' : path.endsWith('.json') ? 'json' : 'image',
+  });
+
+  const paths = [program.file, program.sidecar];
+  if (program.work) paths.push(program.work.file);
+  if (program.diagram) paths.push(program.diagram.file);
+  if (program.programImage) paths.push(program.programImage.file);
+  for (const run of program.runs) {
+    paths.push(run.file);
+    if (run.plot) paths.push(run.plot);
+  }
+  return paths.map(file);
+}

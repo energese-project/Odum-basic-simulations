@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { ArchiveError, publishedFiles, readCatalog } from './program-archive.ts';
 import { MetadataError } from './program-catalog.ts';
+import { programFiles } from './program-library.ts';
 
 /**
  * These are the checks a contributor's pull request is judged by, so each test
@@ -288,6 +289,37 @@ test('every file the catalog refers to is published, and nothing else', () => {
     'tank.bas',
     'tank.json',
   ]);
+});
+
+test('the explorer shows every published file of a program, and no others', () => {
+  // The explorer is how a reader gets from a listing to its metadata, its
+  // source and its figures. A file published but not listed is unreachable in
+  // the app; one listed but not published is a 404 on click.
+  addWork();
+  add('tank.bas', '10 END\n');
+  add('tank.json', META);
+  const catalog = readCatalog(root);
+  const listed = catalog.programs.flatMap((p) => programFiles(p).map((f) => f.path));
+  assert.deepEqual([...new Set(listed)].sort(), publishedFiles(catalog));
+});
+
+test('a model lists its listing first, and names each file from its own folder', () => {
+  addWork();
+  const m = `${WORK}/macroeconomics`;
+  const [entry] = readCatalog(root).programs;
+  assert.deepEqual(
+    programFiles(entry).map((f) => [f.name, f.path, f.kind]),
+    [
+      ['model.bas', `${m}/model.bas`, 'basic'],
+      ['meta-data.json', `${m}/meta-data.json`, 'json'],
+      ['source.json', `${WORK}/source.json`, 'json'],
+      ['diagram.png', `${m}/diagram.png`, 'image'],
+      ['program.png', `${m}/program.png`, 'image'],
+      ['runs/fig3a.json', `${m}/runs/fig3a.json`, 'json'],
+      ['runs/fig3a.png', `${m}/runs/fig3a.png`, 'image'],
+      ['runs/fig3b.json', `${m}/runs/fig3b.json`, 'json'],
+    ]
+  );
 });
 
 test('a work folder named differently from its citation is refused', () => {

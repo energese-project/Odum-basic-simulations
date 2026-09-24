@@ -3,11 +3,11 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * The workbench is an application, not a page about one. What the site is for
  * lives on /about; this screen is the editor, the plot and the output, edge to
- * edge, with one thin bar above them and the provenance in a sidebar.
+ * edge, with one thin bar above them and the archive's files in a sidebar.
  *
  * The one thing that must never go behind a click is the fidelity: whether a
  * listing is the published one or something written here changes what every
- * number on the screen means. So it stays in the top bar, sidebar open or not.
+ * number on the screen means. So it is on every program's row in the explorer.
  */
 
 async function box(page: Page, testId: string) {
@@ -62,24 +62,38 @@ test('the sidebar is open by default on a wide screen, and remembers being close
   await expect(page.getByTestId('sidebar')).toBeHidden();
 });
 
-test('the run controls sit beside the program picker, and the top bar has no fidelity chip', async ({
-  page,
-}) => {
-  // Fidelity is on every row of the library and at the top of the details; a
-  // third copy in the bar was noise. Run is what the bar is for, so it sits
-  // next to the program it runs rather than at the far edge.
+test('the top bar has Run and Contribute, and no program picker', async ({ page }) => {
+  // The explorer is the one way to pick a program; a dropdown beside it was a
+  // second copy of the same list that could disagree with it.
   await page.goto('./?prg=charge-discharge');
   await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
+  await expect(page.getByTestId('program-select')).toHaveCount(0);
   await expect(page.getByTestId('fidelity-chip')).toHaveCount(0);
 
-  const picker = await box(page, 'program-select');
+  const bar = await box(page, 'topbar');
   const run = await box(page, 'run');
-  expect(run.x).toBeGreaterThan(picker.x + picker.width);
-  expect(run.x - (picker.x + picker.width), 'Run is next to the picker').toBeLessThanOrEqual(24);
+  expect(run.y).toBeGreaterThanOrEqual(bar.y);
+  expect(run.y + run.height).toBeLessThanOrEqual(bar.y + bar.height);
 
   const about = await page.getByRole('link', { name: 'About' }).boundingBox();
   const viewport = page.viewportSize()!;
   expect(viewport.width - (about!.x + about!.width), 'About stays at the far right').toBeLessThan(80);
+
+  const contribute = await box(page, 'contribute');
+  expect(contribute.x, 'Contribute is on the right, with About').toBeGreaterThan(viewport.width / 2);
+});
+
+test('Contribute opens the Add a program form on GitHub', async ({ page }) => {
+  // There is no editing of the archive in the app: a program arrives through
+  // the issue form, which labels the issue for the bot and for Jules.
+  await page.goto('./');
+  const contribute = page.getByTestId('contribute');
+  await expect(contribute).toHaveAttribute(
+    'href',
+    'https://github.com/energese-project/Odum-basic-simulations/issues/new?template=add-program.yml'
+  );
+  await expect(contribute).toHaveAttribute('target', '_blank');
+  await expect(contribute).toHaveAttribute('rel', /noopener/);
 });
 
 test('the library lists every program, and picking one loads it', async ({ page }) => {
@@ -87,97 +101,51 @@ test('the library lists every program, and picking one loads it', async ({ page 
   const library = page.getByTestId('library-list');
 
   const catalog = await (await page.request.get('./programs/index.json')).json();
-  await expect(library.getByRole('button')).toHaveCount(catalog.programs.length);
-  await expect(library.getByRole('button', { name: /Charge And Discharge/ })).toHaveAttribute(
+  await expect(library.locator(':scope > li')).toHaveCount(catalog.programs.length);
+  await expect(library.getByRole('button', { name: /^Charge And Discharge/ })).toHaveAttribute(
     'aria-current',
     'true'
   );
 
-  await library.getByRole('button', { name: /Logistic Growth/ }).click();
-  await expect(page).toHaveURL(/\?prg=logistic-growth/);
-  await expect(page.getByTestId('program-select')).toHaveValue('logistic-growth');
+  await library.getByRole('button', { name: /^Logistic Growth/ }).click();
+  await expect(page).toHaveURL(/\?prg=logistic-growth$/);
   await expect(page.getByTestId('editor-filename')).toHaveText('logistic-growth.bas');
-  await expect(page.getByTestId('meta-title')).toHaveText('Logistic Growth');
-  await expect(library.getByRole('button', { name: /Logistic Growth/ })).toHaveAttribute(
+  await expect(library.getByRole('button', { name: /^Logistic Growth/ })).toHaveAttribute(
     'aria-current',
     'true'
   );
+});
+
+test('a program\'s fidelity is on its row, with what it means', async ({ page }) => {
+  await page.goto('./?prg=hello');
+  const row = page.getByTestId('library-list').getByRole('button', { name: /^Hello/ });
+  await expect(row.locator('.badge')).toHaveText('original');
+  await expect(row).toHaveAttribute('title', /Written for this repository/);
 });
 
 test('nothing interactive sits inside a <summary>', async ({ page }) => {
   // A <summary> is itself the control that folds its <details>. A button nested
   // in one is a control inside a control: keyboard and screen-reader users get
   // it inconsistently or not at all, and browsers flag it as a disallowed
-  // descendant. The New program button used to live in the My programs summary.
+  // descendant.
   await page.goto('./?prg=charge-discharge');
   await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
-  await expect(page.getByTestId('workspace-new')).toBeVisible();
 
   const nested = page.locator('summary').locator('a[href], button, input, select, textarea, [tabindex]');
   await expect(nested).toHaveCount(0);
-
-  // Still on the My programs heading row, where it was.
-  const heading = await page.locator('summary', { hasText: 'My programs' }).boundingBox();
-  const add = await box(page, 'workspace-new');
-  expect(add.y).toBeGreaterThanOrEqual(heading!.y);
-  expect(add.y + add.height).toBeLessThanOrEqual(heading!.y + heading!.height);
 });
 
-test('the filter narrows the library, and a tag in the details filters by it', async ({
-  page,
-}) => {
+test('the filter narrows the library', async ({ page }) => {
   await page.goto('./?prg=hello');
   const library = page.getByTestId('library-list');
 
   await page.getByTestId('library-filter').fill('logistic');
-  await expect(library.getByRole('button')).toHaveCount(1);
-  await expect(library.getByRole('button')).toContainText('Logistic Growth');
+  await expect(library.locator(':scope > li')).toHaveCount(1);
+  await expect(library).toContainText('Logistic Growth');
 
-  await page.getByTestId('meta-tags').getByRole('button', { name: 'smoke-test' }).click();
-  await expect(page.getByTestId('library-filter')).toHaveValue('smoke-test');
-  await expect(library.getByRole('button', { name: /Hello/ })).toBeVisible();
-  await expect(library.getByRole('button', { name: /Logistic Growth/ })).toHaveCount(0);
-});
-
-test('a cited program shows its full citation and a BibTeX entry', async ({ page }) => {
-  // Every program in the archive today is a worked example with nothing to
-  // cite, so the cited path is exercised against a catalog with one added.
-  await page.route('**/programs/index.json', async (route) => {
-    const catalog = await (await route.fetch()).json();
-    const base = catalog.programs.find((p: { id: string }) => p.id === 'charge-discharge');
-    catalog.programs.push({
-      ...base,
-      id: 'cited',
-      file: 'cited.bas',
-      title: 'A Cited Listing',
-      fidelity: 'verbatim',
-      notes: undefined,
-      source: {
-        type: 'book',
-        author: ['Odum, Howard T.'],
-        title: 'Systems Ecology: An Introduction',
-        publisher: 'Wiley',
-        address: 'New York',
-        year: 1983,
-        pages: '123-125',
-      },
-    });
-    await route.fulfill({ json: catalog });
-  });
-
-  await page.goto('./?prg=cited');
-  await expect(page.getByTestId('fidelity-badge')).toHaveText('verbatim');
-  await expect(page.getByTestId('citation')).toHaveText(
-    'H. T. Odum (1983). Systems Ecology: An Introduction. New York: Wiley. pp. 123-125.'
-  );
-  await expect(page.getByTestId('bibtex')).toContainText('@book{cited,', { useInnerText: false });
-  await expect(page.getByTestId('bibtex')).toContainText('pages = {123--125}', {
-    useInnerText: false,
-  });
-
-  await page.goto('./?prg=charge-discharge');
-  await expect(page.getByTestId('meta-title')).toHaveText('Charge And Discharge');
-  await expect(page.getByTestId('bibtex-block')).toBeHidden();
+  await page.getByTestId('library-filter').fill('smoke-test');
+  await expect(library.getByRole('button', { name: /^Hello/ })).toBeVisible();
+  await expect(library.getByRole('button', { name: /^Logistic Growth/ })).toHaveCount(0);
 });
 
 test.describe('on a narrow screen', () => {
@@ -193,7 +161,7 @@ test.describe('on a narrow screen', () => {
     await page.getByTestId('sidebar-toggle').click();
     await expect(page.getByTestId('sidebar')).toBeVisible();
 
-    await page.getByTestId('library-list').getByRole('button', { name: /Two Tanks/ }).click();
+    await page.getByTestId('library-list').getByRole('button', { name: /^Two Tanks/ }).click();
     await expect(page).toHaveURL(/\?prg=two-tank/);
     await expect(page.getByTestId('sidebar')).toBeHidden();
   });

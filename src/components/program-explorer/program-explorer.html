@@ -5,30 +5,6 @@
            spellcheck="false" data-testid="library-filter" />
   </label>
 
-  <details class="root" open>
-    <summary class="root-title">Archive</summary>
-    <ul class="list" data-testid="library-list" aria-label="Archive programs"></ul>
-    <p class="note" data-testid="library-empty" hidden>No program matches.</p>
-  </details>
-
-  <!-- The button is laid over the summary's row, not put inside it: a <summary>
-       is itself the control that folds the list, and a control nested in it is
-       reached inconsistently, or not at all, by keyboard and screen reader. -->
-  <div class="root-group">
-    <details class="root" open>
-      <summary class="root-title has-action">My programs</summary>
-      <ul class="list" data-testid="workspace-list" aria-label="My programs"></ul>
-      <p class="note" data-testid="workspace-empty" hidden>
-        Nothing here yet. Start a new program with +, or copy one from the archive.
-        Programs here are kept in this browser only.
-      </p>
-      <p class="note" data-testid="workspace-unavailable" hidden>
-        This browser can't keep files for this site — a private window, or no
-        Origin Private File System — so My programs is unavailable here. The
-        archive works as usual.
-      </p>
-    </details>
-    <button type="button" class="new" data-testid="workspace-new"
-            title="New program" aria-label="New program">+</button>
-  </div>
+  <ul class="list" data-testid="library-list" aria-label="Programs"></ul>
+  <p class="note" data-testid="library-empty" hidden>No program matches.</p>
 </div>

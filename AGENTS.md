@@ -361,28 +361,25 @@ in [`programs/README.md`](programs/README.md); what matters for changing the cod
   - **A PR opened with `GITHUB_TOKEN` does not trigger `pull_request`**, so the
     workflow dispatches `ci.yml` on the branch. That is why `ci.yml` has a
     `workflow_dispatch` trigger. Removing it leaves submitted programs untested.
-- **"My programs" is the reader's own workspace, in OPFS.** The model is
-  [`workspace.ts`](src/basic/workspace.ts), pure and tested against an in-memory
-  store. The browser store is [`opfs-store.ts`](src/workspace/opfs-store.ts). Keep
-  these:
-  - **The archive is never copied into OPFS.** It is fetched fresh and is
-    read-only. A mirrored copy goes stale when a listing is corrected upstream,
-    and an edited copy of a `verbatim` listing is not verbatim. "Copy to My
-    programs" clears the fidelity and records where the copy came from.
-  - **Everything lives under `odum-basic-simulations/`** in OPFS, because
-    `energese-project.github.io` is one origin shared by every Pages site in the
-    organisation.
-  - **Two write routes.** `createWritable()` reached Safari late, so where it is
-    missing, writes go through
-    [`opfs-writer.worker.ts`](src/workspace/opfs-writer.worker.ts) with a sync
-    access handle. `workspace.spec.ts` deletes `createWritable` to exercise that
-    route in Chromium. Without it, the fallback would never run in CI.
-  - **Submitting goes through the issue form, not the GitHub API.** A static site
-    cannot sign anyone in: GitHub's token exchange needs the client secret and
-    refuses CORS preflight. So the app opens the form prefilled by field `id`
-    (`FORM_IDS`, `issueFormUrl`), and the bot does the rest. GitHub cannot
-    prefill an attachment, and may not prefill dropdowns, so the Submit dialog
-    hands over the image as a download and lists the dropdown choices.
+- **The workbench reads the archive; it does not write to it.** The explorer
+  lists every published file of the program on screen — `programFiles()` in
+  [`program-library.ts`](src/basic/program-library.ts), which
+  `program-archive.test.ts` holds equal to `publishedFiles()`, so nothing
+  published is unreachable and nothing listed is a 404. A listing opens in the
+  editor to be tried and run; JSON opens read-only; an image is a link to the
+  published file. Keep these:
+  - **Run runs the listing, whichever file is open.** An edit to the listing is
+    kept while a sidecar is on screen, and is lost on a reload: there is nowhere
+    to save it, deliberately.
+  - **Switching files does not go through the router.** `navigate()` rebuilds the
+    workbench, which would take the edits and the last run with it. The
+    `&file=` in the address bar is written with `history.replaceState`.
+  - **Contribute is a link to the issue form, empty** (`contributeUrl`). A static
+    site cannot sign anyone in — GitHub's token exchange needs the client secret
+    and refuses CORS preflight — so there is no GitHub API call. The issue's
+    labels come from the template, not the URL, because a `labels` parameter
+    applies only for people with triage rights. `CONTRIBUTE_LABELS` and the
+    template are checked against each other.
 - **No SVG diagrams.** An SVG opened directly from the published site runs its own
   scripts on the org's `github.io` origin. Raster images cannot.
 
