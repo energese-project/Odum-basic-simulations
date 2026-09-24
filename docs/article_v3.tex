@@ -109,75 +109,154 @@ The argument motivating the present paper and associated efforts says that this 
   \caption{``Simple macro-ecologic-economic minimodel to demonstrate  methods of diagramming and simulation'' \cite[fig.~2a, p.~71]{odum1989}}
 \end{figure}
 
-
 \begin{figure}
   \includegraphics[width=\linewidth]{./images/macro_economic_basic.png}
   \caption{``BASIC PC Microcomputer Simulation Program for  the Macroeconomics Minimodel'' \cite[table.~2, p.~71]{odum1989}}
+  \label{fig:macroec:basic}
 \end{figure}
 
 
 \subsection{What ``modernizing'' a listing involves}
 \label{sec:case:modernize}
 
-The obvious alternative to a dedicated runtime is to translate a listing into a language that current systems still execute. The usual recipe for doing so is short: strip out the line numbers, drop the legacy \texttt{LET} keyword, wrap the executable statements in a \texttt{Sub Main()} subroutine, and replace BASIC's zoned \texttt{PRINT} statements with formatted console output. Applied to the charge-and-discharge minimodel of Listing~\ref{lst:shape}, the recipe yields the Visual Basic .NET module of Listing~\ref{lst:vbnet}.
+The obvious alternative to a dedicated runtime is to translate a listing into a language that current systems still execute. The usual recipe for doing so is short: strip out the line numbers, drop the legacy \texttt{LET} keyword, wrap the executable statements in a \texttt{Sub Main()} subroutine, and replace BASIC's \texttt{PRINT} statements with formatted console output. Listing~\ref{lst:macroec} is MACROEC as Odum printed it (Figure~\ref{fig:macroec:basic}), transcribed line for line; Listing~\ref{lst:macroec:vb} is the Visual Basic .NET module the recipe leads to, once the gaps it leaves have been filled.
 
-\begin{lstlisting}[caption={Representative structural syntax of an ecological simulation listing, illustrating state initialization, forward-Euler numerical integration, and sequential state output.},label={lst:shape}]
-100 LET J = 100
-110 LET K1 = 0.1
-120 LET Q = 0
-130 LET DT = 0.5
-140 PRINT "T", "Q", "OUTFLOW"
-150 FOR T = 0 TO 60 STEP DT
-160 LET F = K1 * Q
-170 PRINT T, Q, F
-180 LET Q = Q + (J - F) * DT
-190 NEXT T
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,keepspaces=true,caption={MACROEC, transcribed from Figure~\ref{fig:macroec:basic} {\citep[Table~2]{odum1989}}. The scan's typeface does not distinguish the letter O from the digit zero; \texttt{T0}, \texttt{Y0} and \texttt{K0} are read as zeros, since \texttt{TO} is a reserved word and each name is assigned before it is used. The misspelling in line 452 is Odum's.},label={lst:macroec}]
+1 REM IBM PC COMPATIBLE
+2 REM Program name is MACROEC, 1988 version by H.T.Odum
+3 REM Initial run is with unlimited resources. Then type CONT for run with renewable resources.
+4 CLS
+5  SCREEN 1,0:COLOR 0,0
+6  LINE (0,0)-(319,180),3,B
+7 X = 0
+10 REM SCALING FACTORS
+12 DT = .3
+14 T0 = 1
+20 Y0 = .1
+25 KZ = 1
+30 REM  COEFFICIENTS
+32 KS = .1
+35 K0 = .1
+50 K1 = .01
+60 K2 = .02
+70 K3 = .111
+75 K4 = .333
+77 REM SOURCES
+80  J = 1
+90 E=1
+100 REM INITIAL CONDITIONS
+115 Y = .2
+120 C = .2
+130 S = .02
+155 K = 5
+160 I = .05
+200  REM  PLOTTING
+224  IF Y / Y0 > 160 GOTO 450
+230  PSET (T / T0,180 - Y / Y0),1
+255  IF K / KZ > 160 GOTO 300
+260  PSET (T / T0,180 - K / KZ),2
+300  REM  EQUATIONS
+341 R = J / (1 + K0 * K * C) :REM RESIDUAL RESOURCES AVAILABLE
+342  IF X = 0 GOTO 348
+343  IF X = 1 GOTO 350
+345 REM PRODUCTION FUNCTIONS:
+348 PR = K4 * C * K * E: GOTO 355
+350 PR = K4 * C * K * R- K3*C*K*R
+355 DK = PR -K2*K
+357 DI = K1*DK
+360 K = K + DK * DT
+365  IF K < .01 THEN K = .01
+367 I = S + DI * DT :REM INVESTMENT
+368 Y = C + I :REM INCOME
+369 IF Y<.01 THEN Y = .01
+370 S = KS * Y :REM SAVINGS
+380 C = Y - S:REM CONSUMPTION
+390 T = T + DT
+400  IF T / T0 < 320 GOTO 200
+450  END
+452 REM Type CONT to rerun with rewnable resources
+455 X = 1
+460 T = 1
+470 DK = 0
+480 GOTO 100
 \end{lstlisting}
 
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,caption={Listing~\ref{lst:shape} ``modernized'' into a Visual Basic .NET module by the recipe described in the text.},label={lst:vbnet}]
-' Charge And Discharge
-' One tank filled at a constant rate and
-' drained in proportion to storage.
-Module ChargeDischarge
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,keepspaces=true,caption={Listing~\ref{lst:macroec} ``modernized'' into a Visual Basic .NET module. Everything the recipe does not cover---the graphics, the \texttt{GOTO} structure, the \texttt{CONT} restart---had to be decided by the translator.},label={lst:macroec:vb}]
+' MACROEC, 1988 version by H.T. Odum.
+' Initial run is with unlimited resources,
+' then a run with renewable resources.
+Module Macroec
   Sub Main()
-    Dim J As Double = 100.0
-    Dim K1 As Double = 0.1
-    Dim Q As Double = 0.0
-    Dim DT As Double = 0.5
-    Dim F As Double
-    Console.WriteLine("{0,-10}{1,-15}{2,-15}", _
-      "T", "Q", "OUTFLOW")
-    For T As Double = 0 To 60 Step DT
-      F = K1 * Q
-      Console.WriteLine("{0,-10}{1,-15:N4}{2,-15:N4}", _
-        T, Q, F)
-      Q = Q + (J - F) * DT
-    Next T
-    Console.WriteLine()
-    Console.WriteLine("STEADY STATE J/K1 = " & (J / K1))
+    Dim DT As Double = 0.3, T0 As Double = 1
+    Dim Y0 As Double = 0.1, KZ As Double = 1
+    Dim KS As Double = 0.1, K0 As Double = 0.1
+    Dim K1 As Double = 0.01, K2 As Double = 0.02
+    Dim K3 As Double = 0.111, K4 As Double = 0.333
+    Dim J As Double = 1, E As Double = 1
+    Dim Y, C, S, K, I, R, PR, DK, DI As Double
+    Dim T As Double = 0
+    For X As Integer = 0 To 1
+      ' Initial conditions
+      Y = 0.2 : C = 0.2 : S = 0.02 : K = 5 : I = 0.05
+      Console.WriteLine("{0,8}{1,10}{2,10}", _
+        "T", "Y", "K")
+      Do
+        If Y / Y0 > 160 Then Exit Do
+        Console.Write("{0,8:N1}{1,10:N4}", T, Y)
+        If K / KZ <= 160 Then
+          Console.Write("{0,10:N4}", K)
+        End If
+        Console.WriteLine()
+        ' Equations
+        R = J / (1 + K0 * K * C)  ' residual resources
+        If X = 0 Then
+          PR = K4 * C * K * E
+        Else
+          PR = K4 * C * K * R - K3 * C * K * R
+        End If
+        DK = PR - K2 * K
+        DI = K1 * DK
+        K = K + DK * DT
+        If K < 0.01 Then K = 0.01
+        I = S + DI * DT           ' investment
+        Y = C + I                 ' income
+        If Y < 0.01 Then Y = 0.01
+        S = KS * Y                ' savings
+        C = Y - S                 ' consumption
+        T = T + DT
+      Loop While T / T0 < 320
+      If X = 0 Then
+        Console.Write("Press Enter to rerun with ")
+        Console.WriteLine("renewable resources.")
+        Console.ReadLine()
+        T = 1
+      End If
+    Next X
   End Sub
 End Module
 \end{lstlisting}
 
-The result compiles and runs, and it looks like a faithful copy. It is not one, and Table~\ref{tab:modernize} records where it departs from the published text. Every departure is a decision the translator made on the author's behalf, and none of them is visible to a reader comparing the output with the printed page. Declaring the variables \texttt{Double} changes the arithmetic: GW-BASIC variables are single precision unless declared otherwise, so the translated program integrates the same equations to about fifteen significant digits where the original carried about seven. Replacing \texttt{PRINT} with a format string changes the record itself: BASIC printed up to seven significant digits in fixed 14-column zones, while \texttt{N4} rounds every value to four decimal places and inserts thousands separators. The loop survives unchanged only because a step of $0.5$ is exact in binary; with a step such as MACROEC's $0.3$, whether the final iteration runs depends on accumulated rounding, which differs between the two precisions.
+The result compiles and runs, and its equations are those of the published listing. It is nonetheless a different program. Table~\ref{tab:modernize} records where it departs from the published text, and every departure is a decision the translator made on the author's behalf that no reader comparing the output with the 1989 article can check against the page.
 
 \begin{table*}[t]
 \centering\small
-\begin{tabularx}{\linewidth}{@{}llX@{}}
+\begin{tabularx}{\linewidth}{@{}p{0.27\linewidth}p{0.25\linewidth}X@{}}
 \toprule
-Original BASIC & Visual Basic .NET & Consequence \\
+Original BASIC (Listing~\ref{lst:macroec}) & Visual Basic .NET (Listing~\ref{lst:macroec:vb}) & Consequence \\
 \midrule
-\texttt{10 REM ...} & \texttt{' ...} & None: comment syntax only. \\
-\texttt{100 LET J = 100} & \texttt{Dim J As Double = 100.0} & Single-precision arithmetic silently becomes double precision. \\
-\texttt{140 PRINT "T", "Q"} & \texttt{Console.WriteLine(...)} & BASIC's 14-column print zones and number formatting are replaced by a format string chosen by the translator; the printed trajectory no longer matches the published one digit for digit. \\
-\texttt{150 FOR T = ... NEXT T} & \texttt{For T ... Next T} & Line numbers removed; equivalent here only because $\mathit{DT}=0.5$ is exactly representable. \\
+\texttt{1 REM ...} & \texttt{' ...} & None: comment syntax only. \\
+\texttt{12 DT = .3} & \texttt{Dim DT As Double = 0.3} & Single-precision arithmetic silently becomes double precision. \\
+\texttt{4 CLS}, \texttt{5 SCREEN 1,0}, \texttt{6 LINE (0,0)-(319,180),3,B} & omitted & A console has no graphics mode; the framed $320\times180$ plot has nowhere to go. \\
+\texttt{230 PSET (T / T0,180 - Y / Y0),1} and \texttt{260 PSET ...,2} & \texttt{Console.Write(...)} & The figure the program exists to draw becomes a table in a format the translator chose. Rounding each point to a pixel, which decides what the published figure shows, disappears. \\
+\texttt{200}--\texttt{400}: a loop built from \texttt{GOTO}s & \texttt{Do ... Loop While} & The control flow is restructured to the translator's reading of the jumps, including the early exit at line 224 and the skipped point at line 255. \\
+\texttt{450 END}, then \texttt{CONT} at the keyboard, \texttt{452}--\texttt{480} & \texttt{For X = 0 To 1}, \texttt{Console.ReadLine()} & Resuming a program after \texttt{END} is a facility of the GW-BASIC interpreter, not of any compiled language; the second experiment is re-expressed as a loop the author never wrote. \\
 \bottomrule
 \end{tabularx}
-\caption{The changes made by the ``modernization'' of Listing~\ref{lst:vbnet}, and what each does to the program.}
+\caption{The changes made by the ``modernization'' of Listing~\ref{lst:macroec} into Listing~\ref{lst:macroec:vb}, and what each does to the program.}
 \label{tab:modernize}
 \end{table*}
 
-The recipe has nothing to say about the case-study listing at all. MACROEC does not print its results; it draws them, setting a CGA graphics mode with \texttt{SCREEN}, framing the plot with \texttt{LINE}, and plotting income and assets point by point with \texttt{PSET}. A console has no counterpart, so the instruction to ``replace \texttt{PRINT} with formatted output'' leaves nothing to replace, and the figure the program exists to produce is lost. Its control flow is a web of \texttt{GOTO}s (lines 224, 255, 343, 348, 400 and 480) rather than a loop that a subroutine can wrap. And its second experiment is reached interactively: line 450 ends the run with unlimited resources, and the reader types \texttt{CONT} to resume at line 452 with renewable resources instead. Resuming a program after \texttt{END} is a facility of the GW-BASIC interpreter, not of any compiled language, so a translator must invent a replacement---a second procedure, a command-line switch---and each invention is a modification that no reader of the 1989 article can check against the page.
+Only the first row is the cosmetic change the recipe promises. Declaring the variables \texttt{Double} changes the arithmetic: GW-BASIC variables are single precision unless declared otherwise, so the translated program integrates the same equations to about fifteen significant digits where the original carried about seven. Because $0.3$ is not exactly representable in binary, $T$ accumulates rounding differently at the two precisions over the thousand-odd steps of each run, and whether the last step before $T/T_0$ reaches 320 is taken can differ between them. The recipe's central instruction, to replace \texttt{PRINT} with formatted output, has no purchase on MACROEC at all: the program never prints. It draws income and assets point by point on a CGA screen, and the translation can only substitute a table for the figure. Its second experiment is reached interactively: line 450 ends the run with unlimited resources, the reader types \texttt{CONT}, and execution resumes at line 452 with renewable resources, which a translator can only imitate by inventing a mechanism of their own.
 
 Nor does translation escape the problem it sets out to solve. The recipe's two routes to execution are the \texttt{vbc.exe} compiler of the .NET Framework and, to avoid compiling, running the program as VBScript under Windows Script Host's \texttt{cscript}. Both are Windows-only, and VBScript is on Microsoft's own list of deprecated Windows features.\footnote{\url{https://learn.microsoft.com/en-us/windows/whats-new/deprecated-features}} Translation moves a listing from one decaying runtime to another, and gives up its correspondence with the printed page on the way.
 
@@ -207,7 +286,20 @@ The Energy Systems Language was initially conceived through formal analogies bet
 
 The selection of BASIC as the computational medium for systems ecology models reflected the technical affordances of early microcomputing. Developed originally to facilitate algorithmic instruction without the overhead of complex toolchains \citep{kemenyKurtz1964}, dialect implementations became ubiquitous across personal microcomputers. For published ecological literature, short interpreted listings offered an accessible mechanism for mathematical dissemination. 
 
-Historical listings across this literature exhibit consistent structural patterns, as exemplified in Listing~\ref{lst:shape} (Section~\ref{sec:case:modernize}). Model parameters, temporal discretizations, and initial state storages are initialized via explicit assignments; a bounded iterative loop advances simulation time by constant increments of \texttt{DT}; compartmental fluxes are calculated from instantaneous state magnitudes; storages are updated via explicit forward-Euler numerical integration; and output values are periodically reported via sequential print statements or dedicated graphics commands. Two primary dialect families characterize this literature: early implementations adhering closely to the Minimal BASIC standard core \citep{ecma55}, and subsequent PC-DOS implementations incorporating hardware-specific display commands (\texttt{SCREEN}, \texttt{PSET}, and \texttt{LINE}) to plot dynamic phase trajectories directly on the display screen \citep{odum1989}.
+\begin{lstlisting}[caption={Representative structural syntax of an ecological simulation listing, illustrating state initialization, forward-Euler numerical integration, and sequential state output.},label={lst:shape}]
+100 LET J = 100
+110 LET K1 = 0.1
+120 LET Q = 0
+130 LET DT = 0.5
+140 PRINT "T", "Q", "OUTFLOW"
+150 FOR T = 0 TO 60 STEP DT
+160 LET F = K1 * Q
+170 PRINT T, Q, F
+180 LET Q = Q + (J - F) * DT
+190 NEXT T
+\end{lstlisting}
+
+Historical listings across this literature exhibit consistent structural patterns, as exemplified in Listing~\ref{lst:shape}. Model parameters, temporal discretizations, and initial state storages are initialized via explicit assignments; a bounded iterative loop advances simulation time by constant increments of \texttt{DT}; compartmental fluxes are calculated from instantaneous state magnitudes; storages are updated via explicit forward-Euler numerical integration; and output values are periodically reported via sequential print statements or dedicated graphics commands. Two primary dialect families characterize this literature: early implementations adhering closely to the Minimal BASIC standard core \citep{ecma55}, and subsequent PC-DOS implementations incorporating hardware-specific display commands (\texttt{SCREEN}, \texttt{PSET}, and \texttt{LINE}) to plot dynamic phase trajectories directly on the display screen \citep{odum1989}.
 
 Current computational approaches remain inadequate for the preservation of these historical models. While general hardware emulators can execute legacy software environments, they introduce significant operational friction: they require proprietary firmware ROM images that cannot be distributed in open scholarly repositories, reproduce hardware-level abstractions rather than model-level representations, and lack mechanisms for structured provenance tracking. Conversely, re-encoding these models in contemporary general-purpose system dynamics environments \citep{richmond1985,fortmannRoe2014,vensim} requires reformulating the original source text, introducing silent discrepancies between the archival literature and the executing artifact. Historical web distributions of pedagogical ecological models \citep{ortega2007} have preserved accompanying descriptive texts but remain static, leaving the models unexecutable.
 
