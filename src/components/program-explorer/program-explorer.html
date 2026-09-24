@@ -1,10 +1,36 @@
 <div class="explorer">
-  <label class="filter">
-    <span class="sr-only">Filter programs</span>
-    <input type="search" placeholder="Filter by title, tag or fidelity" autocomplete="off"
-           spellcheck="false" data-testid="library-filter" />
-  </label>
+  <!-- The section header of VS Code's explorer: the folder's name, which folds
+       the whole tree, and its actions beside it, shown on hover. The action is a
+       sibling of the toggle, not inside it — a control in a control is reached
+       inconsistently, or not at all, by keyboard and screen reader. -->
+  <div class="section">
+    <button type="button" class="section-toggle" aria-expanded="true"
+            aria-controls="explorer-body" data-testid="section-toggle">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"
+              fill="currentColor" />
+      </svg>
+      <span>programs</span>
+    </button>
+    <div class="section-actions">
+      <button type="button" class="section-action" data-testid="collapse-all"
+              title="Collapse Folders in Explorer" aria-label="Collapse Folders in Explorer">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path d="M9 9H4v1h5V9z" fill="currentColor" />
+          <path fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"
+                d="M5 3l1-1h7l1 1v7l-1 1h-2v2l-1 1H3l-1-1V6l1-1h2V3zm1 2h4l1 1v4h2V3H6v2zm4 1H3v7h7V6z" />
+        </svg>
+      </button>
+    </div>
+  </div>
 
-  <ul class="list" data-testid="library-list" aria-label="Programs"></ul>
-  <p class="note" data-testid="library-empty" hidden>No program matches.</p>
+  <div class="section-body" id="explorer-body">
+    <label class="filter">
+      <span class="sr-only">Filter programs</span>
+      <input type="search" placeholder="Filter by title, tag or fidelity" autocomplete="off"
+             spellcheck="false" data-testid="library-filter" />
+    </label>
+    <div class="tree" role="tree" aria-label="Programs" data-testid="library-list"></div>
+    <p class="note" data-testid="library-empty" hidden>No program matches.</p>
+  </div>
 </div>

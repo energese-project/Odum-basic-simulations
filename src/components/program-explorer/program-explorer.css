@@ -1,9 +1,15 @@
+/* Modelled on VS Code's explorer: 22px rows at 13px, 8px of indent per level
+   under a 16px chevron, indent guides that show while the pointer is over the
+   tree, and a selection that is strong while the tree has focus and grey when
+   it does not. Every colour is an Energese token, so both themes follow. */
+
 :host {
   display: block;
+  font-size: 13px;
 }
 
 /* BaseComponent scopes only :host — every other selector here is global, so each
-   is prefixed with it. A bare .title or .note would restyle other panels. */
+   is prefixed with it. A bare .row or .label would restyle other panels. */
 :host .sr-only {
   position: absolute;
   width: 1px;
@@ -13,107 +19,231 @@
   white-space: nowrap;
 }
 
+/* The section header ------------------------------------------------------ */
+
+:host .section {
+  position: sticky;
+  top: 1.6rem; /* under the sidebar's own sticky title */
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: 22px;
+  background-color: var(--e-surface);
+}
+
+:host .section-toggle {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 0 0 2px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--e-ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+:host .section-toggle svg {
+  flex: none;
+  transition: transform 0.1s ease;
+}
+
+:host .section-toggle[aria-expanded='false'] svg {
+  transform: rotate(-90deg);
+}
+
+:host .section-actions {
+  display: flex;
+  padding-right: 8px;
+  opacity: 0;
+}
+
+:host .section:hover .section-actions,
+:host .explorer:focus-within .section-actions {
+  opacity: 1;
+}
+
+:host .section-action {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--e-muted);
+  background: none;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+:host .section-action:hover {
+  color: var(--e-ink);
+  background-color: var(--e-surface-sunken);
+}
+
+:host .section-toggle:focus-visible,
+:host .section-action:focus-visible {
+  outline: 1px solid var(--e-accent);
+  outline-offset: -1px;
+}
+
+/* The filter -------------------------------------------------------------- */
+
 :host .filter {
   display: block;
-  padding: 0.5rem;
+  padding: 2px 12px 6px 20px;
 }
 
 :host .filter input {
   box-sizing: border-box;
   width: 100%;
-  padding: 0.3rem 0.5rem;
+  height: 24px;
+  padding: 0 6px;
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 12px;
   color: var(--e-ink);
   background-color: var(--e-surface-sunken);
   border: 1px solid var(--e-rule);
-  border-radius: 0.3rem;
+  border-radius: 2px;
 }
 
 :host .filter input::placeholder {
   color: var(--e-muted);
 }
 
-:host .filter input:focus-visible {
-  outline: 2px solid var(--e-accent);
+:host .filter input:focus {
+  outline: 1px solid var(--e-accent);
   outline-offset: -1px;
 }
 
-:host .list {
-  margin: 0;
-  padding: 0 0 0.25rem;
-  list-style: none;
+/* The tree ---------------------------------------------------------------- */
+
+:host .tree {
+  padding-bottom: 8px;
 }
 
-:host .item,
-:host .file {
+:host .row {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  align-items: center;
   box-sizing: border-box;
-  width: 100%;
-  padding: 0.3rem 0.75rem 0.3rem 1.3rem;
-  font: inherit;
-  font-size: 0.78rem;
-  text-align: left;
+  height: 22px;
+  padding: 0 12px 0 4px;
+  line-height: 22px;
   color: var(--e-ink);
-  background: none;
-  border: none;
-  border-left: 2px solid transparent;
-  cursor: pointer;
-}
-
-:host .file {
-  padding: 0.18rem 0.75rem 0.18rem 2.2rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.7rem;
-  color: var(--e-muted);
   text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
 
-:host .file[aria-current='true'] {
-  color: var(--e-ink);
-  border-left-color: var(--e-accent);
-}
-
-:host .item:hover,
-:host .file:hover {
+:host .row:hover {
   background-color: var(--e-surface-sunken);
 }
 
-:host .item[aria-current='true'] {
-  color: var(--e-accent-on-soft);
+/* Selected, with the focus elsewhere: grey, as VS Code's inactive selection. */
+:host .row[aria-selected='true'] {
+  background-color: rgb(var(--e-ink-rgb) / 0.08);
+}
+
+:host .tree:focus-within .row[aria-selected='true'] {
   background-color: var(--e-accent-soft);
-  border-left-color: var(--e-accent);
 }
 
-:host .item:focus-visible,
-:host .file:focus-visible {
-  outline: 2px solid var(--e-accent);
-  outline-offset: -2px;
+:host .row:focus {
+  outline: 1px solid var(--e-accent);
+  outline-offset: -1px;
 }
 
-:host .title {
+/* One per level above the row. Its right edge falls on the centre of the
+   ancestor's chevron, which is where VS Code draws the guide. */
+:host .guide {
+  flex: none;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: 8px;
+  border-right: 1px solid transparent;
+}
+
+:host .tree:hover .guide,
+:host .tree:focus-within .guide {
+  border-right-color: var(--e-rule);
+}
+
+:host .twistie {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 22px;
+}
+
+:host .twistie svg {
+  transition: transform 0.1s ease;
+}
+
+:host .row[aria-expanded='true'] > .twistie svg {
+  transform: rotate(90deg);
+}
+
+/* File icons, in the manner of VS Code's default (Seti) theme: a glyph per
+   type, tinted, and nothing for a folder. */
+:host .icon {
+  flex: none;
+  width: 16px;
+  margin-right: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+:host .icon[data-type='basic']::before {
+  content: 'B';
+  color: var(--e-series-3);
+}
+
+:host .icon[data-type='json']::before {
+  content: '{}';
+  color: var(--e-series-4);
+}
+
+:host .icon[data-type='image']::before {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -3px;
+  content: '';
+  background-color: var(--e-series-7);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 2.5h13v11h-13z' fill='none' stroke='black'/%3E%3Cpath d='M3 12l3.5-4.5 2.5 3 1.5-1.5L13 12z'/%3E%3Ccircle cx='11' cy='5.5' r='1.3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+:host .label {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* The word is the signal; the tint only reinforces it. */
+/* The fidelity, where VS Code puts a decoration: small, at the right. The word
+   is the signal; nothing here depends on its colour. */
 :host .badge {
   flex: none;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  margin-left: 8px;
+  font-size: 11px;
   color: var(--e-muted);
 }
 
 :host .note {
   margin: 0;
-  padding: 0.25rem 0.75rem 0.75rem 1.3rem;
-  font-size: 0.74rem;
+  padding: 4px 12px 8px 20px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--e-muted);
 }

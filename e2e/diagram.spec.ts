@@ -51,7 +51,7 @@ test('a program with no diagram gives the plot the room instead', async ({ page 
   await page.goto('./?prg=charge-discharge');
   await expect(page.getByTestId('diagram-pane')).toBeVisible();
 
-  await page.getByTestId('library-list').getByRole('button', { name: /^Two Tanks/ }).click();
+  await page.getByTestId('library-list').getByRole('treeitem', { name: /^Two Tanks/ }).click();
   await expect(page.getByTestId('editor-filename')).toHaveText('two-tank.bas');
   await expect(page.getByTestId('diagram-pane')).toBeHidden();
 });

@@ -101,16 +101,16 @@ test('the library lists every program, and picking one loads it', async ({ page 
   const library = page.getByTestId('library-list');
 
   const catalog = await (await page.request.get('./programs/index.json')).json();
-  await expect(library.locator(':scope > li')).toHaveCount(catalog.programs.length);
-  await expect(library.getByRole('button', { name: /^Charge And Discharge/ })).toHaveAttribute(
+  await expect(library.locator('[data-kind="program"]')).toHaveCount(catalog.programs.length);
+  await expect(library.getByRole('treeitem', { name: /^Charge And Discharge/ })).toHaveAttribute(
     'aria-current',
     'true'
   );
 
-  await library.getByRole('button', { name: /^Logistic Growth/ }).click();
+  await library.getByRole('treeitem', { name: /^Logistic Growth/ }).click();
   await expect(page).toHaveURL(/\?prg=logistic-growth$/);
   await expect(page.getByTestId('editor-filename')).toHaveText('logistic-growth.bas');
-  await expect(library.getByRole('button', { name: /^Logistic Growth/ })).toHaveAttribute(
+  await expect(library.getByRole('treeitem', { name: /^Logistic Growth/ })).toHaveAttribute(
     'aria-current',
     'true'
   );
@@ -118,7 +118,7 @@ test('the library lists every program, and picking one loads it', async ({ page 
 
 test('a program\'s fidelity is on its row, with what it means', async ({ page }) => {
   await page.goto('./?prg=hello');
-  const row = page.getByTestId('library-list').getByRole('button', { name: /^Hello/ });
+  const row = page.getByTestId('library-list').getByRole('treeitem', { name: /^Hello/ });
   await expect(row.locator('.badge')).toHaveText('original');
   await expect(row).toHaveAttribute('title', /Written for this repository/);
 });
@@ -140,12 +140,12 @@ test('the filter narrows the library', async ({ page }) => {
   const library = page.getByTestId('library-list');
 
   await page.getByTestId('library-filter').fill('logistic');
-  await expect(library.locator(':scope > li')).toHaveCount(1);
+  await expect(library.locator('[data-kind="program"]')).toHaveCount(1);
   await expect(library).toContainText('Logistic Growth');
 
   await page.getByTestId('library-filter').fill('smoke-test');
-  await expect(library.getByRole('button', { name: /^Hello/ })).toBeVisible();
-  await expect(library.getByRole('button', { name: /^Logistic Growth/ })).toHaveCount(0);
+  await expect(library.getByRole('treeitem', { name: /^Hello/ })).toBeVisible();
+  await expect(library.getByRole('treeitem', { name: /^Logistic Growth/ })).toHaveCount(0);
 });
 
 test.describe('on a narrow screen', () => {
@@ -161,7 +161,7 @@ test.describe('on a narrow screen', () => {
     await page.getByTestId('sidebar-toggle').click();
     await expect(page.getByTestId('sidebar')).toBeVisible();
 
-    await page.getByTestId('library-list').getByRole('button', { name: /^Two Tanks/ }).click();
+    await page.getByTestId('library-list').getByRole('treeitem', { name: /^Two Tanks/ }).click();
     await expect(page).toHaveURL(/\?prg=two-tank/);
     await expect(page.getByTestId('sidebar')).toBeHidden();
   });

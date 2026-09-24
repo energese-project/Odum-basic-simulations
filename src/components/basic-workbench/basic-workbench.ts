@@ -1,6 +1,5 @@
 import { BaseComponent } from '../../core/base-component.ts';
 import { bindInternalLinks } from '../../core/internal-links.ts';
-import { Router } from '../../core/router/router.ts';
 import { Runner } from '../../basic/runner.ts';
 import { TableReader, toCsv, type Plot } from '../../basic/output.ts';
 import { diagramUrl, fileUrl, findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
@@ -144,7 +143,13 @@ export class BasicWorkbenchComponent extends BaseComponent {
       if (NARROW.matches) this.setSidebar(false);
     });
     this.addEventListener('file-selected', (event) => {
-      this.selectFile((event as CustomEvent<{ path: string }>).detail.path);
+      const { id, path } = (event as CustomEvent<{ id: string; path: string }>).detail;
+      // A work's source.json belongs to every model in it: opened from any of
+      // them, it stays with the program already on screen.
+      const current = this.current;
+      if (current && programFiles(current).some((f) => f.path === path)) this.selectFile(path);
+      else this.selectProgram(id, path);
+      if (NARROW.matches) this.setSidebar(false);
     });
 
     this.querySelector('[data-testid="sidebar-toggle"]')?.addEventListener('click', () => {
@@ -193,11 +198,23 @@ export class BasicWorkbenchComponent extends BaseComponent {
     if (figure) figure.textContent = diagram.figure ?? '';
   }
 
-  private selectProgram(id: string): void {
-    // Through the router, so the address bar carries the program and the page
-    // can be linked to and reloaded onto the same one.
-    Router.getInstance().navigate(`/?prg=${encodeURIComponent(id)}`);
-    this.loadProgram(id);
+  /**
+   * Opens a program in place, and records it in the address bar so the page
+   * can be linked to, reloaded, and gone back through. Not through the router:
+   * navigate() builds a new workbench, which would take the explorer's open
+   * folders, its filter and the last run with it. Back and Forward still go
+   * through the router, which rebuilds from the address — that is a new page.
+   */
+  private selectProgram(id: string, path?: string): void {
+    const program = findProgram(this.programs, id);
+    history.pushState(history.state, '', this.address(id, program && path !== program.file ? path : undefined));
+    this.loadProgram(id, path);
+  }
+
+  private address(id: string, path?: string): string {
+    const query = new URLSearchParams({ prg: id });
+    if (path) query.set('file', path);
+    return `${location.pathname}?${query}`;
   }
 
   private loadProgram(id: string | undefined, path?: string): void {
@@ -219,16 +236,13 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   /**
-   * Another file of the same program. Not through the router: it would build
-   * a new workbench, and take the reader's edits and the last run with it. The
-   * address bar is updated in place instead, so the file can still be linked to.
+   * Another file of the same program. The address bar is replaced rather than
+   * pushed, as a tab switch is in an editor: Back leaves the program, not the file.
    */
   private selectFile(path: string): void {
     const program = this.current;
     if (!program) return;
-    const query = new URLSearchParams({ prg: program.id });
-    if (path !== program.file) query.set('file', path);
-    history.replaceState(history.state, '', `${location.pathname}?${query}`);
+    history.replaceState(history.state, '', this.address(program.id, path !== program.file ? path : undefined));
     void this.openFile(path);
   }
 

@@ -74,16 +74,16 @@ test('the sidecars are published too, so the metadata is citable on its own', as
 
 test('the explorer lists the program\'s published files', async ({ page }) => {
   await page.goto('./?prg=charge-discharge');
-  const files = page.getByTestId('file-list');
-  await expect(files.getByRole('button', { name: 'charge-discharge.bas' })).toHaveAttribute(
-    'aria-current',
+  const files = page.getByTestId('library-list');
+  await expect(files.getByRole('treeitem', { name: 'charge-discharge.bas', exact: true })).toHaveAttribute(
+    'aria-selected',
     'true'
   );
-  await expect(files.getByRole('button', { name: 'charge-discharge.json' })).toBeVisible();
+  await expect(files.getByRole('treeitem', { name: 'charge-discharge.json', exact: true })).toBeVisible();
 
   // An image is not text, so it is not opened in the editor: it is a link to
   // the published file, full size, which is how a scan is checked.
-  const image = files.getByRole('link', { name: /charge-discharge\.png/ });
+  const image = files.getByRole('treeitem', { name: 'charge-discharge.png', exact: true });
   await expect(image).toHaveAttribute('href', /programs\/charge-discharge\.png$/);
   await expect(image).toHaveAttribute('target', '_blank');
 });
@@ -94,7 +94,7 @@ test('the sidecar opens in the editor as published, and cannot be typed over', a
   await page.goto('./?prg=charge-discharge');
   await expect(page.getByTestId('editor-mount')).toContainText('PRINT');
 
-  await page.getByTestId('file-list').getByRole('button', { name: 'charge-discharge.json' }).click();
+  await page.getByTestId('library-list').getByRole('treeitem', { name: 'charge-discharge.json', exact: true }).click();
   await expect(page).toHaveURL(/\?prg=charge-discharge&file=charge-discharge\.json$/);
   await expect(page.getByTestId('editor-filename')).toHaveText('charge-discharge.json');
   const mount = page.getByTestId('editor-mount');
@@ -122,8 +122,8 @@ test('an edited listing survives a look at the sidecar, and is what runs', async
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('10 PRINT "EDITED"\n20 END');
 
-  const files = page.getByTestId('file-list');
-  await files.getByRole('button', { name: 'hello.json' }).click();
+  const files = page.getByTestId('library-list');
+  await files.getByRole('treeitem', { name: 'hello.json', exact: true }).click();
   await expect(mount).toContainText('"fidelity"');
 
   // Run acts on the program, not on whichever file happens to be open.
@@ -131,16 +131,24 @@ test('an edited listing survives a look at the sidecar, and is what runs', async
   await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
   await expect(page.getByTestId('console-output')).toContainText('EDITED');
 
-  await files.getByRole('button', { name: 'hello.bas' }).click();
+  await files.getByRole('treeitem', { name: 'hello.bas', exact: true }).click();
   await expect(mount).toContainText('EDITED');
 });
 
 test('the explorer follows the program', async ({ page }) => {
   await page.goto('./?prg=charge-discharge');
-  await page.getByTestId('library-list').getByRole('button', { name: /^Two Tanks/ }).click();
-  const files = page.getByTestId('file-list');
-  await expect(files.getByRole('button', { name: 'two-tank.bas' })).toBeVisible();
-  await expect(files.getByRole('button', { name: 'two-tank.json' })).toBeVisible();
-  await expect(files.getByRole('button', { name: 'charge-discharge.bas' })).toHaveCount(0);
-  await expect(files.getByRole('link')).toHaveCount(0);
+  await page.getByTestId('library-list').getByRole('treeitem', { name: /^Two Tanks/ }).click();
+  const files = page.getByTestId('library-list');
+  // The program picked is revealed with its listing selected; the one before
+  // stays open, as a folder does in an editor, but nothing in it is selected.
+  await expect(files.getByRole('treeitem', { name: 'two-tank.bas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  await expect(files.getByRole('treeitem', { name: 'two-tank.json', exact: true })).toBeVisible();
+  await expect(files.getByRole('treeitem', { name: 'charge-discharge.bas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'false'
+  );
+  await expect(files.locator('[aria-selected="true"]')).toHaveCount(1);
 });

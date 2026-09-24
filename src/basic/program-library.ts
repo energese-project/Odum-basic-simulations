@@ -55,7 +55,7 @@ export interface ProgramFile {
 interface Filed {
   file: string;
   sidecar: string;
-  work: { file: string } | null;
+  work: { id: string; file: string } | null;
   diagram?: { file: string } | null;
   programImage: { file: string } | null;
   runs: { file: string; plot: string | null }[];
@@ -86,4 +86,92 @@ export function programFiles(program: Filed): ProgramFile[] {
     if (run.plot) paths.push(run.plot);
   }
   return paths.map(file);
+}
+
+export type TreeKind = 'work' | 'program' | 'folder' | 'file';
+
+/** One row of the explorer, and what is under it. */
+export interface TreeNode {
+  /** Stable across renders and filters, so expansion is kept by it. */
+  key: string;
+  name: string;
+  kind: TreeKind;
+  /** The program this is, or belongs to. A work belongs to none. */
+  programId?: string;
+  file?: ProgramFile;
+  children: TreeNode[];
+}
+
+const byName = (a: TreeNode, b: TreeNode): number =>
+  Number(a.kind === 'file') - Number(b.kind === 'file') ||
+  a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+
+/**
+ * The explorer's tree: the archive laid out as its folders are, the way an
+ * editor shows a directory. A work is its folder, holding its source.json and a
+ * folder per model; a model's runs are a folder of their own. A single program
+ * has no folder on disk, so it gets one named by its title — which is also what
+ * a reader knows it by. Inside a folder, folders come first and then files by
+ * name, as in VS Code. Works and single programs keep the catalog's order.
+ */
+export function buildTree<T extends Filed & Searchable>(programs: T[], query: string): TreeNode[] {
+  const roots: TreeNode[] = [];
+  const works = new Map<string, TreeNode>();
+
+  for (const program of filterPrograms(programs, query)) {
+    const node: TreeNode = {
+      key: `p:${program.id}`,
+      name: program.title,
+      kind: 'program',
+      programId: program.id,
+      children: [],
+    };
+    for (const file of programFiles(program)) {
+      if (program.work && file.path === program.work.file) continue;
+      place(node, file.name.split('/'), file, program.id);
+    }
+    if (!program.work) {
+      roots.push(node);
+      continue;
+    }
+    let work = works.get(program.work.id);
+    if (!work) {
+      const source = programFiles(program).find((f) => f.path === program.work?.file)!;
+      work = {
+        key: `w:${program.work.id}`,
+        name: program.work.id,
+        kind: 'work',
+        children: [
+          { key: `f:${source.path}`, name: source.name, kind: 'file', programId: program.id, file: source, children: [] },
+        ],
+      };
+      works.set(program.work.id, work);
+      roots.push(work);
+    }
+    work.children.push(node);
+  }
+
+  const sort = (nodes: TreeNode[]): void => {
+    for (const n of nodes) {
+      n.children.sort(byName);
+      sort(n.children);
+    }
+  };
+  sort(roots);
+  return roots;
+}
+
+function place(parent: TreeNode, parts: string[], file: ProgramFile, programId: string): void {
+  const [head, ...rest] = parts;
+  if (rest.length === 0) {
+    parent.children.push({ key: `f:${file.path}`, name: head, kind: 'file', programId, file, children: [] });
+    return;
+  }
+  const key = `${parent.key}/${head}`;
+  let folder = parent.children.find((c) => c.key === key);
+  if (!folder) {
+    folder = { key, name: head, kind: 'folder', programId, children: [] };
+    parent.children.push(folder);
+  }
+  place(folder, rest, file, programId);
 }

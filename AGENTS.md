@@ -371,9 +371,15 @@ in [`programs/README.md`](programs/README.md); what matters for changing the cod
   - **Run runs the listing, whichever file is open.** An edit to the listing is
     kept while a sidecar is on screen, and is lost on a reload: there is nowhere
     to save it, deliberately.
-  - **Switching files does not go through the router.** `navigate()` rebuilds the
-    workbench, which would take the edits and the last run with it. The
-    `&file=` in the address bar is written with `history.replaceState`.
+  - **Picking a program or a file does not go through the router.** `navigate()`
+    rebuilds the workbench, which would take the explorer's open folders, its
+    filter, the edits and the last run with it. A program is `pushState`d and a
+    file `replaceState`d; Back and Forward still rebuild from the address.
+  - **The explorer is an ARIA tree that behaves like VS Code's** — independent
+    folders, a chevron that only folds, arrow keys, type-ahead, Collapse All —
+    and `e2e/explorer.spec.ts` holds it to that. `buildTree()` lays the archive
+    out as its folders are; a single program, which has no folder, gets one
+    named by its title.
   - **Contribute is a link to the issue form, empty** (`contributeUrl`). A static
     site cannot sign anyone in — GitHub's token exchange needs the client secret
     and refuses CORS preflight — so there is no GitHub API call. The issue's

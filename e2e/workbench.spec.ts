@@ -13,8 +13,8 @@ test('the workbench loads with a program in the editor', async ({ page }) => {
   // The explorer is the only way to pick a program; there is no dropdown.
   await expect(page.getByTestId('program-select')).toHaveCount(0);
   const library = page.getByTestId('library-list');
-  await expect(library.locator(':scope > li')).not.toHaveCount(0);
-  await expect(library.getByRole('button', { name: /^Charge And Discharge/ })).toBeVisible();
+  await expect(library.locator('[data-kind="program"]')).not.toHaveCount(0);
+  await expect(library.getByRole('treeitem', { name: /^Charge And Discharge/ })).toBeVisible();
 
   // The catalog is what fills the list; an empty editor would mean the .bas
   // files did not make it into the published archive.
@@ -153,13 +153,13 @@ test('a runaway program can be stopped', async ({ page }) => {
 test('?prg= selects a program, and the explorer keeps the URL in step', async ({ page }) => {
   await page.goto('./?prg=logistic-growth');
   const library = page.getByTestId('library-list');
-  await expect(library.getByRole('button', { name: /^Logistic Growth/ })).toHaveAttribute(
+  await expect(library.getByRole('treeitem', { name: /^Logistic Growth/ })).toHaveAttribute(
     'aria-current',
     'true'
   );
   await expect(page.getByTestId('editor-mount')).toContainText('SOURCE');
 
-  await library.getByRole('button', { name: /^Two Tanks/ }).click();
+  await library.getByRole('treeitem', { name: /^Two Tanks/ }).click();
   await expect(page).toHaveURL(/\?prg=two-tank/);
 });
 
