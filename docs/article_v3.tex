@@ -83,7 +83,7 @@ systems ecology \sep H.T. Odum \sep Energy Systems Language \sep computational r
 \section{Introduction}
 \label{sec:intro}
 
-Over a period of about 20 years, from 1980s-2000s, some systems ecologists published articles and books that contained two representations of quantitative dynamic simulation models: a conceptual Energy Systems Language (ESL) diagram (See fig.\ref{fig:minimodel}), and the code for a computer simulation program (See fig.\ref{fig:workbench}). This  convention was prominent in the works of Howard T. Odum, and persisted across multiple microcomputer generations culminating in instructional volumes that contained printed programs alongside software distributions on physical optical media \citep{odum1983,odumMinimodels,odumOdum2000}. The publication of complete listings provided an explicit operational specification of the underlying differential and difference equations of ecological and macroeconomic systems, enabling researchers and students to perform simulated hypothesis testing to evaluate transient trajectories and verify steady-state conditions directly on microcomputer hardware by altering coefficients.
+Over a period of about 20 years, from 1980s-2000s, some systems ecologists published articles and books that contained two representations of quantitative dynamic simulation models: a conceptual Energy Systems Language (ESL) diagram (Fig.~\ref{fig:minimodel}), and the code for a computer simulation program (Fig.~\ref{fig:workbench}). This  convention was prominent in the works of Howard T. Odum, and persisted across multiple microcomputer generations culminating in instructional volumes that contained printed programs alongside software distributions on physical optical media \citep{odum1983,odumMinimodels,odumOdum2000}. The publication of complete listings provided an explicit operational specification of the underlying differential and difference equations of ecological and macroeconomic systems, enabling researchers and students to perform simulated hypothesis testing to evaluate transient trajectories and verify steady-state conditions directly on microcomputer hardware by altering coefficients.
 
 Despite the convention of source code disclosure, the computational models of this period have largely become software artifacts in the archaeological record and unexecutable without excavatory effort involving the identification of an apprpirate runtime or software package. This is simply because the specialized microcomputer architectures for which the programs were compiled or interpreted have been retired from operational use, their associated software dialects have fragmented, and contemporary operating systems no longer provide compatible execution runtimes. 
 
@@ -104,12 +104,12 @@ The argument motivating the present paper and associated efforts says that this 
 \section{Case Study: Macro-Ecologic-Economic Minimodel}
 \label{sec:case:study}
 
-\begin{figure}
+\begin{figure}[tb]
   \includegraphics[width=\linewidth]{./images/macro_economic.png}
   \caption{``Simple macro-ecologic-economic minimodel to demonstrate  methods of diagramming and simulation'' \cite[fig.~2a, p.~71]{odum1989}}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[tb]
   \includegraphics[width=\linewidth]{./images/macro_economic_basic.png}
   \caption{``BASIC PC Microcomputer Simulation Program for  the Macroeconomics Minimodel'' \cite[table.~2, p.~71]{odum1989}}
   \label{fig:macroec:basic}
@@ -313,13 +313,13 @@ Modern research software preservation frameworks, including the FAIR4RS principl
 
 The development of the preservation framework was governed by five methodological criteria designed to ensure archival integrity and numerical reliability:
 
-\paragraph{Invariance of the historical artifact.} The primary source listing constitutes the immutable scientific object. If an incompatibility arises between a published historical listing and the execution runtime, the deficiency is attributed to the interpreter rather than the source text. Legacy source listings are not modified or modernized. Output trajectories are extracted directly from the formatting structures emitted by the original program, whether through tabular console streams or screen-space graphics primitives. Unimplemented dialect operations are cataloged as runtime limitations rather than accommodated via intrusive code alterations.
+\paragraph{Invariance of the historical artifact} The primary source listing constitutes the immutable scientific object. If an incompatibility arises between a published historical listing and the execution runtime, the deficiency is attributed to the interpreter rather than the source text. Legacy source listings are not modified or modernized. Output trajectories are extracted directly from the formatting structures emitted by the original program, whether through tabular console streams or screen-space graphics primitives. Unimplemented dialect operations are cataloged as runtime limitations rather than accommodated via intrusive code alterations.
 
-\paragraph{Machine-enforceable provenance schemas.} Computational reproducibility requires transparent pedigree tracking. Every archived program is coupled with a structured metadata specification file. The build pipeline enforces schema validation, rejecting any submission characterized by missing bibliographic properties, invalid relational identifiers, or undefined fidelity classifications. 
+\paragraph{Machine-enforceable provenance schemas} Computational reproducibility requires transparent pedigree tracking. Every archived program is coupled with a structured metadata specification file. The build pipeline enforces schema validation, rejecting any submission characterized by missing bibliographic properties, invalid relational identifiers, or undefined fidelity classifications. 
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering\small
-\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\begin{tabularx}{\linewidth}{@{}lXp{0.34\linewidth}@{}}
 \toprule
 Fidelity level & Definition & Required metadata \\
 \midrule
@@ -331,11 +331,11 @@ Fidelity level & Definition & Required metadata \\
 \end{tabularx}
 \caption{Taxonomy of program fidelity classifications implemented within the preservation framework.}
 \label{tab:fidelity}
-\end{table}
+\end{table*}
 
 The metadata schema defines four discrete tiers of transcription fidelity (Table~\ref{tab:fidelity}). The assignment of fidelity levels requires explicit human adjudication based on physical source verification; automated workflows are prohibited from establishing or mutating this parameter.
 
-\paragraph{Hierarchical evidentiary ordering.} Determining historical execution semantics requires reconciling divergent technical documentation. When behavioral discrepancies arise between reference sources, evidence is arbitrated through a strict hierarchical ranking:
+\paragraph{Hierarchical evidentiary ordering} Determining historical execution semantics requires reconciling divergent technical documentation. When behavioral discrepancies arise between reference sources, evidence is arbitrated through a strict hierarchical ranking:
 \begin{enumerate}
 \item Formal consensus standards, including Standard ECMA-55 for Minimal BASIC \citep{ecma55}.
 \item Primary source implementations, specifically the released source code of original historical interpreters \citep{gwbasic}.
@@ -347,9 +347,9 @@ Where modern emulators deviate from primary interpreter source code, the framewo
 % RESOLVED(design/longevity): the paragraph now states the committed-artefact
 % case and the rebuild check that keeps it honest (engine/build-wasm.sh
 % --check, the `wasm` job).
-\paragraph{Architectural longevity and independence.} To prevent the recurrence of software collapse, the runtime is constructed entirely on open, standardized web platform primitives without reliance on transient server-side infrastructure, remote databases, or dynamic content-delivery network dependencies. All runtime libraries and architectural components are vendored directly within the static repository structure, ensuring that the archive remains fully functional as a self-contained computational distribution. This extends to compiled artifacts: the WebAssembly build of the execution engine is committed to the repository, because the deployment runner provides neither a C toolchain nor a container runtime, and an archive that can only be built on a machine with the right compiler installed has merely relocated the dependency it was trying to remove. A committed binary can silently cease to correspond to its source, so continuous integration rebuilds it within a digest-pinned toolchain image on every proposed change and fails if a single byte differs. The longevity principle is thereby applied to build products as well as to source: what is archived is executable without reconstruction, and what is executable is provably derived from what is archived.
+\paragraph{Architectural longevity and independence} To prevent the recurrence of software collapse, the runtime is constructed entirely on open, standardized web platform primitives without reliance on transient server-side infrastructure, remote databases, or dynamic content-delivery network dependencies. All runtime libraries and architectural components are vendored directly within the static repository structure, ensuring that the archive remains fully functional as a self-contained computational distribution. This extends to compiled artifacts: the WebAssembly build of the execution engine is committed to the repository, because the deployment runner provides neither a C toolchain nor a container runtime, and an archive that can only be built on a machine with the right compiler installed has merely relocated the dependency it was trying to remove. A committed binary can silently cease to correspond to its source, so continuous integration rebuilds it within a digest-pinned toolchain image on every proposed change and fails if a single byte differs. The longevity principle is thereby applied to build products as well as to source: what is archived is executable without reconstruction, and what is executable is provably derived from what is archived.
 
-\paragraph{Behavioral, specification-first test harnesses.} System modifications are validated through external behavioral assertions rather than unit-level internal state tests. Interpreter test suites execute concrete BASIC listings and evaluate rendered output tables, while archival validation harnesses ensure metadata completeness, bibliographic integrity, and asset compliance.
+\paragraph{Behavioral, specification-first test harnesses} System modifications are validated through external behavioral assertions rather than unit-level internal state tests. Interpreter test suites execute concrete BASIC listings and evaluate rendered output tables, while archival validation harnesses ensure metadata completeness, bibliographic integrity, and asset compliance.
 
 %% ----------------------------------------------------------------------------
 \section{Runtime architecture and execution engine}
@@ -379,33 +379,33 @@ For later PC-DOS listings, both implementations provide the standard graphics op
 % architecture -- REVIEW(implementation) above -- not the precision.
 Numerical computation in the TypeScript interpreter is conducted in IEEE-754 double-precision floating-point arithmetic, with tabular console output formatted to six decimal places. The C engine, which is the implementation the site now executes, computes in IEEE-754 single precision: \texttt{BAS\_Real} is C's \texttt{float}, so every operation rounds to single because that is what the type does, and its console output gives a single seven significant digits as GW-BASIC did. That contract is enforced at compile time rather than assumed --- the build requires \texttt{FLT\_EVAL\_METHOD == 0} and refuses to compile without it, since evaluating intermediates more widely would turn \texttt{A = A + DA * DT} into one rounding where GW-BASIC performed three, and \texttt{-ffp-contract=off} is passed because a fused multiply-add rounds once where the original rounded twice. Historical microcomputer interpreters utilized shorter numerical formats; for example, Commodore BASIC V2 employed a 5-byte format (32-bit significand, 8-bit exponent) yielding approximately nine decimal digits, whereas GW-BASIC implemented 4-byte single-precision Microsoft Binary Format (MBF) yielding approximately seven significant digits. Consequently, runtime fidelity is calibrated to reproduce the underlying compartmental model equations and dynamic trajectories, while recognizing that the least significant printed digits may reflect architectural precision differences. Execution proceeds within an isolated Web Worker thread, maintaining responsiveness and preventing the interface from freezing during iterative numerical integration loops; because the engine executes in bounded slices, a non-terminating listing can be interrupted rather than merely waited out.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.88\linewidth]{workbench.png}
+\includegraphics[width=0.8\linewidth]{workbench.png}
 \caption{The browser-based workbench interface displaying the charge-and-discharge benchmark model following simulation execution, illustrating model navigation, source code editing, Energy Systems Language diagram rendering, tabular console output, and reconstructed phase trajectory plotting. The indicator at the upper right reports the state of the WebAssembly build of the C engine, which checks the listing in the editor as it is typed; it is a status of the checker alone, and simulation execution proceeds independently of it.}
 \label{fig:workbench}
-\end{figure}
+\end{figure*}
 
 % RESOLVED(implementation/website): a paragraph on delivery now follows,
 % covering instantiation, the in-editor checker, the shared-engine argument,
 % the fail-open behaviour and the glue-free build.
 
-\paragraph{Delivery to the browser.} The WebAssembly module is fetched once per session and instantiated directly, both on the main thread, where the editor uses it, and inside the Web Worker that executes listings. Its diagnostics are emitted in the structure the editor's annotation interface already expects, and are therefore passed through without translation; the listing in the editor is re-checked as it is typed, so a reader modifying a historical program is shown immediately where it ceases to be valid BASIC for the selected dialect. The same compiled core backs the command-line tool's \texttt{check} subcommand, so the editor and the tool agree by construction rather than by two separately maintained implementations being kept in step --- an architectural property, not a testing outcome. The checker fails open: if the module cannot be retrieved, the editor continues to operate without annotations, on the reasoning that an editor which refuses to open because its checker is missing is worse than one which opens unchecked, and the interface indicator visible in Figure~\ref{fig:workbench} reports which of the two states obtains. The module is built without JavaScript glue code, as a standalone WebAssembly binary with no entry point; its only import is a memory-growth notification, because the validation path performs no input or output and therefore introduces no system-interface dependency. This is what keeps the committed artifact small enough to be reviewed and stable enough to be compared byte for byte against a rebuild.
+\paragraph{Delivery to the browser} The WebAssembly module is fetched once per session and instantiated directly, both on the main thread, where the editor uses it, and inside the Web Worker that executes listings. Its diagnostics are emitted in the structure the editor's annotation interface already expects, and are therefore passed through without translation; the listing in the editor is re-checked as it is typed, so a reader modifying a historical program is shown immediately where it ceases to be valid BASIC for the selected dialect. The same compiled core backs the command-line tool's \texttt{check} subcommand, so the editor and the tool agree by construction rather than by two separately maintained implementations being kept in step --- an architectural property, not a testing outcome. The checker fails open: if the module cannot be retrieved, the editor continues to operate without annotations, on the reasoning that an editor which refuses to open because its checker is missing is worse than one which opens unchecked, and the interface indicator visible in Figure~\ref{fig:workbench} reports which of the two states obtains. The module is built without JavaScript glue code, as a standalone WebAssembly binary with no entry point; its only import is a memory-growth notification, because the validation path performs no input or output and therefore introduces no system-interface dependency. This is what keeps the committed artifact small enough to be reviewed and stable enough to be compared byte for byte against a rebuild.
 Automated extraction of quantitative trajectories from legacy console output requires a systematic heuristic. Because historical simulation listings predate structured data-interchange formats, simulation results were sequentially emitted via formatted \texttt{PRINT} statements. The extraction engine scans the output stream for contiguous blocks of multi-column numeric data delimited by standard whitespace or tab tokens. The longest contiguous block sharing a constant field width is classified as the primary simulation table, with the initial column designated as the independent temporal variable. Column headers are automatically parsed from preceding non-numeric string labels. If the parsing heuristic fails to detect a consistent tabular structure, raw text streams remain fully accessible to the user, and resolved tables may be exported as standardized comma-separated values (CSV).
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\begin{subfigure}[b]{0.48\linewidth}
+\begin{subfigure}[b]{0.42\linewidth}
 \includegraphics[width=\linewidth]{minimodel-diagram.png}
 \caption{Energy Systems Language diagram.}
 \end{subfigure}\hfill
-\begin{subfigure}[b]{0.48\linewidth}
+\begin{subfigure}[b]{0.42\linewidth}
 \includegraphics[width=\linewidth]{minimodel-plot.png}
 \caption{Reconstructed simulation trajectory.}
 \end{subfigure}
 \caption{Dual representation of an ecological compartmental model within the archive: (a) visual Energy Systems Language diagram indicating forcing function $J$, storage $Q$, and donor-controlled outflow $K_1Q$; (b) corresponding dynamic trajectory recovered directly from the interpreted forward-Euler numerical integration output.}
 \label{fig:minimodel}
-\end{figure}
+\end{figure*}
 
 The graphical workbench interface integrates these execution facilities into a unified analytical environment (Figure~\ref{fig:workbench}). The interface organizes models within an interactive catalog, displaying source listings alongside corresponding Energy Systems Language diagrams, recovered dynamic plots, and console execution logs (Figure~\ref{fig:minimodel}). Each program is addressable via persistent uniform resource identifiers, ensuring stable cross-referencing for scientific and educational applications.
 
@@ -417,7 +417,7 @@ The archival filesystem hierarchy enforces strict isolation between program defi
 
 To facilitate the expansion of the historical model corpus while maintaining archival integrity, the framework provides four ingestion pathways calibrated to varying technical requirements (Figure~\ref{fig:routes}, Table~\ref{tab:routes}).
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}lXXX@{}}
 \toprule
@@ -431,11 +431,11 @@ Automated transcription & Source scan or transcription prompt & Automated parsin
 \end{tabularx}
 \caption{Summary of archival ingestion pathways, detailing operational prerequisites, automated validation routines, and human verification checkpoints.}
 \label{tab:routes}
-\end{table}
+\end{table*}
 
 The primary pathway utilizes formal version-control pull requests, enabling advanced contributors to supply complete program packages comprising source listings, diagram assets, and metadata files. Continuous integration pipelines validate all companion metadata files against the central JSON schema and run regression test suites prior to human code review.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
 \begin{tikzpicture}[
   node distance=5mm and 5mm,
@@ -463,7 +463,7 @@ The primary pathway utilizes formal version-control pull requests, enabling adva
 \end{tikzpicture}
 \caption{Architectural schema of the ingestion and verification pipeline, illustrating automated validation, continuous integration testing, and human-in-the-loop review criteria across all four contribution pathways.}
 \label{fig:routes}
-\end{figure}
+\end{figure*}
 
 To lower technical barriers for domain specialists in ecology who may not utilize distributed version-control tools, a secondary pathway leverages structured issue forms. Contributors submit program listings, bibliographic data, and visual scans through standardized web form fields. An automated repository workflow parses the submitted issue payload, compiles the corresponding metadata files, and triggers the central validation suite. Diagnostic feedback is returned automatically if required parameters are missing or malformed. Once validation succeeds, an automated pull request is generated, preserving contributor attribution while staging the submission for human verification.
 
@@ -505,7 +505,7 @@ Reporting only the defects the controls intercepted would overstate them, and on
 
 This failure is methodologically more informative than the successes above, and it qualifies the conclusion. These observations reinforce established findings in empirical software engineering: while automated language models demonstrate high proficiency in generating localized algorithms to formal specifications \citep{chen2021}, their deployment in complex systems requires formal testing harnesses and human domain expertise to ensure scientific integrity \citep{jimenez2024}. The qualification is that a harness bounds what a model can silently get wrong only to the extent that its assertions state what their author believes they state. A generated test that names the right property and then verifies a sample of one reads, in review, exactly like a test that verifies the property.
 
-\begin{table}[h]
+\begin{table}[tb]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}Xr@{}}
 \toprule
@@ -558,11 +558,17 @@ The initial validation tier evaluates the numerical execution engine against thr
 \begin{enumerate}
 \item \textbf{Linear charge-and-discharge storage:} A single-state reservoir governed by constant input flux $J$ and linear, donor-controlled drainage $K_1Q$:
 \begin{equation}
-\frac{\mathrm{d}Q}{\mathrm{d}t} = J - K_1Q, \quad Q(t) = \frac{J}{K_1}\left(1 - e^{-K_1t}\right).
+\begin{gathered}
+\frac{\mathrm{d}Q}{\mathrm{d}t} = J - K_1Q, \\
+Q(t) = \frac{J}{K_1}\left(1 - e^{-K_1t}\right).
+\end{gathered}
 \end{equation}
 \item \textbf{Logistic growth resource model:} A self-limiting biological population exhibiting density-dependent saturation:
 \begin{equation}
-\frac{\mathrm{d}Q}{\mathrm{d}t} = K_1Q(S_T - Q) - K_2Q, \quad Q(t) = \frac{C}{1 + \left(\frac{C - Q_0}{Q_0}\right)e^{-rt}},
+\begin{gathered}
+\frac{\mathrm{d}Q}{\mathrm{d}t} = K_1Q(S_T - Q) - K_2Q, \\
+Q(t) = \frac{C}{1 + \left(\frac{C - Q_0}{Q_0}\right)e^{-rt}},
+\end{gathered}
 \end{equation}
 where intrinsic growth rate $r = K_1S_T - K_2$ and carrying capacity $C = S_T - K_2/K_1$.
 \item \textbf{Two-stage linear cascade with step forcing:} A coupled linear system ($\mathrm{d}Q_1/\mathrm{d}t = J - K_1Q_1$, $\mathrm{d}Q_2/\mathrm{d}t = K_1Q_1 - K_2Q_2$) subject to a piecewise step-down in forcing $J$ at time $t_c$, yielding exponential decay phases across both state variables.
@@ -570,8 +576,8 @@ where intrinsic growth rate $r = K_1S_T - K_2$ and carrying capacity $C = S_T - 
 
 Each model listing executes an explicit forward-Euler integration recurrence over discrete time increments $\Delta t$. In automated validation tests, the output of the C engine --- the implementation the site executes --- was compared across every time step against an independent recurrence evaluation performed in identical operational sequence and at identical precision, as well as against the analytical solution (Table~\ref{tab:validation}).
 
-\begin{table}[h]
-\centering\small
+\begin{table*}[t]
+\centering\small\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrcc@{}}
 \toprule
 & & & \multicolumn{2}{c@{}}{Maximum relative error} \\
@@ -586,7 +592,7 @@ Coupled linear cascade ($t_c = 40.0$, nominal) & 0.25 & 321 & $\le 5\times10^{-7
 \end{tabular}
 \caption{Numerical validation of the C engine across canonical compartmental models. Discrepancies between engine output and independent single-precision forward-Euler recurrences fall strictly within the rounding of the console display routine, which gives a single seven significant digits; expressed as a fraction of the value, its worst case is $5\times10^{-7}$. On every row of every listing the difference is within half a unit in that row's own last printed digit, so the two computations agree exactly and only the display separates them. Discrepancies between recurrence sequences and exact analytical solutions reflect standard discretization truncation errors inherent to first-order Euler integration, and are unchanged by the move to single precision.}
 \label{tab:validation}
-\end{table}
+\end{table*}
 
 % RESOLVED(validation/precision): execution moved to the C engine, and the
 % reference recurrence moved to single precision with it (Math.fround on every
@@ -610,28 +616,28 @@ Across all evaluated rows, the engine output coincided with the independent sing
 
 The second validation tier examines the numerical and graphical correspondence between the reconstructed runtime and an emulated historical execution environment. The evaluation examined a published systems ecology listing modeling macroeconomic-resource interactions over 640 forward-Euler integration steps with state-dependent threshold switching \citep[Table~3]{odum1989}. The model was executed simultaneously within the reconstructed web runtime and within PC-BASIC \citep{pcbasic}, an open-source emulator that replicates GW-BASIC architecture and Microsoft Binary Format floating-point representations.
 
-\begin{table}[h]
+\begin{table*}[t]
 \centering\small
 \resizebox{\linewidth}{!}{\oracleTable}
 \caption{Comparative numerical evaluation of Odum (1989, Table~3) across 640 forward-Euler integration steps executed within the reconstructed interpreter (R1, R4a, R4b) and the PC-BASIC reference emulator (R2, R3, R3d). The maximum relative difference reflects deviations across all state variables. Plotted pixel agreement indicates coordinate identity across all 2,560 trajectory points. Bit-identical steps quantify exact binary floating-point concordance with the single-precision emulator reference.}
 \label{tab:oracle}
-\end{table}
+\end{table*}
 
 Because the reconstructed interpreter computes using IEEE-754 double-precision arithmetic whereas GW-BASIC utilized MBF single-precision by default, divergence between modern and historical trajectories could arise from numerical precision differences. However, as documented in Table~\ref{tab:oracle}, precision divergence does not alter macro-scale model behavior. The maximum relative difference between modern double-precision execution and legacy single-precision emulation remained bounded at $4.0\times10^{-5}$, primarily localized in a state variable constrained to a minimum floor of 0.0001. Across all 2,560 plotted trajectory coordinates, screen-space displacement did not exceed $6.8\times10^{-5}$ pixels, resulting in 100\% visual pixel concordance across the rendered trajectories. Furthermore, dynamic threshold switching (\texttt{IF D > 30 THEN IV = 0}) occurred identically at step 263 ($t = 131.5$) across all execution environments. When double-precision variables were emulated within the reference platform (Run R3d), numerical concordance reached $3.7\times10^{-13}$, verifying that the statement semantics of the interpreter introduce no algorithmic distortion.
 
-\begin{figure}[h]
+\begin{figure*}[t]
 \centering
-\begin{subfigure}{0.48\linewidth}
+\begin{subfigure}{0.42\linewidth}
 \includegraphics[width=\linewidth]{r2.png}
 \caption{Reference emulator screen output}
 \end{subfigure}\hfill
-\begin{subfigure}{0.48\linewidth}
+\begin{subfigure}{0.42\linewidth}
 \includegraphics[width=\linewidth]{r1-diff.png}
 \caption{Reconstructed display difference map}
 \end{subfigure}
 \caption{Comparative rasterization analysis of Odum (1989, Table~3) in \texttt{SCREEN 1} mode (320$\times$200 pixels). (a) Emulated video buffer output generated by PC-BASIC. (b) Reconstructed canvas output, with 111 differing pixels highlighted in white. The discrepancy was traced to divergent midpoint rounding conventions between the emulator and primary GW-BASIC interpreter source code.}
 \label{fig:oracle}
-\end{figure}
+\end{figure*}
 
 Cross-platform raster comparison revealed an informative implementation divergence. Comparing the emulated video memory of PC-BASIC with the reconstructed canvas buffer identified an apparent spatial mismatch across 111 of 64,000 pixels (Figure~\ref{fig:oracle}). Emulating single-precision arithmetic did not alter this mismatch, indicating that the variation arose from coordinate discretization rather than numerical drift. Analysis revealed that the temporal increment of 0.5 units mapped alternate integration steps exactly to half-pixel coordinates. PC-BASIC's rasterization routine rounded half-integers to the nearest even integer (round-half-to-even), whereas the reconstructed runtime rounded half-integers away from zero. 
 
