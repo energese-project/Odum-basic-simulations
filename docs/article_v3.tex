@@ -83,15 +83,189 @@ systems ecology \sep H.T. Odum \sep Energy Systems Language \sep computational r
 \section{Introduction}
 \label{sec:intro}
 
-In the archival history of systems ecology publications, quantitative models of ecological and macroeconomic dynamics have been documented through dual representations: conceptual Energy Systems Language (ESL) diagrams, together with numbered BASIC listings \citep{odum1983,odumMinimodels,odumOdum2000}. This dual-representation convention persisted across multiple microcomputer generations, culminating in instructional volumes containing printed programs alongside software distributions on physical optical media \citep{odumOdum2000}. The publication of complete listings provided an explicit operational specification of the underlying differential and difference equations, enabling researchers and students to perform simulated hypothesis testing by altering coefficients to evaluate transient trajectories and verify steady-state conditions directly on microcomputer hardware.
+Over a period of about 20 years, from 1980s-2000s, some systems ecologists published articles and books that contained two representations of quantitative dynamic simulation models: a conceptual Energy Systems Language (ESL) diagram (See fig.\ref{fig:minimodel}), and the code for a computer simulation program (See fig.\ref{fig:workbench}). This  convention was prominent in the works of Howard T. Odum, and persisted across multiple microcomputer generations culminating in instructional volumes that contained printed programs alongside software distributions on physical optical media \citep{odum1983,odumMinimodels,odumOdum2000}. The publication of complete listings provided an explicit operational specification of the underlying differential and difference equations of ecological and macroeconomic systems, enabling researchers and students to perform simulated hypothesis testing to evaluate transient trajectories and verify steady-state conditions directly on microcomputer hardware by altering coefficients.
 
-Despite full source code disclosure, these historical computational artifacts have largely become unexecutable. The specialized microcomputer architectures for which they were compiled or interpreted have been retired from operational use, their associated BASIC dialects have fragmented, and contemporary operating systems no longer provide compatible execution runtimes. Consequently, these printed models cannot be directly evaluated against their originally published quantitative trajectories, compared systematically with alternative formulations, or integrated into modern ecological research workflows.
+Despite the convention of source code disclosure, the computational models of this period have largely become software artifacts in the archaeological record and unexecutable without excavatory effort involving the identification of an apprpirate runtime or software package. This is simply because the specialized microcomputer architectures for which the programs were compiled or interpreted have been retired from operational use, their associated software dialects have fragmented, and contemporary operating systems no longer provide compatible execution runtimes. 
 
-This loss of executability directly impairs scientific verification in computational ecology. Simulation models serve as formal instruments through which systems ecologists evaluate quantitative hypotheses regarding thermodynamic storage capacities, trophic cascades, and policy-driven regime shifts. The epistemological utility of such models depends on independent computational reproducibility, as originally intended by the open publication of their source listings. While contemporary reproducibility initiatives frequently attribute replication failures to the omission of source code and advocate open code mandates \citep{peng2011,ince2012} or structured descriptive protocols \citep{grimm2010}, the decay of historical ecological models presents a distinct challenge. Complete source disclosures become computationally inert when their surrounding execution environments become obsolete, exemplifying the systemic phenomenon of software collapse in scientific computing \citep{hinsen2019}.
+\section{Software Collapse}
+\label{sec:collapse}
+
+The inability to execute these models today represents an impairment of scientific knowledge. Simulation models serve as formal instruments through which systems ecologists evaluate quantitative hypotheses regarding thermodynamic storage capacities, trophic cascades, and policy-driven regime shifts. While contemporary reproducibility initiatives frequently attribute replication failures to the omission of source code and advocate open code mandates \citep{peng2011,ince2012} or structured descriptive protocols \citep{grimm2010}, the decay of historical ecological models presents a distinct challenge. Complete source disclosures become computationally inert when their surrounding execution environments become obsolete, exemplifying the systemic phenomenon of \textit{software collapse} in scientific computing \citep{hinsen2019}.
 
 In software engineering, operational obsolescence arising from external environmental divergence is recognized as a primary mode of software aging \citep{parnas1994}. However, standard software evolution literature predominantly examines continuous code modification within version-controlled repositories \citep{lehman1980,robles2005,spinellis2021}. Static printed listings occupy a divergent preservation regime: they remain immutable and structurally intact across decades, yet their semantic interpretation fails because the computational substrates that defined their execution no longer exist. Manual re-implementation into modern scientific programming languages partially mitigates this loss, but frequently introduces unrecorded translation artifacts, implicit algorithmic modifications, and undocumented transcription discrepancies.
 
+\section{The Case of H.T. Odum}
+\label{sec:odum}
+
+As a case in point, in the historical period of interest for this article, H.T.Odum published ecological models using a dialect of the BASIC programming language. Unfortunately, modern operating systems no longer include built-in interpreters (like QBasic or GW-BASIC from early DOS days) for this dialect. Currently supported Windows Operating System shells---Command terminal and PowerShell (and Macos/Linux Bash terminal)---do not natively support or execute the dialect of of Odum's BASIC programs. These shells interpret their own specific command/scripting languages but not BASIC, and consequently the published BASIC ecological models of the 1980-2000s cannot be directly evaluated against their originally published quantitative trajectories, compared systematically with alternative formulations, or integrated into modern ecological research workflows.
+
+The argument motivating the present paper and associated efforts says that this loss of computational runtime environment impairs an important aspect of the scientific method: repeatability. And without repeatability, human epistemology cannot consolidate around a shared ontology. As a result, the epistemological utility of such models depends on independent computational reproducibility, as originally intended by the open publication of their source listings. Verification, falsification, validation of these programs in computational ecological modeling represents an important step in the debates around the foundational public claims of systems ecologists regarding the concepts of climate change and peak oil that being made in this period and which are being questioned by an organised international community of climate skeptics and radical boursgeioe anti-woke activists who consider the word `ecology' to be a DEI limitation of capitalism. 
+
+\section{Case Study: Macro-Ecologic-Economic Minimodel}
+\label{sec:case:study}
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{./images/macro_economic.png}
+  \caption{``Simple macro-ecologic-economic minimodel to demonstrate  methods of diagramming and simulation'' \cite[fig.~2a, p.~71]{odum1989}}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{./images/macro_economic_basic.png}
+  \caption{``BASIC PC Microcomputer Simulation Program for  the Macroeconomics Minimodel'' \cite[table.~2, p.~71]{odum1989}}
+  \label{fig:macroec:basic}
+\end{figure}
+
+
+\subsection{What ``modernizing'' a listing involves}
+\label{sec:case:modernize}
+
+The obvious alternative to a dedicated runtime is to translate a listing into a language that current systems still execute. The usual recipe for doing so is short: strip out the line numbers, drop the legacy \texttt{LET} keyword, wrap the executable statements in a \texttt{Sub Main()} subroutine, and replace BASIC's \texttt{PRINT} statements with formatted console output. Listing~\ref{lst:macroec} is MACROEC as Odum printed it (Figure~\ref{fig:macroec:basic}), transcribed line for line; Listing~\ref{lst:macroec:vb} is the Visual Basic .NET module the recipe leads to, once the gaps it leaves have been filled.
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,keepspaces=true,caption={MACROEC, transcribed from Figure~\ref{fig:macroec:basic} {\citep[Table~2]{odum1989}}. The scan's typeface does not distinguish the letter O from the digit zero; \texttt{T0}, \texttt{Y0} and \texttt{K0} are read as zeros, since \texttt{TO} is a reserved word and each name is assigned before it is used. The misspelling in line 452 is Odum's.},label={lst:macroec}]
+1 REM IBM PC COMPATIBLE
+2 REM Program name is MACROEC, 1988 version by H.T.Odum
+3 REM Initial run is with unlimited resources. Then type CONT for run with renewable resources.
+4 CLS
+5  SCREEN 1,0:COLOR 0,0
+6  LINE (0,0)-(319,180),3,B
+7 X = 0
+10 REM SCALING FACTORS
+12 DT = .3
+14 T0 = 1
+20 Y0 = .1
+25 KZ = 1
+30 REM  COEFFICIENTS
+32 KS = .1
+35 K0 = .1
+50 K1 = .01
+60 K2 = .02
+70 K3 = .111
+75 K4 = .333
+77 REM SOURCES
+80  J = 1
+90 E=1
+100 REM INITIAL CONDITIONS
+115 Y = .2
+120 C = .2
+130 S = .02
+155 K = 5
+160 I = .05
+200  REM  PLOTTING
+224  IF Y / Y0 > 160 GOTO 450
+230  PSET (T / T0,180 - Y / Y0),1
+255  IF K / KZ > 160 GOTO 300
+260  PSET (T / T0,180 - K / KZ),2
+300  REM  EQUATIONS
+341 R = J / (1 + K0 * K * C) :REM RESIDUAL RESOURCES AVAILABLE
+342  IF X = 0 GOTO 348
+343  IF X = 1 GOTO 350
+345 REM PRODUCTION FUNCTIONS:
+348 PR = K4 * C * K * E: GOTO 355
+350 PR = K4 * C * K * R- K3*C*K*R
+355 DK = PR -K2*K
+357 DI = K1*DK
+360 K = K + DK * DT
+365  IF K < .01 THEN K = .01
+367 I = S + DI * DT :REM INVESTMENT
+368 Y = C + I :REM INCOME
+369 IF Y<.01 THEN Y = .01
+370 S = KS * Y :REM SAVINGS
+380 C = Y - S:REM CONSUMPTION
+390 T = T + DT
+400  IF T / T0 < 320 GOTO 200
+450  END
+452 REM Type CONT to rerun with rewnable resources
+455 X = 1
+460 T = 1
+470 DK = 0
+480 GOTO 100
+\end{lstlisting}
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,keepspaces=true,caption={Listing~\ref{lst:macroec} ``modernized'' into a Visual Basic .NET module. Everything the recipe does not cover---the graphics, the \texttt{GOTO} structure, the \texttt{CONT} restart---had to be decided by the translator.},label={lst:macroec:vb}]
+' MACROEC, 1988 version by H.T. Odum.
+' Initial run is with unlimited resources,
+' then a run with renewable resources.
+Module Macroec
+  Sub Main()
+    Dim DT As Double = 0.3, T0 As Double = 1
+    Dim Y0 As Double = 0.1, KZ As Double = 1
+    Dim KS As Double = 0.1, K0 As Double = 0.1
+    Dim K1 As Double = 0.01, K2 As Double = 0.02
+    Dim K3 As Double = 0.111, K4 As Double = 0.333
+    Dim J As Double = 1, E As Double = 1
+    Dim Y, C, S, K, I, R, PR, DK, DI As Double
+    Dim T As Double = 0
+    For X As Integer = 0 To 1
+      ' Initial conditions
+      Y = 0.2 : C = 0.2 : S = 0.02 : K = 5 : I = 0.05
+      Console.WriteLine("{0,8}{1,10}{2,10}", _
+        "T", "Y", "K")
+      Do
+        If Y / Y0 > 160 Then Exit Do
+        Console.Write("{0,8:N1}{1,10:N4}", T, Y)
+        If K / KZ <= 160 Then
+          Console.Write("{0,10:N4}", K)
+        End If
+        Console.WriteLine()
+        ' Equations
+        R = J / (1 + K0 * K * C)  ' residual resources
+        If X = 0 Then
+          PR = K4 * C * K * E
+        Else
+          PR = K4 * C * K * R - K3 * C * K * R
+        End If
+        DK = PR - K2 * K
+        DI = K1 * DK
+        K = K + DK * DT
+        If K < 0.01 Then K = 0.01
+        I = S + DI * DT           ' investment
+        Y = C + I                 ' income
+        If Y < 0.01 Then Y = 0.01
+        S = KS * Y                ' savings
+        C = Y - S                 ' consumption
+        T = T + DT
+      Loop While T / T0 < 320
+      If X = 0 Then
+        Console.Write("Press Enter to rerun with ")
+        Console.WriteLine("renewable resources.")
+        Console.ReadLine()
+        T = 1
+      End If
+    Next X
+  End Sub
+End Module
+\end{lstlisting}
+
+The result compiles and runs, and its equations are those of the published listing. It is nonetheless a different program. Table~\ref{tab:modernize} records where it departs from the published text, and every departure is a decision the translator made on the author's behalf that no reader comparing the output with the 1989 article can check against the page.
+
+\begin{table*}[t]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}p{0.27\linewidth}p{0.25\linewidth}X@{}}
+\toprule
+Original BASIC (Listing~\ref{lst:macroec}) & Visual Basic .NET (Listing~\ref{lst:macroec:vb}) & Consequence \\
+\midrule
+\texttt{1 REM ...} & \texttt{' ...} & None: comment syntax only. \\
+\texttt{12 DT = .3} & \texttt{Dim DT As Double = 0.3} & Single-precision arithmetic silently becomes double precision. \\
+\texttt{4 CLS}, \texttt{5 SCREEN 1,0}, \texttt{6 LINE (0,0)-(319,180),3,B} & omitted & A console has no graphics mode; the framed $320\times180$ plot has nowhere to go. \\
+\texttt{230 PSET (T / T0,180 - Y / Y0),1} and \texttt{260 PSET ...,2} & \texttt{Console.Write(...)} & The figure the program exists to draw becomes a table in a format the translator chose. Rounding each point to a pixel, which decides what the published figure shows, disappears. \\
+\texttt{200}--\texttt{400}: a loop built from \texttt{GOTO}s & \texttt{Do ... Loop While} & The control flow is restructured to the translator's reading of the jumps, including the early exit at line 224 and the skipped point at line 255. \\
+\texttt{450 END}, then \texttt{CONT} at the keyboard, \texttt{452}--\texttt{480} & \texttt{For X = 0 To 1}, \texttt{Console.ReadLine()} & Resuming a program after \texttt{END} is a facility of the GW-BASIC interpreter, not of any compiled language; the second experiment is re-expressed as a loop the author never wrote. \\
+\bottomrule
+\end{tabularx}
+\caption{The changes made by the ``modernization'' of Listing~\ref{lst:macroec} into Listing~\ref{lst:macroec:vb}, and what each does to the program.}
+\label{tab:modernize}
+\end{table*}
+
+Only the first row is the cosmetic change the recipe promises. Declaring the variables \texttt{Double} changes the arithmetic: GW-BASIC variables are single precision unless declared otherwise, so the translated program integrates the same equations to about fifteen significant digits where the original carried about seven. Because $0.3$ is not exactly representable in binary, $T$ accumulates rounding differently at the two precisions over the thousand-odd steps of each run, and whether the last step before $T/T_0$ reaches 320 is taken can differ between them. The recipe's central instruction, to replace \texttt{PRINT} with formatted output, has no purchase on MACROEC at all: the program never prints. It draws income and assets point by point on a CGA screen, and the translation can only substitute a table for the figure. Its second experiment is reached interactively: line 450 ends the run with unlimited resources, the reader types \texttt{CONT}, and execution resumes at line 452 with renewable resources, which a translator can only imitate by inventing a mechanism of their own.
+
+Nor does translation escape the problem it sets out to solve. The recipe's two routes to execution are the \texttt{vbc.exe} compiler of the .NET Framework and, to avoid compiling, running the program as VBScript under Windows Script Host's \texttt{cscript}. Both are Windows-only, and VBScript is on Microsoft's own list of deprecated Windows features.\footnote{\url{https://learn.microsoft.com/en-us/windows/whats-new/deprecated-features}} Translation moves a listing from one decaying runtime to another, and gives up its correspondence with the printed page on the way.
+
 To address these limitations, this paper introduces Odum BASIC Simulations, an open-access archival framework and execution runtime designed to recover the repeatability of historical ecological simulations. Rather than translating legacy code into contemporary frameworks, the system reconstructs an execution environment tailored to the original source text, formalizing the relationship between the printed historical artifact and its modern execution as machine-checked provenance data. 
+
+This article is undertaken under a broader research program documented as one of has four pillars in the Energese-Project GitHub Organisation. The pillars are: latex-energese, a package for latex publishing to support the Energy Systems Language; GSSK, a simulation kernel for supporting energy systems dynamics, emergy algorithms and Giannantoni's incipient calculus, GSSK-Dia, a diagrammatic interface for constructing valid GSSK systems models and Odum-BASIC-Simulations, the subject of this article.
+
+the preservation of historical ecological models, which encompasses the formalization of Energy Systems Language diagrammatic syntax \citep{energese}, the development of a web-based interactive workbench for model inspection and execution, and the establishment of structured metadata schemas for archival fidelity. The present study focuses on the design, implementation, and verification of a runtime capable of executing legacy BASIC listings in a manner faithful to their original semantics. 
+
 
 This study presents four primary contributions:
 \begin{enumerate}
@@ -143,7 +317,7 @@ The development of the preservation framework was governed by five methodologica
 
 \paragraph{Machine-enforceable provenance schemas.} Computational reproducibility requires transparent pedigree tracking. Every archived program is coupled with a structured metadata specification file. The build pipeline enforces schema validation, rejecting any submission characterized by missing bibliographic properties, invalid relational identifiers, or undefined fidelity classifications. 
 
-\begin{table*}[t]
+\begin{table}[h]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}lXl@{}}
 \toprule
@@ -157,7 +331,7 @@ Fidelity level & Definition & Required metadata \\
 \end{tabularx}
 \caption{Taxonomy of program fidelity classifications implemented within the preservation framework.}
 \label{tab:fidelity}
-\end{table*}
+\end{table}
 
 The metadata schema defines four discrete tiers of transcription fidelity (Table~\ref{tab:fidelity}). The assignment of fidelity levels requires explicit human adjudication based on physical source verification; automated workflows are prohibited from establishing or mutating this parameter.
 
@@ -205,12 +379,12 @@ For later PC-DOS listings, both implementations provide the standard graphics op
 % architecture -- REVIEW(implementation) above -- not the precision.
 Numerical computation in the TypeScript interpreter is conducted in IEEE-754 double-precision floating-point arithmetic, with tabular console output formatted to six decimal places. The C engine, which is the implementation the site now executes, computes in IEEE-754 single precision: \texttt{BAS\_Real} is C's \texttt{float}, so every operation rounds to single because that is what the type does, and its console output gives a single seven significant digits as GW-BASIC did. That contract is enforced at compile time rather than assumed --- the build requires \texttt{FLT\_EVAL\_METHOD == 0} and refuses to compile without it, since evaluating intermediates more widely would turn \texttt{A = A + DA * DT} into one rounding where GW-BASIC performed three, and \texttt{-ffp-contract=off} is passed because a fused multiply-add rounds once where the original rounded twice. Historical microcomputer interpreters utilized shorter numerical formats; for example, Commodore BASIC V2 employed a 5-byte format (32-bit significand, 8-bit exponent) yielding approximately nine decimal digits, whereas GW-BASIC implemented 4-byte single-precision Microsoft Binary Format (MBF) yielding approximately seven significant digits. Consequently, runtime fidelity is calibrated to reproduce the underlying compartmental model equations and dynamic trajectories, while recognizing that the least significant printed digits may reflect architectural precision differences. Execution proceeds within an isolated Web Worker thread, maintaining responsiveness and preventing the interface from freezing during iterative numerical integration loops; because the engine executes in bounded slices, a non-terminating listing can be interrupted rather than merely waited out.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.88\linewidth]{workbench.png}
 \caption{The browser-based workbench interface displaying the charge-and-discharge benchmark model following simulation execution, illustrating model navigation, source code editing, Energy Systems Language diagram rendering, tabular console output, and reconstructed phase trajectory plotting. The indicator at the upper right reports the state of the WebAssembly build of the C engine, which checks the listing in the editor as it is typed; it is a status of the checker alone, and simulation execution proceeds independently of it.}
 \label{fig:workbench}
-\end{figure*}
+\end{figure}
 
 % RESOLVED(implementation/website): a paragraph on delivery now follows,
 % covering instantiation, the in-editor checker, the shared-engine argument,
@@ -219,7 +393,7 @@ Numerical computation in the TypeScript interpreter is conducted in IEEE-754 dou
 \paragraph{Delivery to the browser.} The WebAssembly module is fetched once per session and instantiated directly, both on the main thread, where the editor uses it, and inside the Web Worker that executes listings. Its diagnostics are emitted in the structure the editor's annotation interface already expects, and are therefore passed through without translation; the listing in the editor is re-checked as it is typed, so a reader modifying a historical program is shown immediately where it ceases to be valid BASIC for the selected dialect. The same compiled core backs the command-line tool's \texttt{check} subcommand, so the editor and the tool agree by construction rather than by two separately maintained implementations being kept in step --- an architectural property, not a testing outcome. The checker fails open: if the module cannot be retrieved, the editor continues to operate without annotations, on the reasoning that an editor which refuses to open because its checker is missing is worse than one which opens unchecked, and the interface indicator visible in Figure~\ref{fig:workbench} reports which of the two states obtains. The module is built without JavaScript glue code, as a standalone WebAssembly binary with no entry point; its only import is a memory-growth notification, because the validation path performs no input or output and therefore introduces no system-interface dependency. This is what keeps the committed artifact small enough to be reviewed and stable enough to be compared byte for byte against a rebuild.
 Automated extraction of quantitative trajectories from legacy console output requires a systematic heuristic. Because historical simulation listings predate structured data-interchange formats, simulation results were sequentially emitted via formatted \texttt{PRINT} statements. The extraction engine scans the output stream for contiguous blocks of multi-column numeric data delimited by standard whitespace or tab tokens. The longest contiguous block sharing a constant field width is classified as the primary simulation table, with the initial column designated as the independent temporal variable. Column headers are automatically parsed from preceding non-numeric string labels. If the parsing heuristic fails to detect a consistent tabular structure, raw text streams remain fully accessible to the user, and resolved tables may be exported as standardized comma-separated values (CSV).
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
 \begin{subfigure}[b]{0.48\linewidth}
 \includegraphics[width=\linewidth]{minimodel-diagram.png}
@@ -231,7 +405,7 @@ Automated extraction of quantitative trajectories from legacy console output req
 \end{subfigure}
 \caption{Dual representation of an ecological compartmental model within the archive: (a) visual Energy Systems Language diagram indicating forcing function $J$, storage $Q$, and donor-controlled outflow $K_1Q$; (b) corresponding dynamic trajectory recovered directly from the interpreted forward-Euler numerical integration output.}
 \label{fig:minimodel}
-\end{figure*}
+\end{figure}
 
 The graphical workbench interface integrates these execution facilities into a unified analytical environment (Figure~\ref{fig:workbench}). The interface organizes models within an interactive catalog, displaying source listings alongside corresponding Energy Systems Language diagrams, recovered dynamic plots, and console execution logs (Figure~\ref{fig:minimodel}). Each program is addressable via persistent uniform resource identifiers, ensuring stable cross-referencing for scientific and educational applications.
 
@@ -243,7 +417,7 @@ The archival filesystem hierarchy enforces strict isolation between program defi
 
 To facilitate the expansion of the historical model corpus while maintaining archival integrity, the framework provides four ingestion pathways calibrated to varying technical requirements (Figure~\ref{fig:routes}, Table~\ref{tab:routes}).
 
-\begin{table*}[t]
+\begin{table}[h]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}lXXX@{}}
 \toprule
@@ -257,11 +431,11 @@ Automated transcription & Source scan or transcription prompt & Automated parsin
 \end{tabularx}
 \caption{Summary of archival ingestion pathways, detailing operational prerequisites, automated validation routines, and human verification checkpoints.}
 \label{tab:routes}
-\end{table*}
+\end{table}
 
 The primary pathway utilizes formal version-control pull requests, enabling advanced contributors to supply complete program packages comprising source listings, diagram assets, and metadata files. Continuous integration pipelines validate all companion metadata files against the central JSON schema and run regression test suites prior to human code review.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
 \begin{tikzpicture}[
   node distance=5mm and 5mm,
@@ -289,7 +463,7 @@ The primary pathway utilizes formal version-control pull requests, enabling adva
 \end{tikzpicture}
 \caption{Architectural schema of the ingestion and verification pipeline, illustrating automated validation, continuous integration testing, and human-in-the-loop review criteria across all four contribution pathways.}
 \label{fig:routes}
-\end{figure*}
+\end{figure}
 
 To lower technical barriers for domain specialists in ecology who may not utilize distributed version-control tools, a secondary pathway leverages structured issue forms. Contributors submit program listings, bibliographic data, and visual scans through standardized web form fields. An automated repository workflow parses the submitted issue payload, compiles the corresponding metadata files, and triggers the central validation suite. Diagnostic feedback is returned automatically if required parameters are missing or malformed. Once validation succeeds, an automated pull request is generated, preserving contributor attribution while staging the submission for human verification.
 
@@ -331,7 +505,7 @@ Reporting only the defects the controls intercepted would overstate them, and on
 
 This failure is methodologically more informative than the successes above, and it qualifies the conclusion. These observations reinforce established findings in empirical software engineering: while automated language models demonstrate high proficiency in generating localized algorithms to formal specifications \citep{chen2021}, their deployment in complex systems requires formal testing harnesses and human domain expertise to ensure scientific integrity \citep{jimenez2024}. The qualification is that a harness bounds what a model can silently get wrong only to the extent that its assertions state what their author believes they state. A generated test that names the right property and then verifies a sample of one reads, in review, exactly like a test that verifies the property.
 
-\begin{table}[t]
+\begin{table}[h]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}Xr@{}}
 \toprule
@@ -388,10 +562,7 @@ The initial validation tier evaluates the numerical execution engine against thr
 \end{equation}
 \item \textbf{Logistic growth resource model:} A self-limiting biological population exhibiting density-dependent saturation:
 \begin{equation}
-\begin{aligned}
-\frac{\mathrm{d}Q}{\mathrm{d}t} &= K_1Q(S_T - Q) - K_2Q, \\
-Q(t) &= \frac{C}{1 + \left(\frac{C - Q_0}{Q_0}\right)e^{-rt}},
-\end{aligned}
+\frac{\mathrm{d}Q}{\mathrm{d}t} = K_1Q(S_T - Q) - K_2Q, \quad Q(t) = \frac{C}{1 + \left(\frac{C - Q_0}{Q_0}\right)e^{-rt}},
 \end{equation}
 where intrinsic growth rate $r = K_1S_T - K_2$ and carrying capacity $C = S_T - K_2/K_1$.
 \item \textbf{Two-stage linear cascade with step forcing:} A coupled linear system ($\mathrm{d}Q_1/\mathrm{d}t = J - K_1Q_1$, $\mathrm{d}Q_2/\mathrm{d}t = K_1Q_1 - K_2Q_2$) subject to a piecewise step-down in forcing $J$ at time $t_c$, yielding exponential decay phases across both state variables.
@@ -399,8 +570,8 @@ where intrinsic growth rate $r = K_1S_T - K_2$ and carrying capacity $C = S_T - 
 
 Each model listing executes an explicit forward-Euler integration recurrence over discrete time increments $\Delta t$. In automated validation tests, the output of the C engine --- the implementation the site executes --- was compared across every time step against an independent recurrence evaluation performed in identical operational sequence and at identical precision, as well as against the analytical solution (Table~\ref{tab:validation}).
 
-\begin{table*}[t]
-\centering\small\setlength{\tabcolsep}{4pt}
+\begin{table}[h]
+\centering\small
 \begin{tabular}{@{}lrrcc@{}}
 \toprule
 & & & \multicolumn{2}{c@{}}{Maximum relative error} \\
@@ -415,7 +586,7 @@ Coupled linear cascade ($t_c = 40.0$, nominal) & 0.25 & 321 & $\le 5\times10^{-7
 \end{tabular}
 \caption{Numerical validation of the C engine across canonical compartmental models. Discrepancies between engine output and independent single-precision forward-Euler recurrences fall strictly within the rounding of the console display routine, which gives a single seven significant digits; expressed as a fraction of the value, its worst case is $5\times10^{-7}$. On every row of every listing the difference is within half a unit in that row's own last printed digit, so the two computations agree exactly and only the display separates them. Discrepancies between recurrence sequences and exact analytical solutions reflect standard discretization truncation errors inherent to first-order Euler integration, and are unchanged by the move to single precision.}
 \label{tab:validation}
-\end{table*}
+\end{table}
 
 % RESOLVED(validation/precision): execution moved to the C engine, and the
 % reference recurrence moved to single precision with it (Math.fround on every
@@ -439,16 +610,16 @@ Across all evaluated rows, the engine output coincided with the independent sing
 
 The second validation tier examines the numerical and graphical correspondence between the reconstructed runtime and an emulated historical execution environment. The evaluation examined a published systems ecology listing modeling macroeconomic-resource interactions over 640 forward-Euler integration steps with state-dependent threshold switching \citep[Table~3]{odum1989}. The model was executed simultaneously within the reconstructed web runtime and within PC-BASIC \citep{pcbasic}, an open-source emulator that replicates GW-BASIC architecture and Microsoft Binary Format floating-point representations.
 
-\begin{table*}[t]
+\begin{table}[h]
 \centering\small
 \resizebox{\linewidth}{!}{\oracleTable}
 \caption{Comparative numerical evaluation of Odum (1989, Table~3) across 640 forward-Euler integration steps executed within the reconstructed interpreter (R1, R4a, R4b) and the PC-BASIC reference emulator (R2, R3, R3d). The maximum relative difference reflects deviations across all state variables. Plotted pixel agreement indicates coordinate identity across all 2,560 trajectory points. Bit-identical steps quantify exact binary floating-point concordance with the single-precision emulator reference.}
 \label{tab:oracle}
-\end{table*}
+\end{table}
 
 Because the reconstructed interpreter computes using IEEE-754 double-precision arithmetic whereas GW-BASIC utilized MBF single-precision by default, divergence between modern and historical trajectories could arise from numerical precision differences. However, as documented in Table~\ref{tab:oracle}, precision divergence does not alter macro-scale model behavior. The maximum relative difference between modern double-precision execution and legacy single-precision emulation remained bounded at $4.0\times10^{-5}$, primarily localized in a state variable constrained to a minimum floor of 0.0001. Across all 2,560 plotted trajectory coordinates, screen-space displacement did not exceed $6.8\times10^{-5}$ pixels, resulting in 100\% visual pixel concordance across the rendered trajectories. Furthermore, dynamic threshold switching (\texttt{IF D > 30 THEN IV = 0}) occurred identically at step 263 ($t = 131.5$) across all execution environments. When double-precision variables were emulated within the reference platform (Run R3d), numerical concordance reached $3.7\times10^{-13}$, verifying that the statement semantics of the interpreter introduce no algorithmic distortion.
 
-\begin{figure*}[t]
+\begin{figure}[h]
 \centering
 \begin{subfigure}{0.48\linewidth}
 \includegraphics[width=\linewidth]{r2.png}
@@ -460,7 +631,7 @@ Because the reconstructed interpreter computes using IEEE-754 double-precision a
 \end{subfigure}
 \caption{Comparative rasterization analysis of Odum (1989, Table~3) in \texttt{SCREEN 1} mode (320$\times$200 pixels). (a) Emulated video buffer output generated by PC-BASIC. (b) Reconstructed canvas output, with 111 differing pixels highlighted in white. The discrepancy was traced to divergent midpoint rounding conventions between the emulator and primary GW-BASIC interpreter source code.}
 \label{fig:oracle}
-\end{figure*}
+\end{figure}
 
 Cross-platform raster comparison revealed an informative implementation divergence. Comparing the emulated video memory of PC-BASIC with the reconstructed canvas buffer identified an apparent spatial mismatch across 111 of 64,000 pixels (Figure~\ref{fig:oracle}). Emulating single-precision arithmetic did not alter this mismatch, indicating that the variation arose from coordinate discretization rather than numerical drift. Analysis revealed that the temporal increment of 0.5 units mapped alternate integration steps exactly to half-pixel coordinates. PC-BASIC's rasterization routine rounded half-integers to the nearest even integer (round-half-to-even), whereas the reconstructed runtime rounded half-integers away from zero. 
 
