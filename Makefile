@@ -16,7 +16,8 @@ RUN           := $(CONTAINER_BIN) run --rm --init -m $(MEMORY) -c $(CPUS) \
 	-v $(shell pwd):$(WORKDIR) $(IMAGE_APP)
 
 .PHONY: help start image install dev build preview typecheck test-unit test check clean \
-        figures figures-update article attest attest-update wasm wasm-check
+        figures figures-update article attest attest-update wasm wasm-check \
+        engine-test engine-snapshots-update
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -66,7 +67,7 @@ test-unit: start ## Unit tests (node --test, straight on the TypeScript source)
 test: start ## Playwright end-to-end tests, dev server and built bundle
 	$(RUN) npm run e2e
 
-check: typecheck test-unit test ## Everything CI runs. Must pass before pushing.
+check: typecheck test-unit test engine-test ## Everything CI runs. Must pass before pushing.
 
 # --------------------------------------------------
 # The paper's figures
@@ -99,6 +100,23 @@ attest: start ## Rerun the oracle comparison and check it against its record
 
 attest-update: start ## Rerun the oracle comparison and rewrite its record
 	CONTAINER_BIN=$(CONTAINER_BIN) validation/oracle/attest.sh --update
+
+# --------------------------------------------------
+# The C engine's tests
+#
+# Its unit tests, the `odum` CLI's tests, and a snapshot of every listing in
+# programs/ run through the CLI: the rows it wrote and the text it printed, in
+# engine/tests/snapshots/. All in the pinned engine image, because macOS's gcc is
+# Apple clang and its libm is not glibc's — the snapshots hold the last bits of
+# EXP and LOG, and are only comparable against the library that made them.
+# `engine-snapshots-update` rewrites them; read the diff before committing.
+# --------------------------------------------------
+
+engine-test: start ## The C engine's unit, CLI and snapshot tests, in the pinned engine image
+	CONTAINER_BIN=$(CONTAINER_BIN) engine/test.sh
+
+engine-snapshots-update: start ## Rerun them and rewrite the snapshots. Review the diff before committing
+	CONTAINER_BIN=$(CONTAINER_BIN) engine/test.sh --update
 
 # --------------------------------------------------
 # The browser build of the C engine

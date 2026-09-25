@@ -115,6 +115,23 @@ jobs:
           path: validation/oracle/
           retention-days: 7
 
+  # The C engine's unit tests, the odum CLI's tests, and a snapshot of every
+  # listing in programs/ run through the CLI. In the pinned engine image, as
+  # `make engine-test` runs them locally: the snapshots hold the last bits of EXP
+  # and LOG from glibc, so they are compared against the library that made them.
+  # arm64 like the jobs around it, so the machine is the one they were made on.
+  #
+  # engine/test.sh rather than `make engine-test`, for the same reason as attest.sh:
+  # the target depends on `start`, which docker has no equivalent of.
+  engine:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Unit, CLI and snapshot tests
+        run: CONTAINER_BIN=docker engine/test.sh
+
   # src/basic/engine.wasm is a committed build product. It has to be committed,
   # because Pages deploys with `npm ci && npm run build` on a runner with Node
   # and nothing else — no emscripten, no containers. The hazard of a committed

@@ -1,11 +1,14 @@
 /**
  * odum: the command-line tool.
  *
- *   odum run <file.bas> [--csv <out>] [--max-steps N]
+ *   odum run <file.bas> [--csv <out>] [--max-steps N] [--cont N]
  *   odum check <file.bas>
  *
  * `run` executes a listing and writes its rows as CSV — stdout by default, so
- * it composes with everything else.  `check` validates without executing and
+ * it composes with everything else.  `--cont N` resumes after END or STOP up to
+ * N times, as typing CONT at the Ok prompt did: Odum's MACROEC (1989, Table 2)
+ * reaches its second experiment no other way.  It is a count, not a switch,
+ * because that listing loops back after END and would otherwise run for ever.  `check` validates without executing and
  * prints the diagnostics, exiting non-zero if there are any, so CI and an
  * agent can rely on it.
  *
@@ -29,8 +32,19 @@
 static void usage(void) {
   fprintf(stderr,
           "Usage:\n"
-          "  odum run <file.bas> [--csv <out>] [--max-steps N]\n"
+          "  odum run <file.bas> [--csv <out>] [--max-steps N] [--cont N]\n"
           "  odum check <file.bas>\n");
+}
+
+/** A whole, non-negative decimal number, or false.  atol would take "1.5" as 1
+    and "x" as 0, which turns a typo into a different run. */
+static int parse_count(const char *s, long *out) {
+  char *end = NULL;
+  if (!*s || *s == '-' || *s == '+') return 0;
+  long n = strtol(s, &end, 10);
+  if (*end != '\0' || n < 0) return 0;
+  *out = n;
+  return 1;
 }
 
 /** Read a whole file.  The caller frees. */
@@ -77,7 +91,8 @@ static void drain(BAS_Instance *inst) {
   }
 }
 
-static int cmd_run(const char *path, const char *csv_path, long max_steps) {
+static int cmd_run(const char *path, const char *csv_path, long max_steps,
+                   long conts) {
   char *src = read_file(path);
   if (!src) { fprintf(stderr, "cannot read %s\n", path); return EXIT_USAGE; }
 
@@ -120,6 +135,18 @@ static int cmd_run(const char *path, const char *csv_path, long max_steps) {
       continue;
     }
     drain(inst);
+    if (s == BAS_ERR_HALTED && conts > 0) {
+      /* GW-BASIC answered a CONT with nowhere to go with "Can't continue" at
+         the prompt; the program itself had finished normally, so this is a
+         note, not a failure. */
+      if (!BAS_CanContinue(inst)) {
+        fprintf(stderr, "%s: nothing to continue after END\n", path);
+        break;
+      }
+      BAS_Continue(inst);
+      conts--;
+      continue;
+    }
     if (s != BAS_OK) break;
     if (max_steps > 0 && ++steps * 4096 > max_steps) {
       fprintf(stderr, "%s: stopped after %ld statements\n", path, max_steps);
@@ -163,17 +190,20 @@ int main(int argc, char **argv) {
 
   const char *cmd = argv[1];
   const char *path = NULL, *csv_path = NULL;
-  long max_steps = 0;
+  long max_steps = 0, conts = 0;
 
   for (int i = 2; i < argc; i++) {
     if (!strcmp(argv[i], "--csv") && i + 1 < argc) csv_path = argv[++i];
     else if (!strcmp(argv[i], "--max-steps") && i + 1 < argc) max_steps = atol(argv[++i]);
+    else if (!strcmp(argv[i], "--cont") && i + 1 < argc) {
+      if (!parse_count(argv[++i], &conts)) { usage(); return EXIT_USAGE; }
+    }
     else if (argv[i][0] == '-') { usage(); return EXIT_USAGE; }
     else path = argv[i];
   }
   if (!path) { usage(); return EXIT_USAGE; }
 
-  if (!strcmp(cmd, "run")) return cmd_run(path, csv_path, max_steps);
+  if (!strcmp(cmd, "run")) return cmd_run(path, csv_path, max_steps, conts);
   if (!strcmp(cmd, "check")) return cmd_check(path);
   usage();
   return EXIT_USAGE;

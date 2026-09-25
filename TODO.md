@@ -362,7 +362,9 @@ for each point here.
   evidence that the two agree. Whether the site later moves onto the same core through wasm —
   which is what the engine's stepping design is for — is open, and until it does, "the same
   core" has to be *proved* by the attestation rather than assumed from the source tree.
-  - `odum run <file.bas> [--csv <out>] [--max-steps N]` — **built.**
+  - `odum run <file.bas> [--csv <out>] [--max-steps N] [--cont N]` — **built.** `--cont N`
+    resumes after `END`/`STOP` up to N times, as typing `CONT` did; MACROEC needs it.
+    Every listing in `programs/` is snapshot-tested through it (`make engine-test`).
   - `odum check <file.bas>` — **built**, but it validates a listing without executing
     it, which is not what this line meant. The archive's validation, as the build does it, is
     still to do and may not belong to the same subcommand.
