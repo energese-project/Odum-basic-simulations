@@ -87,7 +87,8 @@ figures-update: start ## Rewrite the figure goldens. Look at the PNGs before com
 # --------------------------------------------------
 # The oracle attestation
 #
-# validation/oracle/ runs Odum (1989) Table 3 in our interpreter and in PC-BASIC,
+# validation/oracle/ runs Odum (1989) Tables 3 and 2 (MACROEC, through CONT) in
+# our engine and interpreter and in PC-BASIC,
 # a GW-BASIC emulator kept in its own image (GPL-3.0), and records every result
 # in SHA256SUMS. The article's oracle table and numbers come from it. `attest`
 # regenerates everything and fails on any byte that differs from the record;
