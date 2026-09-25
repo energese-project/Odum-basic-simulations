@@ -100,8 +100,15 @@ test('the library lists every program, and picking one loads it', async ({ page 
   await page.goto('./?prg=charge-discharge');
   const library = page.getByTestId('library-list');
 
+  // A single program is a row of its own; a work's models sit inside its folder,
+  // which starts folded, so the work shows as one row until it is opened.
   const catalog = await (await page.request.get('./programs/index.json')).json();
-  await expect(library.locator('[data-kind="program"]')).toHaveCount(catalog.programs.length);
+  type Entry = { work?: { id: string } };
+  const programs: Entry[] = catalog.programs;
+  const singles = programs.filter((p) => !p.work).length;
+  const works = new Set(programs.filter((p) => p.work).map((p) => p.work!.id)).size;
+  await expect(library.locator('[data-kind="program"]')).toHaveCount(singles);
+  await expect(library.locator('[data-kind="work"]')).toHaveCount(works);
   await expect(library.getByRole('treeitem', { name: /^Charge And Discharge/ })).toHaveAttribute(
     'aria-current',
     'true'

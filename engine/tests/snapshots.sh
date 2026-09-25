@@ -1,11 +1,13 @@
 #!/bin/sh
 # Snapshot tests: every listing in programs/, run through the `odum` CLI, against
 # the rows and the printed text it produced when the snapshot was last accepted.
+# That is each single program, programs/<id>.bas, and each model of a published
+# work, programs/<work>/<model>/model.bas, whose id is <work>/<model>.
 #
 #   tests/snapshots.sh <path to odum>            compare
 #   tests/snapshots.sh <path to odum> --update   rewrite the snapshots
 #
-# For each programs/<id>.bas, tests/snapshots/ holds
+# For each listing, tests/snapshots/ holds (under <work>/ for a work's models)
 #   <id>.csv     the rows `odum run --csv` wrote: every PSET, LINE and PRINT row
 #   <id>.out     what it printed to the console
 # and optionally, when the run needs them,
@@ -28,8 +30,20 @@ mkdir -p "$snaps"
 failed=0
 count=0
 
-for bas in "$programs"/*.bas; do
-  id=$(basename "$bas" .bas)
+listings() {
+  for f in "$programs"/*.bas; do
+    if [ -e "$f" ]; then echo "$f $(basename "$f" .bas)"; fi
+  done
+  for f in "$programs"/*/*/model.bas; do
+    [ -e "$f" ] || continue
+    model=$(dirname "$f")
+    echo "$f $(basename "$(dirname "$model")")/$(basename "$model")"
+  done
+}
+
+listings > "$work/listings"
+while read -r bas id; do
+  mkdir -p "$work/$(dirname "$id")" "$snaps/$(dirname "$id")"
   args=""
   [ -f "$snaps/$id.args" ] && args=$(cat "$snaps/$id.args")
   stdin=/dev/null
@@ -46,7 +60,8 @@ for bas in "$programs"/*.bas; do
   count=$((count + 1))
 
   if [ "$UPDATE" = "--update" ]; then
-    cp "$work/$id.csv" "$work/$id.out" "$snaps/"
+    cp "$work/$id.csv" "$snaps/$id.csv"
+    cp "$work/$id.out" "$snaps/$id.out"
     continue
   fi
   for kind in csv out; do
@@ -59,14 +74,14 @@ for bas in "$programs"/*.bas; do
       failed=1
     fi
   done
-done
+done < "$work/listings"
 
 # A snapshot whose listing has gone is a test of nothing.
-for snap in "$snaps"/*.csv; do
+for snap in "$snaps"/*.csv "$snaps"/*/*.csv; do
   [ -e "$snap" ] || continue
-  id=$(basename "$snap" .csv)
-  if [ ! -f "$programs/$id.bas" ]; then
-    printf '  FAIL  %s\n        snapshot with no programs/%s.bas\n' "$id" "$id"
+  id=${snap#"$snaps"/}; id=${id%.csv}
+  if ! grep -q " $id\$" "$work/listings"; then
+    printf '  FAIL  %s\n        a snapshot whose listing is not in programs/\n' "$id"
     failed=1
   fi
 done

@@ -19,7 +19,8 @@ test('the catalog is published and carries provenance for every program', async 
     // Validation runs at build time, so a failure here means the build emitted
     // something the validator never saw.
     expect(program.id, 'every program has an id').toBeTruthy();
-    expect(program.listing, `${program.id} carries its listing`).toContain('PRINT');
+    // A numbered line, not PRINT: MACROEC (Odum 1989) never prints, it only draws.
+    expect(program.listing, `${program.id} carries its listing`).toMatch(/^\d+ /m);
     expect(
       ['verbatim', 'corrected', 'adapted', 'original'],
       `${program.id} declares a fidelity`
