@@ -132,8 +132,10 @@ made them (§14).
 make check
 ```
 
-That is typecheck, unit tests and the full Playwright suite — the same three things
-CI runs, in the same order. All must pass with zero errors.
+That is typecheck, unit tests, the full Playwright suite and `make engine-test` — the
+C engine's unit tests, the `odum` CLI's tests and a snapshot of every listing in
+`programs/` run through the CLI, in the pinned Linux engine image. CI runs the same
+four. All must pass with zero errors.
 
 There is no ESLint. `tsc --noEmit` runs with `strict`, `noUnusedLocals` and
 `noUnusedParameters`, which is the gate. Do not add a linter on top without a defect
@@ -216,7 +218,11 @@ trap this section exists to prevent.
 3. the execution arm in the `switch (s->type)` in [`interp.c`](engine/src/interp.c),
    and whatever [`validate.c`](engine/src/validate.c) should say about it;
 4. a test in [`engine/tests/`](engine/tests/) that runs a listing and asserts on what
-   it printed;
+   it printed. A change that moves what an archived program computes also moves its
+   snapshot in [`engine/tests/snapshots/`](engine/tests/snapshots/): rerun
+   `make engine-snapshots-update` and read the diff, because that diff is the change
+   as a reader of the archive will see it. A listing that needs `CONT` or `INPUT` to
+   finish gets a `<id>.args` (e.g. `--cont 1`) or `<id>.stdin` beside its snapshot;
 5. **`make wasm` and commit the rebuilt artefact.** The site loads
    `src/basic/engine.wasm`, not your working tree. Skip this and nothing changes in the
    browser. The `wasm` CI job rebuilds it and fails if a byte differs;
