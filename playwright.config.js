@@ -42,7 +42,16 @@ export default defineConfig({
       snapshotPathTemplate: '{testDir}/figures/{arg}{ext}',
       // `scale: 'device'` keeps the 2x pixels; the default ('css') would
       // capture at 1x whatever deviceScaleFactor says, too coarse for print.
-      expect: { toHaveScreenshot: { scale: 'device', stylePath: 'e2e/figures.css' } },
+      //
+      // `maxDiffPixels` absorbs anti-aliasing noise, not change. The same commit
+      // has rendered the editor's keyword glyphs 30 device pixels apart between
+      // two runs in the same image (PR #43), invisible side by side, and failed
+      // all three retries of one run. 60 is twice that, about a thousandth of a
+      // percent of the 2880x1800 workbench figure; a real change to the layout, a
+      // colour or even one word moves hundreds of pixels or more.
+      expect: {
+        toHaveScreenshot: { scale: 'device', stylePath: 'e2e/figures.css', maxDiffPixels: 60 },
+      },
       use: {
         ...devices['Desktop Chrome'],
         baseURL: PRODUCTION,
