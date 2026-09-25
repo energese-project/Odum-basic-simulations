@@ -107,25 +107,7 @@ test('Collapse All folds every folder', async ({ page }) => {
 });
 
 test('a work is a folder, holding its source and a folder per model', async ({ page }) => {
-  // No work is in the archive yet, so one is added to the catalog here.
-  await page.route('**/programs/index.json', async (route) => {
-    const catalog = await (await route.fetch()).json();
-    const base = catalog.programs.find((p: { id: string }) => p.id === 'charge-discharge');
-    const work = 'odum_simulation_1989';
-    catalog.programs.unshift({
-      ...base,
-      id: `${work}/macro`,
-      title: 'Macroeconomics Minimodel',
-      file: `${work}/macro/model.bas`,
-      sidecar: `${work}/macro/meta-data.json`,
-      work: { id: work, file: `${work}/source.json` },
-      diagram: null,
-      programImage: null,
-      runs: [{ id: 'fig3', file: `${work}/macro/runs/fig3.json`, plot: null, changes: {} }],
-    });
-    await route.fulfill({ json: catalog });
-  });
-  await page.goto('./?prg=odum_simulation_1989/macro');
+  await page.goto('./?prg=odum_simulation_1989/macroeconomics');
 
   await expect(item(page, 'odum_simulation_1989')).toHaveAttribute('aria-level', '1');
   await expect(item(page, 'source.json')).toHaveAttribute('aria-level', '2');

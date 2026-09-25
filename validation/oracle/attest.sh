@@ -20,7 +20,7 @@ cd "$(dirname "$0")"
 generated() {
   ls table3-trace.bas table3-trace-defdbl.bas table3-trace-double.bas table3-trace-bits.bas \
     table3-screen.bas runs/* screens/* comparisons.md comparisons.json replay.md replay.json \
-    screens.md screens.json oracle.tex | LC_ALL=C sort
+    screens.md screens.json macroec.md macroec.json oracle.tex | LC_ALL=C sort
 }
 if command -v sha256sum >/dev/null; then sha() { sha256sum "$@"; }; else sha() { shasum -a 256 "$@"; }; fi
 

@@ -1,0 +1,64 @@
+{
+  "pixels": 64000,
+  "plotPixels": 56320,
+  "lit": {
+    "run1": 770,
+    "both": 1466
+  },
+  "cases": [
+    {
+      "image": "macroec-r5-run1",
+      "label": "R5, the C engine, after the first run",
+      "stage": "run1",
+      "differing": 0,
+      "text": 1059,
+      "onlyOracle": 0,
+      "onlyOurs": 0,
+      "colour": 0
+    },
+    {
+      "image": "macroec-r5",
+      "label": "R5, the C engine, after CONT",
+      "stage": "both",
+      "differing": 0,
+      "text": 1067,
+      "onlyOracle": 0,
+      "onlyOurs": 0,
+      "colour": 0
+    },
+    {
+      "image": "macroec-r1-run1",
+      "label": "R1, the TypeScript interpreter, after the first run",
+      "stage": "run1",
+      "differing": 11,
+      "text": 1059,
+      "onlyOracle": 5,
+      "onlyOurs": 6,
+      "colour": 0
+    },
+    {
+      "image": "macroec-r1",
+      "label": "R1, the TypeScript interpreter, after CONT",
+      "stage": "both",
+      "differing": 18,
+      "text": 1067,
+      "onlyOracle": 9,
+      "onlyOurs": 9,
+      "colour": 0
+    }
+  ],
+  "pairs": [
+    {
+      "a": "macroec-r5-run1",
+      "b": "macroec-r1-run1",
+      "label": "R5 vs R1 after the first run — C, single, against TypeScript, double",
+      "differing": 11
+    },
+    {
+      "a": "macroec-r5",
+      "b": "macroec-r1",
+      "label": "R5 vs R1 after CONT",
+      "differing": 18
+    }
+  ]
+}

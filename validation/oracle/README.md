@@ -85,10 +85,37 @@ rewrites a copy of `interpreter.ts` into the ignored `.work/` at run time. Nothi
 | [`mbf.ts`](mbf.ts) | reads Microsoft Binary Format singles out of `runs/r2-bits.txt` |
 | [`replay.ts`](replay.ts) → [`replay.md`](replay.md) | one step at a time from PC-BASIC's exact state: where IEEE single first parts from MBF |
 | [`screens.ts`](screens.ts) → [`screens.md`](screens.md), `screens/` | PC-BASIC's screen against `src/basic/screen.ts`, pixel for pixel |
+| [`macroec.ts`](macroec.ts) → [`macroec.md`](macroec.md), `screens/macroec-*` | MACROEC (Table 2), both runs, the same way — see below |
+| [`cga.ts`](cga.ts) | what the two screen comparisons share: the CGA decoder, the CSV replay, the PNG writer |
 | [`latex.ts`](latex.ts) → [`oracle.tex`](oracle.tex) | the article's numbers and table, with checks on its claims |
 | `runs/` | the raw output of every run |
 | `*.json` | the results the reports and `oracle.tex` are made from |
 | [`SHA256SUMS`](SHA256SUMS) | the record: one checksum for each file the attestation generates |
+
+## MACROEC: Table 2, through `CONT`
+
+The archived verbatim listing, `programs/odum_simulation_1989/macroeconomics/model.bas`,
+is run unmodified — mounted read-only, with nothing added. It is two experiments: the
+first ends at `450 END`, and the second is reached by typing `CONT`. So PC-BASIC is
+given, on stdin, what a reader would type at the Ok prompt: `VIEW PRINT 24 TO 24`,
+`DEF SEG=&HB800`, a `BSAVE` of the first run's screen, `CONT`, and a `BSAVE` of both.
+Ours is the C engine (`odum run`, then `odum run --cont 1`) and the TypeScript
+interpreter (`run()`, then `cont()`).
+
+Two things about typing into `SCREEN 1` shaped that sequence, and both are GW-BASIC's
+behaviour, not the model's:
+
+- **The prompt prints on the plot.** `VIEW PRINT 24 TO 24` keeps every line after it in
+  the row below the frame. The two rows it cannot reach — the `Ok` the first run ends
+  with, and its own echo — are counted apart in [`macroec.md`](macroec.md) and not
+  compared, because they hold characters rather than the model.
+- **A typed line that wraps moves the plot.** At 40 characters or more, GW-BASIC's
+  screen editor inserts a row for the continuation and pushes everything under it down
+  8 pixels. An early version typed `DEF SEG=&HB800: BSAVE ...` on one line and differed
+  from ours in 1,900 pixels for that reason alone. Every command is now under 40.
+
+Result: the C engine's plot is identical to PC-BASIC's after both runs; the interpreter,
+in double precision, differs in a handful of pixels, as it does from the engine.
 
 ## `table3.bas`: the input, and how far to trust it
 

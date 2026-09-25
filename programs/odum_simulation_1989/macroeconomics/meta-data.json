@@ -1,0 +1,15 @@
+{
+  "title": "Macroeconomics Minimodel (MACROEC)",
+  "description": "Assets and income of an economy, first on an unlimited energy source and then, after CONT, on a renewable one.",
+  "fidelity": "verbatim",
+  "program": {
+    "caption": "The BASIC listing MACROEC, as printed: 57 numbered lines for the IBM PC, plotting income Y and assets K with PSET.",
+    "where": "Table 2, p. 71"
+  },
+  "diagram": {
+    "caption": "The minimodel in energy systems symbols: an energy source E drives production from assets K and consumption C; production feeds assets, income is split into savings S and consumption, and assets depreciate to a heat sink.",
+    "figure": "Figure 2a, p. 71"
+  },
+  "notes": "The scan's typeface does not distinguish the letter O from the digit zero. T0, Y0 and K0 are read as zeros: TO is a reserved word, and each name is assigned before it is used. 'rewnable' in line 452 is Odum's. The listing ends its first run at line 450 END; the second run, with renewable resources, is reached by typing CONT, as line 3 says, and the site's Continue button and `odum run --cont 1` do the same. Both runs draw on one screen, since line 480 returns to line 100 and skips the CLS in line 4, which is why Figure 3 shows them together.",
+  "tags": ["macroeconomics", "minimodel", "renewable-resources", "graphics", "cont"]
+}
