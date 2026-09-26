@@ -83,7 +83,11 @@ export class CodeEditorComponent extends BaseComponent {
       minimap: { enabled: false },
       scrollBeyondLastLine: false,
       wordWrap: 'on',
-      fontSize: 13,
+      // The workbench's type scale (basic-workbench.css), applied to Monaco's own
+      // size, with a floor of 12. At 11 Monaco's text landed a device pixel higher
+      // or lower from one load to the next — 3 runs in 8 of the figure goldens,
+      // with or without a fixed lineHeight — and 12 renders the same every time.
+      fontSize: Math.max(12, Math.round(13 * (parseFloat(getComputedStyle(this).getPropertyValue('--wb-font-scale')) || 1))),
       fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace",
       lineNumbersMinChars: 3,
       renderLineHighlight: 'line',

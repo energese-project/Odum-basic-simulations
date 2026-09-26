@@ -78,6 +78,16 @@ export function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+/**
+ * The workbench's type scale, `--wb-font-scale` (basic-workbench.css), as it
+ * applies to `el`. For what CSS cannot size: Monaco and Chart.js take their
+ * font sizes as numbers. 1 outside the workbench.
+ */
+export function fontScale(el: Element): number {
+  const value = parseFloat(getComputedStyle(el).getPropertyValue('--wb-font-scale'));
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
 /** The eight categorical series colours, in their validated order. */
 export function seriesColours(): string[] {
   return Array.from({ length: 8 }, (_, i) => token(`--e-series-${i + 1}`));

@@ -21,7 +21,7 @@
   word-break: break-word;
   tab-size: 12;
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--wb-font-scale, 1));
   line-height: 1.5;
   color: var(--e-ink);
   background-color: var(--e-surface-sunken);
@@ -36,7 +36,7 @@
 }
 
 .prompt {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--wb-font-scale, 1));
   color: var(--e-muted);
 }
 
@@ -45,7 +45,7 @@
   min-width: 0;
   padding: 0.4rem 0.55rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--wb-font-scale, 1));
   color: var(--e-ink);
   background-color: var(--e-surface);
   border: 1px solid var(--e-rule);
@@ -61,7 +61,7 @@
 .input-row button {
   padding: 0.4rem 0.8rem;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--wb-font-scale, 1));
   color: var(--e-ground);
   background-color: var(--e-accent);
   border: 1px solid transparent;
