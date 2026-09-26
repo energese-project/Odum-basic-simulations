@@ -44,6 +44,13 @@ let pendingInput: ((value: string) => void) | null = null;
 let halted = false;
 /** Kept after END or STOP, for CONT. Replaced by the next run. */
 let program: Program | null = null;
+/**
+ * How many of the program's rows have been posted. It belongs to the program,
+ * not to one drive(): CONT drives the same program again, and a cursor starting
+ * from zero there re-posted every point the first run drew. On a screen that
+ * redrew the same pixels and went unseen; plotted, it put run 1 inside run 2.
+ */
+let cursor = 0;
 let enginePromise: Promise<Engine> | null = null;
 
 function engine(): Promise<Engine> {
@@ -126,12 +133,11 @@ const yieldToMessages = (): Promise<void> =>
 async function drive(): Promise<void> {
   const running = program;
   if (!running) return;
-  let cursor = 0;
 
   for (;;) {
     if (halted) {
       flush();
-      post({ type: 'done', canContinue: false });
+      post({ type: 'done', canContinue: false, resumeLine: 0 });
       return;
     }
 
@@ -179,7 +185,7 @@ async function drive(): Promise<void> {
 
     if (result === 'halted') {
       flush();
-      post({ type: 'done', canContinue: running.canContinue() });
+      post({ type: 'done', canContinue: running.canContinue(), resumeLine: running.resumeLine() });
       return;
     }
 
@@ -218,6 +224,7 @@ ctx.addEventListener('message', (event: MessageEvent<ToWorker>) => {
         // reference without freeing it would leak all of that.
         program?.free();
         program = bas.load(msg.source);
+        cursor = 0;
         await drive();
       } catch (e) {
         flush();

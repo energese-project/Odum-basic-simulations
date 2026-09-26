@@ -10,7 +10,8 @@
  * Only what the published listings use: SCREEN 1 (320×200, four colours from
  * one of two CGA palettes) and SCREEN 2 (640×200, two colours).
  *
- * Pure: no DOM. screen-panel paints `rgba()` into a canvas.
+ * Pure: no DOM. The site no longer shows a screen — it plots the points
+ * (draw-plot.ts) — but validation/oracle/ rasterises every run through this.
  */
 
 import type { DrawOp } from './interpreter.ts';

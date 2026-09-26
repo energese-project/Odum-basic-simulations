@@ -2,6 +2,7 @@ import { BaseComponent } from '../../core/base-component.ts';
 import { bindInternalLinks } from '../../core/internal-links.ts';
 import { Runner } from '../../basic/runner.ts';
 import { TableReader, toCsv, type Plot } from '../../basic/output.ts';
+import { DrawReader } from '../../basic/draw-plot.ts';
 import { diagramUrl, fileUrl, findProgram, loadPrograms, type Program } from '../../basic/programs.ts';
 import { programFiles, sidebarOpen } from '../../basic/program-library.ts';
 import { contributeUrl } from '../../basic/submission.ts';
@@ -11,7 +12,6 @@ import style from './basic-workbench.css?raw';
 import '../code-editor/code-editor.ts';
 import '../console-panel/console-panel.ts';
 import '../chart-panel/chart-panel.ts';
-import '../screen-panel/screen-panel.ts';
 import '../theme-toggle/theme-toggle.ts';
 import '../engine-status/engine-status.ts';
 import '../program-explorer/program-explorer.ts';
@@ -19,7 +19,6 @@ import '../program-explorer/program-explorer.ts';
 import type { CodeEditorComponent } from '../code-editor/code-editor.ts';
 import type { ConsolePanelComponent } from '../console-panel/console-panel.ts';
 import type { ChartPanelComponent } from '../chart-panel/chart-panel.ts';
-import type { ScreenPanelComponent } from '../screen-panel/screen-panel.ts';
 import type { DrawOp } from '../../basic/interpreter.ts';
 import type { ProgramExplorerComponent } from '../program-explorer/program-explorer.ts';
 
@@ -52,6 +51,11 @@ export class BasicWorkbenchComponent extends BaseComponent {
   private plot: Plot | null = null;
   /** Reads the run's output as it arrives, so a replot never re-reads it. */
   private table = new TableReader();
+  /** Reads what the run PSETs, for a listing that draws rather than prints. */
+  private draws = new DrawReader('');
+  /** Whether the run has printed anything, so a drawing listing's points can
+   *  stand in the output pane without being mistaken for what it printed. */
+  private printed = false;
   private running = false;
   private replotTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -83,10 +87,6 @@ export class BasicWorkbenchComponent extends BaseComponent {
     return this.querySelector('chart-panel');
   }
 
-  private get screen(): ScreenPanelComponent | null {
-    return this.querySelector('screen-panel');
-  }
-
   private get explorer(): ProgramExplorerComponent | null {
     return this.querySelector('program-explorer');
   }
@@ -102,7 +102,7 @@ export class BasicWorkbenchComponent extends BaseComponent {
       onOutput: (text) => this.print(text),
       onInputRequest: () => this.console?.askForInput(),
       onDraw: (ops) => this.draw(ops),
-      onDone: (canContinue) => this.finish(canContinue),
+      onDone: (canContinue, resumeLine) => this.finish(canContinue, resumeLine),
       onError: (message) => {
         this.print(`\n?${message}\n`);
         this.finish(false);
@@ -297,7 +297,9 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.chart?.show(null);
     this.plot = null;
     this.table = new TableReader();
-    this.clearScreen();
+    this.draws = new DrawReader('');
+    this.printed = false;
+    this.setContinue(false);
     this.setStatus('');
     this.refreshButtons();
   }
@@ -319,7 +321,9 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.chart?.show(null);
     this.plot = null;
     this.table = new TableReader();
-    this.clearScreen();
+    this.draws = new DrawReader(source);
+    this.printed = false;
+    this.setContinue(false);
     this.running = true;
     this.setStatus('running…');
     this.refreshButtons();
@@ -329,6 +333,11 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   private print(text: string): void {
+    if (!this.printed && text !== '') {
+      // The points shown in place of output at the last stop are not output.
+      if (this.draws.plot) this.console?.clear();
+      this.printed = true;
+    }
     this.console?.append(text);
     this.table.push(text);
   }
@@ -337,6 +346,9 @@ export class BasicWorkbenchComponent extends BaseComponent {
   private cont(): void {
     if (!this.runner) return;
     this.setContinue(false);
+    // CONT starts the listing's next experiment: MACROEC's second run restarts its
+    // clock, so its points are a series of their own.
+    this.draws.nextRun();
     this.running = true;
     this.setStatus('running…');
     this.refreshButtons();
@@ -344,18 +356,26 @@ export class BasicWorkbenchComponent extends BaseComponent {
     this.startReplotting();
   }
 
-  private finish(canContinue: boolean): void {
+  private finish(canContinue: boolean, resumeLine = 0): void {
     this.stopReplotting();
     // Only once the output is complete: after END, CONT may still finish the
     // line the program was part-way through printing.
     if (!canContinue) this.table.end();
     this.running = false;
     this.replot();
-    const drew = this.screen?.active ?? false;
+    // A listing that only draws printed nothing: its points are its table.
+    if (!this.printed && this.draws.plot) {
+      this.console?.clear();
+      this.console?.append(
+        'The program printed nothing. These are the points it plotted with PSET, also in the CSV:\n\n' +
+          this.draws.table() +
+          '\n'
+      );
+    }
     this.setStatus(
       canContinue
-        ? 'stopped — Continue runs the rest'
-        : this.plot || drew
+        ? this.stoppedAt(resumeLine)
+        : this.plot
           ? ''
           : 'finished — no numeric table to plot'
     );
@@ -370,20 +390,23 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   private draw(ops: DrawOp[]): void {
-    const screen = this.screen;
-    if (!screen) return;
-    screen.draw(ops);
-    if (screen.active && screen.hidden) {
-      screen.hidden = false;
-      if (this.chart) this.chart.hidden = true;
-    }
+    this.draws.push(ops);
   }
 
-  private clearScreen(): void {
-    this.screen?.reset();
-    if (this.screen) this.screen.hidden = true;
-    if (this.chart) this.chart.hidden = false;
-    this.setContinue(false);
+  /**
+   * What stopping at END means, in the listing's words where it has some. The
+   * line CONT resumes at is often a REM saying what comes next — MACROEC's 452,
+   * "Type CONT to rerun with rewnable resources" — so it is quoted.
+   */
+  private stoppedAt(resumeLine: number): string {
+    if (!resumeLine) return 'stopped — Continue (CONT) runs the rest';
+    const text = this.source()
+      .split(/\r?\n/)
+      .find((l) => new RegExp(`^\\s*${resumeLine}\\b`).test(l));
+    const remark = text ? /^\s*\d+\s*(?:REM\b|')\s*(.*)$/i.exec(text)?.[1]?.trim() : undefined;
+    return remark
+      ? `stopped — CONT resumes at line ${resumeLine}: “${remark}”`
+      : `stopped — Continue (CONT) resumes at line ${resumeLine}`;
   }
 
   private startReplotting(): void {
@@ -399,7 +422,8 @@ export class BasicWorkbenchComponent extends BaseComponent {
   }
 
   private replot(): void {
-    this.plot = this.table.plot;
+    // A printed table if there is one; otherwise what the listing drew.
+    this.plot = this.table.plot ?? this.draws.plot;
     this.chart?.show(this.plot);
     if (!this.running) this.refreshButtons();
   }

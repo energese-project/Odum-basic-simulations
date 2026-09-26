@@ -146,6 +146,13 @@ BAS_Status BAS_ProvideInput(BAS_Instance *inst, const char *line);
 /** True when the program stopped at END or STOP and CONT would resume it. */
 int BAS_CanContinue(BAS_Instance *inst);
 
+/**
+ * The line CONT would resume at, or 0 when BAS_CanContinue is false.  A listing
+ * often says what that part does in the line itself — MACROEC's 452 is
+ * "REM Type CONT to rerun with rewnable resources" — so the page can show it.
+ */
+int BAS_GetResumeLine(BAS_Instance *inst);
+
 /** Resume after END or STOP, as CONT does.  No effect otherwise. */
 BAS_Status BAS_Continue(BAS_Instance *inst);
 

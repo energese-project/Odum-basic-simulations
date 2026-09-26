@@ -438,11 +438,12 @@ So the tool ships as Node single executable applications, which carry their own 
 
 **Done:** `SCREEN` 1 and 2, `COLOR`, `CLS`, `PSET`, `PRESET`, `LINE` (with `STEP`, `B`,
 `BF`), and `CONT`. The interpreter records each as a `DrawOp` in the program's own
-coordinates, with the line that drew it, and the Plot pane shows the screen rebuilt
-from that record ([`screen.ts`](src/basic/screen.ts)) — which is what Odum's published
-figures are pictures of.
+coordinates, with the line that drew it.
 
-**Next: read series back from the record.** The plan here used to be "`COLOR` picks
+**Done: read series back from the record** ([`draw-plot.ts`](src/basic/draw-plot.ts)).
+The Plot pane charts it like a printed table — it no longer shows a CGA screen; the
+screen as the PC drew it ([`screen.ts`](src/basic/screen.ts)) is compared against
+PC-BASIC in `validation/oracle/`. The plan, as carried out: it used to be "`COLOR` picks
 the series slot". The 1989 *Simulation* listing refutes it: it plots A (line 330) and
 M (line 360) both in colour 2, in different bands of the screen. What identifies a
 series is the **`PSET` statement**, so group points by `line`, label each with its
