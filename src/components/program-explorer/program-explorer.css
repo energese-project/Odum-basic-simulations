@@ -5,7 +5,7 @@
 
 :host {
   display: block;
-  font-size: 13px;
+  font-size: calc(13px * var(--wb-font-scale, 1));
 }
 
 /* BaseComponent scopes only :host — every other selector here is global, so each
@@ -40,7 +40,7 @@
   height: 22px;
   padding: 0 0 0 2px;
   font: inherit;
-  font-size: 11px;
+  font-size: calc(11px * var(--wb-font-scale, 1));
   font-weight: 700;
   text-transform: uppercase;
   color: var(--e-ink);
@@ -106,7 +106,7 @@
   height: 24px;
   padding: 0 6px;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--wb-font-scale, 1));
   color: var(--e-ink);
   background-color: var(--e-surface-sunken);
   border: 1px solid var(--e-rule);
@@ -198,7 +198,7 @@
   width: 16px;
   margin-right: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-size: max(9px, calc(10px * var(--wb-font-scale, 1)));
   font-weight: 700;
   text-align: center;
 }
@@ -236,14 +236,14 @@
 :host .badge {
   flex: none;
   margin-left: 8px;
-  font-size: 11px;
+  font-size: calc(11px * var(--wb-font-scale, 1));
   color: var(--e-muted);
 }
 
 :host .note {
   margin: 0;
   padding: 4px 12px 8px 20px;
-  font-size: 12px;
+  font-size: calc(12px * var(--wb-font-scale, 1));
   line-height: 1.5;
   color: var(--e-muted);
 }

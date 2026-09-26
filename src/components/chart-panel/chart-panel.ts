@@ -1,5 +1,5 @@
 import { BaseComponent } from '../../core/base-component.ts';
-import { seriesColours, token } from '../../core/theme.ts';
+import { fontScale, seriesColours, token } from '../../core/theme.ts';
 import { thinPlot, type Plot } from '../../basic/output.ts';
 import template from './chart-panel.html?raw';
 import style from './chart-panel.css?raw';
@@ -194,17 +194,23 @@ export class ChartPanelComponent extends BaseComponent {
     const tick = token('--e-tick');
     const surface = token('--e-surface');
 
+    // Chart.js's 12px default, on the workbench's type scale (basic-workbench.css).
+    const font = { size: Math.round(12 * fontScale(this)) };
+
     for (const scale of [this.chart.options.scales!.x!, this.chart.options.scales!.y!]) {
       // Recessive: the data is the figure, the grid is the ground.
       scale.grid = { color: grid, drawTicks: false };
       scale.border = { color: axis };
-      scale.ticks = { color: tick, padding: 6 };
-      if (scale.title) scale.title.color = muted;
+      scale.ticks = { color: tick, padding: 6, font };
+      if (scale.title) {
+        scale.title.color = muted;
+        scale.title.font = font;
+      }
     }
 
     const legend = this.chart.options.plugins!.legend!;
     // Text wears ink, never the series colour; the swatch beside it carries identity.
-    legend.labels = { ...legend.labels, color: ink };
+    legend.labels = { ...legend.labels, color: ink, font };
 
     this.chart.options.plugins!.tooltip = {
       backgroundColor: surface,
@@ -214,6 +220,8 @@ export class ChartPanelComponent extends BaseComponent {
       borderWidth: 1,
       padding: 10,
       usePointStyle: true,
+      titleFont: font,
+      bodyFont: font,
     };
 
     this.chart.update('none');

@@ -11,7 +11,7 @@
   padding: 0.15rem 0.55rem;
   border: 1px solid var(--e-rule);
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--wb-font-scale, 1));
   line-height: 1.6;
   white-space: nowrap;
   color: rgb(var(--e-ink-rgb) / 0.72);

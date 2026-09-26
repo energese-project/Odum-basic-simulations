@@ -30,7 +30,7 @@
 
 .headline {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--wb-font-scale, 1));
   font-weight: 600;
   color: var(--e-ink);
 }
@@ -38,7 +38,7 @@
 .hint {
   max-width: 34ch;
   margin: 0.4rem 0 0;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--wb-font-scale, 1));
   line-height: 1.5;
   color: var(--e-muted);
 }
