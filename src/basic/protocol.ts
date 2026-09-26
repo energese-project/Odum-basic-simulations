@@ -15,8 +15,9 @@ export type FromWorker =
   /** Graphics statements since the last flush, in the order they ran. */
   | { type: 'draw'; ops: DrawOp[] }
   | { type: 'input-request' }
-  /** `canContinue`: stopped by END or STOP with more of the program to run. */
-  | { type: 'done'; canContinue: boolean }
+  /** `canContinue`: stopped by END or STOP with more of the program to run.
+   *  `resumeLine`: the line CONT would resume at, 0 when it would not. */
+  | { type: 'done'; canContinue: boolean; resumeLine: number }
   | { type: 'error'; message: string };
 
 /** How long output accumulates before being posted. A simulation printing a row

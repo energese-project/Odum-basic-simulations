@@ -71,6 +71,8 @@ export interface Program {
   rows(from?: number): Row[];
   /** True when the program stopped at END or STOP and CONT would resume. */
   canContinue(): boolean;
+  /** The line CONT would resume at, or 0 when it would not. */
+  resumeLine(): number;
   /** Resume after END or STOP, as CONT does. */
   cont(): void;
   /** The waiting INPUT's prompt, or null when none is waiting. */
@@ -102,6 +104,7 @@ interface Exports {
   BAS_Free(inst: number): void;
   BAS_Step(inst: number, maxStatements: number): number;
   BAS_CanContinue(inst: number): number;
+  BAS_GetResumeLine(inst: number): number;
   BAS_Continue(inst: number): number;
   BAS_TakeText(inst: number, outText: number): number;
   BAS_GetInputPrompt(inst: number): number;
@@ -267,6 +270,8 @@ function engineFrom(exports: Exports): Engine {
       },
 
       canContinue: (): boolean => exports.BAS_CanContinue(alive()) !== 0,
+
+      resumeLine: (): number => exports.BAS_GetResumeLine(alive()),
 
       cont(): void {
         exports.BAS_Continue(alive());

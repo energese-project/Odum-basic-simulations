@@ -3,8 +3,10 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * The later listings draw their results on the PC's screen instead of printing a
  * table — both in Odum (1989), Simulation 53(2), among them. The workbench shows
- * that screen in the Plot pane, and Continue is CONT for the listings that END
- * part-way and expect to be carried on.
+ * them as it shows every program: a chart, a table and a CSV, read from the points
+ * they PSET (src/basic/draw-plot.ts). What the PC drew pixel for pixel is compared
+ * against PC-BASIC in validation/oracle/, not here. Continue is CONT, for the
+ * listings that END part-way and expect to be carried on.
  */
 
 /** Load `listing` in place of the stock program. */
@@ -19,14 +21,6 @@ async function withListing(page: Page, listing: string): Promise<void> {
   await expect(page.getByTestId('editor-mount')).toContainText('10');
 }
 
-/** The RGB of one screen pixel, read from the canvas. */
-async function pixel(page: Page, x: number, y: number): Promise<number[]> {
-  return page.getByTestId('screen-canvas').evaluate(
-    (canvas, [px, py]) => [...(canvas as HTMLCanvasElement).getContext('2d')!.getImageData(px, py, 1, 1).data.slice(0, 3)],
-    [x, y]
-  );
-}
-
 // The frame and PSET loop of the 1989 listings, in miniature.
 const DRAWING = [
   '5 SCREEN 1,0: COLOR 0,0',
@@ -36,30 +30,38 @@ const DRAWING = [
   '30 NEXT T',
 ].join('\n');
 
-test('a program that draws shows its screen in the Plot pane', async ({ page }) => {
+test('a program that draws is plotted like one that prints: a chart, a table and a CSV', async ({ page }) => {
   await withListing(page, DRAWING);
   await page.getByTestId('run').click();
   await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
 
-  const canvas = page.getByTestId('screen-canvas');
-  await expect(canvas).toBeVisible();
-  await expect(page.getByTestId('chart-empty')).toBeHidden();
-  await expect(page.getByTestId('status'), 'the screen is its plot').toHaveText('');
+  const chart = page.getByTestId('chart-canvas');
+  await expect(chart).toBeVisible();
+  // Named by what the listing wrote, in the listing's own screen coordinates.
+  await expect(chart).toHaveAttribute('aria-label', /x: T; y: screen row.*line 20: 180 - T \/ 2/);
+  await expect(page.getByTestId('status')).toHaveText('');
 
-  // COLOR 0,0 is palette 0 on black: colour 3 is brown, colour 2 red.
-  await expect.poll(() => pixel(page, 0, 0)).toEqual([0xaa, 0x55, 0x00]);
-  expect(await pixel(page, 100, 130)).toEqual([0xaa, 0x00, 0x00]);
-  expect(await pixel(page, 100, 100)).toEqual([0, 0, 0]);
+  // It printed nothing, so the output pane shows the points, and says that is what they are.
+  const output = page.getByTestId('console-output');
+  await expect(output).toContainText('plotted');
+  await expect(output).toContainText('RUN   LINE   X');
+  await expect(page.getByTestId('download')).toBeEnabled();
 
-  // 320×200 filled a 4:3 monitor, so that is the shape it is shown at.
-  const box = (await canvas.boundingBox())!;
-  expect(Math.abs(box.width / box.height - 4 / 3)).toBeLessThan(0.02);
+  const download = page.waitForEvent('download');
+  await page.getByTestId('download').click();
+  const csv = await (await (await download).createReadStream()).toArray();
+  const text = Buffer.concat(csv).toString('utf8');
+  expect(text.split('\n')[0]).toBe('run,line,x,y');
+  expect(text.split('\n')[1]).toBe('1,20,0,180');
 });
 
-test('Continue carries on after END, as CONT did', async ({ page }) => {
-  // Table 2 of the 1989 paper ENDs after its first run: "Then type CONT for run
-  // with renewable resources."
-  await withListing(page, '10 X = 1\n20 PRINT "FIRST"; X\n30 END\n40 X = X + 1\n50 PRINT "SECOND"; X');
+test('Continue carries on after END, as CONT did, and says what the listing says it does', async ({ page }) => {
+  // Table 2 of the 1989 paper ENDs after its first run and says, in the next line,
+  // "Type CONT to rerun with rewnable resources".
+  await withListing(
+    page,
+    '10 X = 1\n20 PRINT "FIRST"; X\n30 END\n40 REM Type CONT for the second run\n50 X = X + 1\n60 PRINT "SECOND"; X',
+  );
   const output = page.getByTestId('console-output');
   const resume = page.getByTestId('continue');
 
@@ -67,7 +69,9 @@ test('Continue carries on after END, as CONT did', async ({ page }) => {
   await page.getByTestId('run').click();
   await expect(output).toContainText('FIRST 1');
   await expect(resume).toBeVisible();
-  await expect(page.getByTestId('status')).toContainText('stopped');
+  await expect(resume).toHaveText('Continue (CONT)');
+  await expect(page.getByTestId('status')).toContainText('line 40');
+  await expect(page.getByTestId('status')).toContainText('Type CONT for the second run');
   await expect(output).not.toContainText('SECOND');
 
   await resume.click();
@@ -76,11 +80,30 @@ test('Continue carries on after END, as CONT did', async ({ page }) => {
   await expect(page.getByTestId('run')).toBeEnabled();
 });
 
-test('a new run starts with a clean screen, and the chart back', async ({ page }) => {
+test('a run after CONT is plotted as a run of its own', async ({ page }) => {
+  await withListing(page, `${DRAWING}\n40 END\n50 GOTO 10`);
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('continue')).toBeVisible({ timeout: 15_000 });
+  const chart = page.getByTestId('chart-canvas');
+  await expect(chart).not.toHaveAttribute('aria-label', /run 2/);
+
+  await page.getByTestId('continue').click();
+  await expect(page.getByTestId('continue')).toBeVisible({ timeout: 15_000 });
+  await expect(chart).toHaveAttribute('aria-label', /line 20: 180 - T \/ 2, run 1.*line 20: 180 - T \/ 2, run 2/);
+
+  // Each run is its own 320 points: CONT must not send the first run's again.
+  const download = page.waitForEvent('download');
+  await page.getByTestId('download').click();
+  const text = Buffer.concat(await (await (await download).createReadStream()).toArray()).toString('utf8');
+  const rows = text.trim().split('\n').slice(1);
+  expect(rows.filter((r) => r.startsWith('1,')).length).toBe(320);
+  expect(rows.filter((r) => r.startsWith('2,')).length).toBe(320);
+});
+
+test('a new run starts clean: no runs, points or Continue left over', async ({ page }) => {
   await withListing(page, `${DRAWING}\n40 END\n50 PRINT "MORE"`);
   await page.getByTestId('run').click();
   await expect(page.getByTestId('continue')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByTestId('screen-canvas')).toBeVisible();
 
   // Editing the program and running it again is a fresh start, not a CONT.
   const editor = page.getByTestId('editor-mount');
@@ -90,7 +113,7 @@ test('a new run starts with a clean screen, and the chart back', async ({ page }
   await page.getByTestId('run').click();
   await expect(page.getByTestId('run')).toBeEnabled({ timeout: 15_000 });
 
-  await expect(page.getByTestId('screen-canvas')).toBeHidden();
-  await expect(page.getByTestId('chart-canvas')).toBeVisible();
+  await expect(page.getByTestId('chart-canvas')).not.toHaveAttribute('aria-label', /line 20/);
+  await expect(page.getByTestId('console-output')).not.toContainText('plotted');
   await expect(page.getByTestId('continue')).toBeHidden();
 });

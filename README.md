@@ -104,12 +104,16 @@ one the x axis, with a non-numeric line above it naming the columns.
 `PRINT` (with `,` and `;`), `LET` (optional), `INPUT`, `IF`/`THEN` and `IF`…`GOTO`,
 `FOR`/`TO`/`STEP`/`NEXT`, `GOTO`, `GOSUB`/`RETURN`, `DIM` (1-D and 2-D),
 `DATA`/`READ`/`RESTORE`, `REM`, `END`/`STOP`, `RANDOMIZE`, and several statements per
-line via `:`. **Continue** in the Output pane is `CONT`: it carries on after `END` or
-`STOP`, as listings that run in stages expect.
+line via `:`. **Continue (CONT)** in the Output pane carries on after `END` or `STOP`,
+as listings that run in stages expect, and quotes the line it resumes at when that line
+is a `REM` — MACROEC's says "Type CONT to rerun with rewnable resources".
 
 Graphics: `SCREEN 1` (320×200, CGA palettes) and `SCREEN 2` (640×200), `COLOR`, `CLS`,
-`PSET`, `PRESET`, and `LINE` with `STEP`, `B` and `BF`. The screen is drawn as the PC
-showed it, and every point is also kept exactly as the program computed it.
+`PSET`, `PRESET`, and `LINE` with `STEP`, `B` and `BF`. A program that draws is plotted
+like one that prints: each `PSET` statement is a series, named by what it plots
+(`line 230: 180 - Y / Y0`), in the listing's screen coordinates, and each run after
+`CONT` is a series of its own. The points are its table and its CSV. The screen as the
+PC drew it is compared pixel for pixel against PC-BASIC in `validation/oracle/`.
 
 Functions: `LEN`, `MID$`, `LEFT$`, `RIGHT$`, `STR$`, `VAL`, `CHR$`, `ASC`, `INT`,
 `ABS`, `SGN`, `SQR`, `SIN`, `COS`, `TAN`, `ATN`, `EXP`, `LOG`, `RND`.

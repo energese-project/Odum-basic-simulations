@@ -16,8 +16,9 @@ export interface RunnerHandlers {
   onOutput: (text: string) => void;
   onDraw: (ops: DrawOp[]) => void;
   onInputRequest: () => void;
-  /** `canContinue`: stopped by END or STOP with more to run — see cont(). */
-  onDone: (canContinue: boolean) => void;
+  /** `canContinue`: stopped by END or STOP with more to run — see cont().
+   *  `resumeLine`: the line it would resume at, 0 when it would not. */
+  onDone: (canContinue: boolean, resumeLine: number) => void;
   onError: (message: string) => void;
 }
 
@@ -55,7 +56,7 @@ export class Runner {
           break;
         case 'done':
           this.clearHaltTimer();
-          this.handlers.onDone(msg.canContinue);
+          this.handlers.onDone(msg.canContinue, msg.resumeLine);
           break;
         case 'error':
           this.clearHaltTimer();
@@ -94,7 +95,7 @@ export class Runner {
     this.clearHaltTimer();
     this.haltTimer = setTimeout(() => {
       this.terminate();
-      this.handlers.onDone(false);
+      this.handlers.onDone(false, 0);
     }, HALT_GRACE_MS);
   }
 

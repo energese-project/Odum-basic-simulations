@@ -27,7 +27,7 @@ WASM_SRC = src/lexer.c src/parser.c src/validate.c src/interp.c
 WASM_OUT ?= ../src/basic/engine.wasm
 # One line: make joins a continuation with a space, and a space inside this
 # list is an empty entry as far as emcc is concerned.
-WASM_EXPORTS = _BAS_Validate,_BAS_FreeString,_BAS_GetVersionString,_BAS_Init,_BAS_Free,_BAS_Reset,_BAS_Step,_BAS_CanContinue,_BAS_Continue,_BAS_GetRuntimeError,_BAS_GetRuntimeErrorLine,_BAS_GetInputPrompt,_BAS_ProvideInput,_BAS_TakeText,_BAS_GetRowCount,_BAS_GetRows,_malloc,_free
+WASM_EXPORTS = _BAS_Validate,_BAS_FreeString,_BAS_GetVersionString,_BAS_Init,_BAS_Free,_BAS_Reset,_BAS_Step,_BAS_CanContinue,_BAS_GetResumeLine,_BAS_Continue,_BAS_GetRuntimeError,_BAS_GetRuntimeErrorLine,_BAS_GetInputPrompt,_BAS_ProvideInput,_BAS_TakeText,_BAS_GetRowCount,_BAS_GetRows,_malloc,_free
 
 .PHONY: all test cli wasm clean
 

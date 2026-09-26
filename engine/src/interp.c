@@ -688,6 +688,10 @@ int BAS_CanContinue(BAS_Instance *in) {
          in->pc < in->prog.count;
 }
 
+int BAS_GetResumeLine(BAS_Instance *in) {
+  return BAS_CanContinue(in) ? in->prog.stmts[in->pc]->line_number : 0;
+}
+
 BAS_Status BAS_Continue(BAS_Instance *in) {
   if (!in) return BAS_ERR_ARGUMENT;
   if (!BAS_CanContinue(in)) return BAS_ERR_HALTED;

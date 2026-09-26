@@ -94,6 +94,7 @@ export class ChartPanelComponent extends BaseComponent {
     if (this.chart) {
       this.chart.data.datasets = datasets;
       this.chart.options.scales!.x!.title = { display: true, text: plot.xLabel };
+      this.applyShape(plot);
       this.chart.update('none');
       this.restyle();
       return;
@@ -133,7 +134,30 @@ export class ChartPanelComponent extends BaseComponent {
         },
       },
     });
+    this.applyShape(plot);
     this.restyle();
+  }
+
+  /**
+   * What differs between a printed table and a drawn plot (see draw-plot.ts): a
+   * drawn plot's y axis is screen rows, titled and reversed so that up on the PC is
+   * up here, and its series do not share rows, so hovering reads the nearest point
+   * rather than every series at one row.
+   */
+  private applyShape(plot: Plot): void {
+    if (!this.chart) return;
+    // A canvas is pixels to a screen reader; this is what it shows.
+    this.querySelector('canvas')?.setAttribute(
+      'aria-label',
+      `Chart. x: ${plot.xLabel}; y: ${plot.yLabel ?? 'value'}. Series: ${plot.series.map((s) => s.label).join('; ')}.`,
+    );
+    const y = this.chart.options.scales!.y!;
+    y.reverse = plot.yReversed ?? false;
+    y.title = plot.yLabel ? { display: true, text: plot.yLabel } : { display: false };
+    this.chart.options.interaction = plot.independent
+      ? { mode: 'nearest', intersect: false }
+      : { mode: 'index', intersect: false };
+    this.chart.options.plugins!.legend!.display = plot.series.length > 1;
   }
 
   private datasets(plot: Plot): ChartDataset<'line', { x: number; y: number }[]>[] {

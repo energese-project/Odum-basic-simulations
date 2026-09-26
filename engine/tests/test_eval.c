@@ -248,6 +248,28 @@ int main(void) {
   }
 
   {
+    /* The page shows what the listing says about the part CONT would run, and
+       MACROEC says it in the REM right after its END (line 452). */
+    TEST("a stopped program reports the line CONT would resume at");
+    BAS_Instance *inst = NULL;
+    BAS_Init("10 PSET (1, 0), 1\n20 END\n30 REM TYPE CONT\n40 STOP\n50 X = 1\n", &inst);
+    CHECK_INT(BAS_GetResumeLine(inst), 0);   /* not started: nothing to resume */
+    BAS_Status s = BAS_OK;
+    while (s == BAS_OK) s = BAS_Step(inst, 64);
+    CHECK_INT(BAS_GetResumeLine(inst), 30);  /* END leaves the pc on line 30 */
+    BAS_Continue(inst);
+    CHECK_INT(BAS_GetResumeLine(inst), 0);   /* running again */
+    s = BAS_OK;
+    while (s == BAS_OK) s = BAS_Step(inst, 64);
+    CHECK_INT(BAS_GetResumeLine(inst), 50);  /* STOP, the same way */
+    BAS_Continue(inst);
+    s = BAS_OK;
+    while (s == BAS_OK) s = BAS_Step(inst, 64);
+    CHECK_INT(BAS_GetResumeLine(inst), 0);   /* ran off the end: nothing to resume */
+    BAS_Free(inst);
+  }
+
+  {
     TEST("the rows come back as CSV in the published long format");
     BAS_Status s;
     BAS_Instance *i = run("10 PSET (3, 4), 2\n20 END\n", &s);

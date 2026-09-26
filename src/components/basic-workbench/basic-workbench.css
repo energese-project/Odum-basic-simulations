@@ -302,7 +302,6 @@
 
 :host .editor-pane code-editor,
 :host .chart-block chart-panel,
-:host .chart-block screen-panel,
 :host .console-block console-panel {
   flex: 1 1 auto;
   min-height: 0;

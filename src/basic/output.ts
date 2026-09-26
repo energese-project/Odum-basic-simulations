@@ -28,11 +28,25 @@ export interface Point {
 export interface Series {
   label: string;
   points: Point[];
+  /** A drawn series: the PSET line that plotted it, and which run (1 before any CONT). */
+  line?: number;
+  run?: number;
 }
 
 export interface Plot {
   xLabel: string;
   series: Series[];
+  /** The y axis's title. None for a printed table, whose columns are named by the legend. */
+  yLabel?: string;
+  /** Up is smaller: screen rows, as PSET drew them. */
+  yReversed?: boolean;
+  /**
+   * Series that do not share rows. A printed table's columns share them — one
+   * row per PRINT — and thinPlot, toCsv and the tooltip rely on it. Drawn series
+   * do not: a listing can skip a point (MACROEC's line 255) and each run has its
+   * own length. See draw-plot.ts.
+   */
+  independent?: boolean;
 }
 
 /** Fields are separated by a tab (PRINT's comma) or by any run of spaces. */
@@ -163,10 +177,23 @@ function headerLabels(above: string | null, width: number): string[] {
  * one row. The CSV and the console keep everything.
  */
 export function thinPlot(plot: Plot, maxRows: number): Plot {
+  if (plot.independent) {
+    // Each series is its own table of one column: thin it alone, sharing the
+    // budget in proportion to its length.
+    const total = plot.series.reduce((n, s) => n + s.points.length, 0);
+    return {
+      ...plot,
+      series: plot.series.map((s) => {
+        const budget = Math.max(2, Math.floor((maxRows * s.points.length) / Math.max(1, total)));
+        const one = thinPlot({ xLabel: plot.xLabel, series: [s] }, budget);
+        return { ...s, points: one.series[0].points };
+      }),
+    };
+  }
   const n = plot.series[0]?.points.length ?? 0;
   const pick = (rows: (points: Point[]) => Point[]): Plot => ({
-    xLabel: plot.xLabel,
-    series: plot.series.map((s) => ({ label: s.label, points: rows(s.points) })),
+    ...plot,
+    series: plot.series.map((s) => ({ ...s, points: rows(s.points) })),
   });
   if (n <= maxRows) return pick((points) => points.slice());
 
@@ -200,6 +227,12 @@ export function thinPlot(plot: Plot, maxRows: number): Plot {
 /** The table as CSV, for download. Quoting is not needed: every cell is a number
  *  and the labels come from BASIC identifiers and string literals in PRINT. */
 export function toCsv(plot: Plot): string {
+  // Drawn series do not share rows, so each point is its own row, in the order
+  // the series were drawn — the long form the engine's own CSV uses.
+  if (plot.independent) {
+    const rows = plot.series.flatMap((s) => s.points.map((p) => [s.run ?? 1, s.line ?? '', p.x, p.y].join(',')));
+    return ['run,line,x,y', ...rows].join('\n') + '\n';
+  }
   const header = [plot.xLabel, ...plot.series.map((s) => s.label)].join(',');
   const rows = plot.series[0].points.map((p, i) =>
     [p.x, ...plot.series.map((s) => s.points[i].y)].join(',')

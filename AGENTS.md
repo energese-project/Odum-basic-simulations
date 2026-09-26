@@ -246,12 +246,15 @@ only thing the published listings care about.
 
 **Graphics statements leave as coordinates, never as pixels.** Each is a `DrawOp` (or
 the engine's equivalent row) in the program's own coordinates, unrounded, with the line
-that drew it; `screen.ts` rasterises them for the Plot pane, and rasterises for *both*
-implementations — which is what makes a difference between their screens attributable
-to arithmetic rather than to drawing. Keep the two apart: the pixels are how the run
-looked, which is what the published figures show, and the record is what it computed,
-which is what a series is read back from. A series is a `PSET` statement, not a
-colour — Odum (1989) plots two variables in colour 2.
+that drew it. The site plots that record like any printed table
+([`draw-plot.ts`](src/basic/draw-plot.ts)): one series per `PSET` statement and per
+run, in the listing's screen coordinates on a reversed y axis, so every program has the
+same chart, table and CSV. `screen.ts` rasterises the same record into pixels for
+`validation/oracle/`, for *both* implementations — which is what makes a difference
+between their screens attributable to arithmetic rather than to drawing. Keep the two
+apart: the pixels are how the run looked, which is what the published figures and
+PC-BASIC show, and the record is what it computed. A series is a `PSET` statement, not
+a colour — Odum (1989) plots two variables in colour 2.
 
 `SCREEN`, `COLOR` and `CLS` are recorded in that stream rather than discarded. A
 rasteriser cannot size a buffer before it knows the mode, and `screen.ts` starts at
